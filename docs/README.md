@@ -14,9 +14,10 @@ title: Project Template
 ---
 
 ## Team
--  eNumber, Name, [email](mailto:name@email.com)
--  eNumber, Name, [email](mailto:name@email.com)
--  eNumber, Name, [email](mailto:name@email.com)
+-  E/21/005, Abeykoon A.M.S.D, [e21005@eng.pdn.ac.lk](mailto:name@email.com)
+-  E/21/045, Baines S.M, [e21045@eng.pdn.ac.lk](mailto:e21045@eng.pdn.ac.lk)
+-  E/21/415, Uduwaka C.S.T, [e21415@eng.pdn.ac.lk](mailto:name@email.com)
+-  E/21/444, Wijesinghe R.M.S.D, [e21444@eng.pdn.ac.lk](mailto:name@email.com)
 
 <!-- Image (photo/drawing of the final hardware) should be here -->
 
@@ -35,8 +36,20 @@ title: Project Template
 
 ## Introduction
 
-Description of the real world problem and solution, impact
+### The Real World Problem
 
+With the increase in urban mobility, online shopping, and public space usage, there is a
+growing need for secure, flexible, and remotely accessible storage solutions. Traditional
+lockers require physical keys and manual supervision, which limits usability and security.
+
+### Solution
+This project proposes a Smart Locker System integrated with a Mobile Application,
+allowing users to reserve, access, and manage lockers remotely, while administrators
+can monitor, control, and handle emergencies efficiently.
+
+### Impact
+The system is designed for deployment in public locations across Sri Lanka, such as bus
+stations, railway stations, shopping malls, universities, and offices.
 
 ## Solution Architecture
 
