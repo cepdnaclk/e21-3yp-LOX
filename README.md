@@ -111,14 +111,14 @@ The LOX Mobile App Based Locker System is a comprehensive IoT ecosystem that int
 
 ---
 
-## 🔗 Links
+## Links
 
 - GitHub Repo: *(https://github.com/cepdnaclk/e21-3yp-LOX)*  
 - Project Page: *(https://cepdnaclk.github.io/e21-3yp-LOX/)*  
 
 ---
 
-## 📌 Note
+## Note
 
 This repository contains the implementation of the **Mobile App-Based Smart Locker System**, part of the larger **LOX Smart Locker Project**.
 
