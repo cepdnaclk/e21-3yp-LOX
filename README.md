@@ -14,7 +14,7 @@ LOX smartLocker is a mobile app–based smart locker system that enables users t
 
 ## The Problem & Motivation
 
-[cite_start]The rapid infrastructure development in Sri Lanka, including the establishment of **Multimodal Transportation Centers** like Kadawatha and Makumbura, has created a critical gap in traveler convenience[cite: 19, 26, 27]. [cite_start]While these hubs centralize transit, they lack integrated, secure facilities for commuters and tourists to store their belongings[cite: 19].
+The rapid infrastructure development in Sri Lanka, including the establishment of **Multimodal Transportation Centers** like Kadawatha and Makumbura, has created a critical gap in traveler convenience. While these hubs centralize transit, they lack integrated, secure facilities for commuters and tourists to store their belongings.
 
 ### **1. Public Transit & Tourism Obstacles**
 * **Logistical Friction:** Commuters face limited access to essential services like canteens and washrooms because they are forced to carry heavy bags at all times.
