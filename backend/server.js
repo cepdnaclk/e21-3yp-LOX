@@ -13,12 +13,19 @@ connectMasterDB()
 initStationDBs()
 
 // Initialize MQTT — connects to broker and listens to ESP32
-require("./services/mqttService")
+// require("./services/mqttService")
+let publishCommand;
+if (process.env.MQTT_SERVER) {
+  require("./services/mqttService")
+  publishCommand = require("./services/mqttService").publishCommand
+} else {
+  publishCommand = (topic, message) => console.log(`[SIMULATED MQTT] Skipped: ${message}`);
+}
 
 // Start overdue locker checker — runs every 60 seconds
 // Reads station IDs from env to know which stations to check
 const { startOverdueChecker }  = require("./utils/overdueChecker")
-const { publishCommand }       = require("./services/mqttService")
+// const { publishCommand }       = require("./services/mqttService")
 const stationIds = process.env.STATION_DBS
   .split(",")
   .map((entry) => entry.split("|")[0].trim())
@@ -34,7 +41,12 @@ app.use("/api/station-settings", require("./routes/stationSettings"))
 
 // Health check
 app.get("/health", (req, res) => {
-  const { isMqttConnected } = require("./services/mqttService")
+  // Safe bypass: defaults to false if no MQTT server is configured
+  let isMqttConnected = () => false;
+  if (process.env.MQTT_SERVER) {
+    isMqttConnected = require("./services/mqttService").isMqttConnected;
+  }
+  
   const mongoose = require("mongoose")
   res.json({
     ok:             true,
