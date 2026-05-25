@@ -54,7 +54,7 @@ PubSubClient     mqttClient(wifiClient);
 // ─────────────────────────────────────────────────────────
 void applyLockerState(int index, bool locked) {
   // Active-low relay: LOW energizes, HIGH de-energizes
-  digitalWrite(lockers[index].relayPin, locked ? HIGH : LOW)
+  digitalWrite(lockers[index].relayPin, locked ? HIGH : LOW);
 
   // Build state topic: locker/{stationId}/{lockerId}/state
   char stateTopic[64];
@@ -197,7 +197,7 @@ void loop() {
   }
 
   if (!mqttClient.connected()) {
-    connectMqtt()
+    connectMqtt();
   }
 
   mqttClient.loop();
