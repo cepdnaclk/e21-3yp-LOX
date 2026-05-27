@@ -12,6 +12,11 @@ class Locker {
     this.overdueAt,
     this.releaseRequested,
     this.releaseRequestedAt,
+    this.paymentStatus,
+    this.paymentReference,
+    this.paymentAmount,
+    this.paymentPaidAt,
+    this.gracePeriodExpiresAt,
     this.lastReportedAt,
   });
 
@@ -27,6 +32,11 @@ class Locker {
   final DateTime? overdueAt;
   final bool? releaseRequested;
   final DateTime? releaseRequestedAt;
+  final String? paymentStatus;
+  final String? paymentReference;
+  final num? paymentAmount;
+  final DateTime? paymentPaidAt;
+  final DateTime? gracePeriodExpiresAt;
   final DateTime? lastReportedAt;
 
   static DateTime? _parseDate(dynamic raw) {
@@ -64,6 +74,16 @@ class Locker {
       releaseRequested: json['release_requested'] as bool?,
 
       releaseRequestedAt: _parseDate(json['release_requested_at']),
+
+      paymentStatus: json['payment_status']?.toString(),
+
+      paymentReference: json['payment_reference']?.toString(),
+
+      paymentAmount: json['payment_amount'] as num?,
+
+      paymentPaidAt: _parseDate(json['payment_paid_at']),
+
+      gracePeriodExpiresAt: _parseDate(json['grace_period_expires_at']),
 
       lastReportedAt: _parseDate(json['last_reported_at']),
     );
