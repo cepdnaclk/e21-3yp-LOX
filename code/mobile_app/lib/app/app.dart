@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../core/constants/app_constants.dart';
+import '../core/services/notification_service.dart';
 import '../core/utils/url_utils.dart';
 
 import '../data/local/local_store.dart';
@@ -75,6 +78,8 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
         _loading = false;
         _bootError = null;
       });
+
+      unawaited(_configurePushNotifications(_session!));
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -107,6 +112,8 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
         _session = SessionData(client: client, user: result.user);
         _loading = false;
       });
+
+      unawaited(_configurePushNotifications(_session!));
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -123,6 +130,19 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
     setState(() {
       _session = null;
     });
+  }
+
+  Future<void> _configurePushNotifications(SessionData session) async {
+    try {
+      await NotificationService.instance.initialize();
+
+      await NotificationService.instance.registerTokenWithBackend(
+        backendBaseUrl: _baseUrl,
+        authToken: session.client.token,
+      );
+    } catch (error) {
+      debugPrint('FCM bootstrap skipped: $error');
+    }
   }
 
   /// Build the main app widget.

@@ -5,6 +5,10 @@ const User = require("../models/master/User")
 const LockerStation = require("../models/master/LockerStation")
 const { getStationDB } = require("../config/stationDB")
 const stationMemberSchema = require("../models/station/StationMember")
+const { sendToUser, sendPushNotification } = require("../services/pushNotificationService")
+
+const notifyUser = sendToUser || ((userId, title, body) =>
+  sendPushNotification({ userId, title, body }))
 
 const getStationMemberModel = (stationId) => {
   const conn = getStationDB(stationId)
@@ -20,7 +24,7 @@ const getStationMemberModel = (stationId) => {
 router.get("/status/:station_id", async (req, res) => {
   try {
     const { station_id } = req.params
-    const { user_id }    = req.query
+    const { user_id } = req.query
 
     if (!user_id) {
       return res.status(400).json({ message: "user_id is required" })
@@ -85,9 +89,9 @@ router.post("/request", async (req, res) => {
     })
 
     res.status(201).json({
-      message:       "Membership requested successfully. Waiting for station approval.",
+      message: "Membership requested successfully. Waiting for station approval.",
       membership_id: membership._id,
-      status:        membership.status
+      status: membership.status
     })
 
   } catch (err) {
@@ -118,7 +122,7 @@ router.put("/accept", async (req, res) => {
       return res.status(400).json({ message: `Membership is already ${membership.status}` })
     }
 
-    membership.status   = "active"
+    membership.status = "active"
     membership.joined_at = new Date()
     await membership.save()
 
@@ -127,23 +131,40 @@ router.put("/accept", async (req, res) => {
     const alreadyInStation = await StationMember.findOne({ user_id: membership.user_id })
     if (!alreadyInStation) {
       await StationMember.create({
-        user_id:       membership.user_id,
+        user_id: membership.user_id,
         membership_id: membership._id,
-        synced_at:     new Date(),
-        local_status:  "active"
+        synced_at: new Date(),
+        local_status: "active"
       })
     }
 
     res.status(200).json({
-      ok:         true,
-      message:    "Membership accepted. User has been added to the station.",
+      ok: true,
+      message: "Membership accepted. User has been added to the station.",
       membership: {
         membership_id: membership._id,
-        user_id:       membership.user_id,
-        station_id:    membership.station_id,
-        status:        membership.status,
-        joined_at:     membership.joined_at
+        user_id: membership.user_id,
+        station_id: membership.station_id,
+        status: membership.status,
+        joined_at: membership.joined_at
       }
+    })
+
+    notifyUser(
+      membership.user_id,
+      "Membership Approved 🎉",
+      "Your membership for the station has been approved. You can now reserve lockers."
+    ).catch((error) => {
+      console.error("Failed to send membership approval notification:", error.message)
+    })
+
+    // Non-blocking push notification for approved membership.
+    notifyUser(
+      membership.user_id,
+      "Membership Approved 🎉",
+      "Your membership for the station has been approved. You can now reserve lockers."
+    ).catch((error) => {
+      console.error("Failed to send membership approval notification:", error.message)
     })
 
   } catch (err) {
@@ -192,17 +213,17 @@ router.get("/pending/:station_id", async (req, res) => {
       .populate("user_id", "name email")
 
     res.status(200).json({
-      message:  `Pending membership requests for ${station_id}`,
-      count:    pending.length,
+      message: `Pending membership requests for ${station_id}`,
+      count: pending.length,
       requests: pending.map((m) => ({
         membership_id: m._id,
         user: {
-          id:    m.user_id._id,
-          name:  m.user_id.name,
+          id: m.user_id._id,
+          name: m.user_id.name,
           email: m.user_id.email
         },
         station_id: m.station_id,
-        joined_at:  m.joined_at
+        joined_at: m.joined_at
       }))
     })
 
