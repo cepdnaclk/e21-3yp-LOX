@@ -40,9 +40,13 @@ const initializeFirebaseAdmin = () => {
 
   const serviceAccount = getServiceAccountCredentials()
 
-  return admin.initializeApp({
+  const app = admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   })
+
+  console.log("Firebase connection established")
+
+  return app
 }
 
 module.exports = {
