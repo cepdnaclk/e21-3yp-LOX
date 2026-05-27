@@ -4,12 +4,16 @@ const { getStationDB }       = require("../config/stationDB")
 const lockerSchema           = require("../models/station/Locker")
 const stationMemberSchema    = require("../models/station/StationMember")
 const { publishCommand }     = require("../services/mqttService")
+const { sendToUser, sendPushNotification } = require("../services/pushNotificationService")
 const {
   getUserOffer,
   confirmQueueReservation,
   processNextInQueue,
   getQueueStatus
 } = require("../utils/queueProcessor")
+
+const notifyUser = sendToUser || ((userId, title, body) =>
+  sendPushNotification({ userId, title, body }))
 
 // ─────────────────────────────────────────────────────────
 // HELPERS
@@ -281,6 +285,15 @@ router.post("/reserve", async (req, res) => {
       }
     })
 
+    const notifyUserId = req.user?._id || user_id
+    notifyUser(
+      notifyUserId,
+      "Locker Reserved 🔐",
+      `You have successfully reserved locker ${locker.locker_id}. You have 15 minutes to arrive at the station.`
+    ).catch((error) => {
+      console.error("Failed to send locker reservation notification:", error.message)
+    })
+
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message })
   }
@@ -313,6 +326,8 @@ router.put("/release", async (req, res) => {
     if (!locker.reserved_by || locker.reserved_by.toString() !== user_id.toString()) {
       return res.status(403).json({ message: "You can only release your own reserved locker" })
     }
+
+    const releasedByUserId = locker.reserved_by
 
     // Clear reservation
     locker.reserved_by = null
@@ -353,6 +368,14 @@ router.put("/release", async (req, res) => {
         locker_id:    locker.locker_id,
         availability: locker.availability
       }
+    })
+
+    notifyUser(
+      releasedByUserId,
+      "Locker Released 🔓",
+      `Your session for locker ${locker.locker_id} has successfully ended.`
+    ).catch((error) => {
+      console.error("Failed to send locker release notification:", error.message)
     })
 
   } catch (err) {

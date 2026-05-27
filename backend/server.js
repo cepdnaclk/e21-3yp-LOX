@@ -3,6 +3,7 @@ const express = require("express")
 const cors    = require("cors")
 const connectMasterDB    = require("./config/masterDB")
 const { initStationDBs } = require("./config/stationDB")
+const { initializeFirebaseAdmin } = require("./config/firebaseAdmin")
 
 const app = express()
 app.use(cors())
@@ -11,6 +12,12 @@ app.use(express.json())
 // Connect databases
 connectMasterDB()
 initStationDBs()
+
+try {
+  initializeFirebaseAdmin()
+} catch (error) {
+  console.warn(`[Firebase Admin] ${error.message}`)
+}
 
 // Initialize MQTT — connects to broker and listens to ESP32
 // require("./services/mqttService")
@@ -33,6 +40,7 @@ startOverdueChecker(stationIds, publishCommand)
 
 // Routes
 app.use("/api/users",            require("./routes/users"))
+app.use("/api/notifications",    require("./routes/notifications"))
 app.use("/api/stations",         require("./routes/stations"))
 app.use("/api/memberships",      require("./routes/memberships"))
 app.use("/api/lockers",          require("./routes/lockers"))

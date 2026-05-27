@@ -16,7 +16,8 @@ const signLoginToken = (user) => {
     {
       user_id: user._id.toString(),
       email:   user.email,
-      name:    user.name
+      name:    user.name,
+      role:    user.role || "USER"
     },
     jwtSecret,
     {
@@ -38,6 +39,7 @@ router.get("/", async (req, res) => {
         user_id:    u._id,
         name:       u.name,
         email:      u.email,
+        role:       u.role || "USER",
         created_at: u.created_at
       }))
     })
@@ -79,6 +81,7 @@ router.post("/add", async (req, res) => {
         id:         user._id,
         name:       user.name,
         email:      user.email,
+        role:       user.role || "USER",
         created_at: user.created_at
       }
     })
@@ -123,6 +126,7 @@ router.post("/login", async (req, res) => {
         user_id:    user._id,
         name:       user.name,
         email:      user.email,
+        role:       user.role || "USER",
         created_at: user.created_at
       }
     })
@@ -146,6 +150,7 @@ router.get("/me", authenticateToken, async (req, res) => {
         user_id:    user._id,
         name:       user.name,
         email:      user.email,
+        role:       user.role || "USER",
         created_at: user.created_at
       }
     })
