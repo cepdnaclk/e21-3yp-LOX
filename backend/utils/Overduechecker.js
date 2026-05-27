@@ -46,6 +46,11 @@ const checkOverdueForStation = async (stationId, publishCommand) => {
   for (const locker of overdueLockers) {
     locker.availability          = "overdue"
     locker.overdue_at            = new Date()
+    locker.payment_status        = "unpaid"
+    locker.payment_reference     = null
+    locker.payment_amount        = null
+    locker.payment_paid_at       = null
+    locker.grace_period_expires_at = null
     // Automatically flag release_requested = true
     // This acts as the user notification — user polls and sees this
     // Also signals admin that this locker needs attention
