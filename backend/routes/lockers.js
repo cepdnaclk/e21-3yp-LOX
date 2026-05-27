@@ -123,6 +123,11 @@ router.get("/reserved-details/:station_id", async (req, res) => {
         overdue_at:           locker.overdue_at,
         release_requested:    locker.release_requested,
         release_requested_at: locker.release_requested_at,
+        payment_status:       locker.payment_status,
+        payment_reference:    locker.payment_reference,
+        payment_amount:       locker.payment_amount,
+        payment_paid_at:      locker.payment_paid_at,
+        grace_period_expires_at: locker.grace_period_expires_at,
         last_reported_at:     locker.last_reported_at
       }
     })
@@ -161,6 +166,8 @@ router.get("/:station_id", async (req, res) => {
       door_state:       myLockerRaw.door_state,
       state:            myLockerRaw.state,
       availability:     myLockerRaw.availability,
+      payment_status:   myLockerRaw.payment_status,
+      grace_period_expires_at: myLockerRaw.grace_period_expires_at,
       last_reported_at: myLockerRaw.last_reported_at
     } : null
 
@@ -327,11 +334,33 @@ router.put("/release", async (req, res) => {
       return res.status(403).json({ message: "You can only release your own reserved locker" })
     }
 
+    if (locker.availability === "overdue" && locker.payment_status !== "paid") {
+      return res.status(402).json({
+        message: "This locker is overdue. Payment is required before you can release it."
+      })
+    }
+
+    if (
+      locker.availability === "overdue" &&
+      locker.payment_status === "paid" &&
+      locker.grace_period_expires_at &&
+      new Date(locker.grace_period_expires_at).getTime() < Date.now()
+    ) {
+      return res.status(400).json({
+        message: "The payment grace period has expired. Please contact the station admin."
+      })
+    }
+
     const releasedByUserId = locker.reserved_by
 
     // Clear reservation
     locker.reserved_by = null
     locker.reserved_at = null
+    locker.payment_status = "unpaid"
+    locker.payment_reference = null
+    locker.payment_amount = null
+    locker.payment_paid_at = null
+    locker.grace_period_expires_at = null
 
     // Try hardware unlock
     let hardwareConnected = false
@@ -661,6 +690,23 @@ router.post("/unlock", async (req, res) => {
       return res.status(403).json({ message: "You can only unlock your own reserved locker" })
     }
 
+    if (locker.availability === "overdue" && locker.payment_status !== "paid") {
+      return res.status(402).json({
+        message: "This locker is overdue. Payment is required before you can unlock it."
+      })
+    }
+
+    if (
+      locker.availability === "overdue" &&
+      locker.payment_status === "paid" &&
+      locker.grace_period_expires_at &&
+      new Date(locker.grace_period_expires_at).getTime() < Date.now()
+    ) {
+      return res.status(400).json({
+        message: "The payment grace period has expired. Please contact the station admin."
+      })
+    }
+
     // Only valid from lock_close state
     if (locker.state !== "lock_close") {
       return res.status(400).json({
@@ -787,6 +833,11 @@ router.post("/admin-release", async (req, res) => {
     locker.reserved_by           = null
     locker.reserved_at           = null
     locker.overdue_at            = null
+    locker.payment_status        = "unpaid"
+    locker.payment_reference     = null
+    locker.payment_amount        = null
+    locker.payment_paid_at       = null
+    locker.grace_period_expires_at = null
     locker.release_requested     = false
     locker.release_requested_at  = null
 
@@ -873,11 +924,16 @@ router.get("/time-remaining/:station_id", async (req, res) => {
 
     // Locker already overdue
     if (locker.availability === "overdue") {
+      const expiresAt = locker.reserved_at
+        ? new Date(locker.reserved_at.getTime() + settings.free_minutes * 60 * 1000)
+        : null
+
       return res.status(200).json({
         locker_id:         locker.locker_id,
         availability:      "overdue",
         reserved_at:       locker.reserved_at,
         overdue_at:        locker.overdue_at,
+        expires_at:        expiresAt,
         free_minutes:      settings.free_minutes,
         time_limit:        true,
         is_overdue:        true,

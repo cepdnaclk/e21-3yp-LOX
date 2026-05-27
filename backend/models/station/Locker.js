@@ -32,6 +32,17 @@ const lockerSchema = new mongoose.Schema({
   // Overdue tracking
   overdue_at: { type: Date, default: null },
 
+  // Mock payment + grace-period tracking
+  payment_status: {
+    type: String,
+    enum: ["unpaid", "paid"],
+    default: "unpaid"
+  },
+  payment_reference:       { type: String, default: null },
+  payment_amount:          { type: Number, default: null },
+  payment_paid_at:         { type: Date, default: null },
+  grace_period_expires_at: { type: Date, default: null },
+
   // Release request — user asks admin to unlock overdue locker
   release_requested:    { type: Boolean, default: false },
   release_requested_at: { type: Date,    default: null  }
