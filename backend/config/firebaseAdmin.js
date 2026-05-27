@@ -17,9 +17,11 @@ const getServiceAccountPath = () => {
     : path.resolve(process.cwd(), configuredPath)
 }
 
-const initializeFirebaseAdmin = () => {
-  if (admin.apps.length > 0) {
-    return admin.app()
+const getServiceAccountCredentials = () => {
+  const configuredJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
+
+  if (configuredJson) {
+    return JSON.parse(configuredJson)
   }
 
   const serviceAccountPath = getServiceAccountPath()
@@ -28,7 +30,15 @@ const initializeFirebaseAdmin = () => {
     throw new Error(`Firebase service account file not found at ${serviceAccountPath}`)
   }
 
-  const serviceAccount = require(serviceAccountPath)
+  return JSON.parse(fs.readFileSync(serviceAccountPath, "utf8"))
+}
+
+const initializeFirebaseAdmin = () => {
+  if (admin.apps.length > 0) {
+    return admin.app()
+  }
+
+  const serviceAccount = getServiceAccountCredentials()
 
   return admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
