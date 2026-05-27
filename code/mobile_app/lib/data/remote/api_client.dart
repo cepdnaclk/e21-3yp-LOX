@@ -417,4 +417,39 @@ class ApiClient {
       rethrow;
     }
   }
+
+  /// Complete a mock overdue payment and start the 30-minute grace period.
+  Future<Locker> payOverdueLocker({
+    required String stationId,
+    required String lockerId,
+    double amount = 5.0,
+    required String cardHolderName,
+    required String cardNumber,
+    required String expiryMonthYear,
+    required String cvv,
+  }) async {
+    debugPrint('📡 Paying overdue fee for locker: $lockerId at station: $stationId');
+    try {
+      final payload = await _request(
+        'POST',
+        '/api/payments/mock-checkout',
+        body: {
+          'station_id': stationId,
+          'user_id': userId,
+          'locker_id': lockerId,
+          'amount': amount,
+          'card_holder_name': cardHolderName,
+          'card_number': cardNumber,
+          'expiry_month_year': expiryMonthYear,
+          'cvv': cvv,
+        },
+      );
+      debugPrint('✅ Mock payment completed successfully');
+      final lockerData = payload['locker'] as Map<String, dynamic>? ?? const {};
+      return Locker.fromJson(lockerData);
+    } catch (e) {
+      debugPrint('❌ Error paying overdue fee: $e');
+      rethrow;
+    }
+  }
 }
