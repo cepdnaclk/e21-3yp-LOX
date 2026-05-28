@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
+import '../../../core/services/auth_service.dart';
 import '../../../data/local/local_store.dart';
 import '../../../data/models/access_request.dart';
 import '../../../data/models/session_data.dart';
@@ -12,10 +13,16 @@ import '../tabs/explore/screens/explore_screen.dart';
 
 /// The primary shell screen for authenticated users.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.session, required this.onLogout});
+  const HomeScreen({
+    super.key,
+    required this.session,
+    required this.onLogout,
+    this.initialTabIndex = 0,
+  });
 
   final SessionData session;
   final Future<void> Function() onLogout;
+  final int initialTabIndex;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -23,7 +30,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   // Navigation State
-  int _tabIndex = 0;
+  late int _tabIndex;
+  late final AuthService _authService;
 
   bool _loading = true;
   String? _error;
@@ -43,7 +51,19 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _tabIndex = widget.initialTabIndex;
+    _authService = AuthService(baseUrl: widget.session.client.baseUrl);
     _loadUiPrefsAndData();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialTabIndex != oldWidget.initialTabIndex) {
+      setState(() {
+        _tabIndex = widget.initialTabIndex;
+      });
+    }
   }
 
   Future<void> _loadUiPrefsAndData() async {
@@ -206,7 +226,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 unawaited(LocalStore.saveSelectedStation(stationId));
               },
             ),
-            AccountScreen(user: widget.session.user, onLogout: widget.onLogout),
+            AccountScreen(
+              user: widget.session.user,
+              onLogout: widget.onLogout,
+              authService: _authService,
+            ),
           ],
         ),
       ),

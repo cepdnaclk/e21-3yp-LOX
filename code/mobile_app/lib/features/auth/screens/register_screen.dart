@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/url_utils.dart';
-import '../../../data/models/auth_result.dart';
-import '../../../data/remote/api_client.dart';
 
 /// The user registration interface for the Smart Locker application.
 ///
@@ -16,13 +15,13 @@ import '../../../data/remote/api_client.dart';
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({
     super.key,
-    required this.onAuthSuccess,
+    required this.onRegistrationCompleted,
     this.onLoginTap,
     this.showTabToggle = true,
   });
 
-  /// Callback executed when the API successfully registers the user and returns an [AuthResult].
-  final Future<void> Function(AuthResult result) onAuthSuccess;
+  /// Callback executed after successful registration and local trusted-device binding.
+  final Future<void> Function() onRegistrationCompleted;
 
   /// Callback to switch the parent [AuthScreen] back to the Login tab.
   final VoidCallback? onLoginTap;
@@ -87,11 +86,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _submitting = true);
     try {
-      final result = await ApiClient(
-        baseUrl: baseUrl,
-        token: '',
-      ).register(name: name, email: email, password: password);
-      await widget.onAuthSuccess(result);
+      await AuthService(baseUrl: baseUrl).registerAndBindCurrentDevice(
+        name: name,
+        email: email,
+        password: password,
+      );
+      await widget.onRegistrationCompleted();
     } catch (e) {
       if (mounted) _showError(e.toString());
     }
@@ -212,7 +212,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.olive,
                   foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.olive.withOpacity(0.6),
+                  disabledBackgroundColor: AppColors.olive.withValues(alpha: 0.6),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(32),
                   ),
@@ -319,7 +319,7 @@ class _TabButton extends StatelessWidget {
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
