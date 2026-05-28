@@ -45,6 +45,7 @@ startOverdueChecker(stationIds, publishCommand)
 
 // Routes
 app.use("/api/users",            require("./routes/users"))
+app.use("/api/auth",             require("./routes/auth"))
 app.use("/api/notifications",    require("./routes/notifications"))
 app.use("/api/stations",         require("./routes/stations"))
 app.use("/api/memberships",      require("./routes/memberships"))

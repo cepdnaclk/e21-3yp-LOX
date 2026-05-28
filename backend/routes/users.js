@@ -3,6 +3,7 @@ const router = express.Router()
 const User = require("../models/master/User")
 const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
+const crypto = require("crypto")
 const { authenticateToken } = require("../middleware/auth")
 
 const signLoginToken = (user) => {
@@ -52,7 +53,7 @@ router.get("/", async (req, res) => {
 // POST /api/users/add
 router.post("/add", async (req, res) => {
   try {
-    const { name, email, password } = req.body
+    const { name, email, password, devicePublicKey } = req.body
 
     // Check all fields are provided
     if (!name || !email || !password) {
@@ -68,11 +69,30 @@ router.post("/add", async (req, res) => {
     // Hash the password
     const password_hash = await bcrypt.hash(password, 10)
 
+    let trustedDevices = []
+    if (devicePublicKey) {
+      try {
+        const parsed = JSON.parse(devicePublicKey)
+        if (!parsed.kty || !parsed.n || !parsed.e) {
+          return res.status(400).json({ message: "devicePublicKey must be a valid RSA JWK string" })
+        }
+
+        trustedDevices = [{
+          key_id: crypto.randomUUID(),
+          public_key: devicePublicKey,
+          created_at: new Date()
+        }]
+      } catch {
+        return res.status(400).json({ message: "devicePublicKey must be a valid RSA JWK string" })
+      }
+    }
+
     // Create the user
     const user = await User.create({
       name,
       email,
-      password_hash
+      password_hash,
+      trusted_devices: trustedDevices
     })
 
     res.status(201).json({
