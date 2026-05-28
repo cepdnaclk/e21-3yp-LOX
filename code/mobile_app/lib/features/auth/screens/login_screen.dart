@@ -18,6 +18,7 @@ class LoginScreen extends StatefulWidget {
     required this.onAuthSuccess,
     this.errorMessage,
     this.onJoinTap,
+    this.onBackTap,
     this.showTabToggle = true,
   });
 
@@ -29,6 +30,9 @@ class LoginScreen extends StatefulWidget {
 
   /// Callback to switch the parent [AuthScreen] to the Register tab.
   final VoidCallback? onJoinTap;
+
+  /// Callback used by the back button to return to the auth landing page.
+  final VoidCallback? onBackTap;
 
   /// Determines if the [ LOGIN | JOIN ] toggle should be rendered.
   final bool showTabToggle;
@@ -89,190 +93,197 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
-          children: [
-            const SizedBox(height: 28),
-            if (widget.showTabToggle)
-              Center(
-                child: Container(
-                  height: 44,
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: AppColors.fieldBackground,
-                    borderRadius: BorderRadius.circular(22),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          widget.onBackTap?.call();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            color: AppColors.textMain,
+            onPressed: widget.onBackTap,
+          ),
+        ),
+        body: SafeArea(
+          top: false,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
+            children: [
+              const SizedBox(height: 12),
+              if (widget.showTabToggle)
+                Center(
+                  child: Container(
+                    height: 44,
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.fieldBackground,
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const _TabButton(
+                          label: 'LOGIN',
+                          selected: true,
+                          onTap: null,
+                        ),
+                        _TabButton(
+                          label: 'JOIN',
+                          selected: false,
+                          onTap: widget.onJoinTap,
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                ),
+              const SizedBox(height: 36),
+              SvgPicture.asset(
+                'assets/images/lox_logo_auth.svg',
+                width: 90,
+                height: 90,
+              ),
+              const Text(
+                'Welcome Back',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textMain,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'ENTER CREDENTIALS TO ACCESS LOCKER',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
+                  color: AppColors.textLabel,
+                ),
+              ),
+              const SizedBox(height: 36),
+              const Text(
+                'EMAIL ADDRESS',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
+                  color: AppColors.textLabel,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _LockerTextField(
+                controller: _emailController,
+                hintText: 'you@example.com',
+                icon: Icons.mail_outline_rounded,
+                keyboardType: TextInputType.emailAddress,
+                fieldBg: AppColors.fieldBackground,
+                hintColor: AppColors.textHint,
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'PASSWORD',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
+                  color: AppColors.textLabel,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _LockerTextField(
+                controller: _passwordController,
+                hintText: '••••••••',
+                icon: Icons.vpn_key_outlined,
+                obscureText: true,
+                fieldBg: AppColors.fieldBackground,
+                hintColor: AppColors.textHint,
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _submitting ? null : _login,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.olive,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: AppColors.olive.withOpacity(0.6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(32),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'SIGN IN',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.8,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Center(
+                child: RichText(
+                  textAlign: TextAlign.center,
+                  text: const TextSpan(
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: AppColors.textHint,
+                      letterSpacing: 0.5,
+                    ),
                     children: [
-                      const _TabButton(
-                        label: 'LOGIN',
-                        selected: true,
-                        onTap: null,
+                      TextSpan(text: 'BY CONTINUING, YOU AGREE TO OUR '),
+                      TextSpan(
+                        text: 'SECURITY PROTOCOLS',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.oliveDark,
+                        ),
                       ),
-                      _TabButton(
-                        label: 'JOIN',
-                        selected: false,
-                        onTap: widget.onJoinTap,
+                      TextSpan(text: ' & '),
+                      TextSpan(
+                        text: 'TERMS OF USE',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.oliveDark,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-            const SizedBox(height: 36),
-            SvgPicture.asset(
-              'assets/images/lox_logo_auth.svg',
-              width: 90,
-              height: 90,
-            ),
-            const Text(
-              'Welcome Back',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textMain,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'ENTER CREDENTIALS TO ACCESS LOCKER',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.2,
-                color: AppColors.textLabel,
-              ),
-            ),
-            const SizedBox(height: 36),
-            const Text(
-              'EMAIL ADDRESS',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.2,
-                color: AppColors.textLabel,
-              ),
-            ),
-            const SizedBox(height: 8),
-            _LockerTextField(
-              controller: _emailController,
-              hintText: 'you@example.com',
-              icon: Icons.mail_outline_rounded,
-              keyboardType: TextInputType.emailAddress,
-              fieldBg: AppColors.fieldBackground,
-              hintColor: AppColors.textHint,
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'PASSWORD',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.2,
-                color: AppColors.textLabel,
-              ),
-            ),
-            const SizedBox(height: 8),
-            _LockerTextField(
-              controller: _passwordController,
-              hintText: '••••••••',
-              icon: Icons.vpn_key_outlined,
-              obscureText: true,
-              fieldBg: AppColors.fieldBackground,
-              hintColor: AppColors.textHint,
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _submitting ? null : _login,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.olive,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.olive.withOpacity(0.6),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(32),
-                  ),
-                  elevation: 0,
+              if (widget.errorMessage != null) ...[
+                const SizedBox(height: 16),
+                Text(
+                  widget.errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.redAccent, fontSize: 13),
                 ),
-                child: _submitting
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text(
-                        'SIGN IN',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.8,
-                        ),
-                      ),
-              ),
-            ),
-            // const SizedBox(height: 28),
-            // const Center(
-            //   child: Text(
-            //     'OR CONTINUE WITH',
-            //     style: TextStyle(
-            //       fontSize: 10,
-            //       fontWeight: FontWeight.w500,
-            //       letterSpacing: 1.2,
-            //       color: AppColors.textHint,
-            //     ),
-            //   ),
-            // ),
-            const SizedBox(height: 10),
-            Center(
-              child: RichText(
-                textAlign: TextAlign.center,
-                text: const TextSpan(
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: AppColors.textHint,
-                    letterSpacing: 0.5,
-                  ),
-                  children: [
-                    TextSpan(text: 'BY CONTINUING, YOU AGREE TO OUR '),
-                    TextSpan(
-                      text: 'SECURITY PROTOCOLS',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.oliveDark,
-                      ),
-                    ),
-                    TextSpan(text: ' & '),
-                    TextSpan(
-                      text: 'TERMS OF USE',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.oliveDark,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (widget.errorMessage != null) ...[
-              const SizedBox(height: 16),
-              Text(
-                widget.errorMessage!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.redAccent, fontSize: 13),
-              ),
+              ],
+              const SizedBox(height: 24),
             ],
-            const SizedBox(height: 24),
-          ],
+          ),
         ),
       ),
     );

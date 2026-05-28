@@ -11,13 +11,15 @@ class TrustedDeviceLoginScreen extends StatefulWidget {
     required this.authService,
     required this.identity,
     required this.onAuthSuccess,
-    this.onRegisterTap,
+    this.onBackTap,
+    this.onJoinTap,
   });
 
   final AuthService authService;
   final TrustedIdentity identity;
   final Future<void> Function(AuthResult result) onAuthSuccess;
-  final VoidCallback? onRegisterTap;
+  final VoidCallback? onBackTap;
+  final VoidCallback? onJoinTap;
 
   @override
   State<TrustedDeviceLoginScreen> createState() =>
@@ -98,132 +100,208 @@ class _TrustedDeviceLoginScreenState extends State<TrustedDeviceLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
-          children: [
-            const SizedBox(height: 36),
-            SvgPicture.asset(
-              'assets/images/lox_logo_auth.svg',
-              width: 90,
-              height: 90,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Hello ${widget.identity.userName}, welcome back!',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textMain,
-                letterSpacing: -0.3,
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'YOUR DEVICE IS RECOGNIZED',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.2,
-                color: AppColors.textLabel,
-              ),
-            ),
-            const SizedBox(height: 34),
-            const Text(
-              'PASSWORD',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.2,
-                color: AppColors.textLabel,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.fieldBackground,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: TextField(
-                controller: _passwordController,
-                obscureText: true,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: AppColors.textField,
-                  fontWeight: FontWeight.w500,
-                ),
-                decoration: const InputDecoration(
-                  hintText: '••••••••',
-                  hintStyle: TextStyle(
-                    color: AppColors.textHint,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.vpn_key_outlined,
-                    color: AppColors.textHint,
-                    size: 20,
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 30),
-            SizedBox(
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _submitting ? null : _manualLogin,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.olive,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(32),
-                  ),
-                  elevation: 0,
-                ),
-                child: _submitting
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text(
-                        'LOGIN',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.8,
-                        ),
-                      ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            if (widget.onRegisterTap != null)
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          widget.onBackTap?.call();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            color: AppColors.textMain,
+            onPressed: widget.onBackTap,
+          ),
+        ),
+        body: SafeArea(
+          top: false,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
+            children: [
+              const SizedBox(height: 12),
               Center(
-                child: TextButton(
-                  onPressed: _submitting ? null : widget.onRegisterTap,
-                  child: const Text(
-                    'Register screen',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textMuted,
+                child: Container(
+                  height: 44,
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: AppColors.fieldBackground,
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const _TabButton(
+                        label: 'LOGIN',
+                        selected: true,
+                        onTap: null,
+                      ),
+                      _TabButton(
+                        label: 'JOIN',
+                        selected: false,
+                        onTap: widget.onJoinTap,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 36),
+              SvgPicture.asset(
+                'assets/images/lox_logo_auth.svg',
+                width: 90,
+                height: 90,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Hello ${widget.identity.userName}, welcome back!',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textMain,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'YOUR DEVICE IS RECOGNIZED',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
+                  color: AppColors.textLabel,
+                ),
+              ),
+              const SizedBox(height: 34),
+              const Text(
+                'PASSWORD',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
+                  color: AppColors.textLabel,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.fieldBackground,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppColors.textField,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: '••••••••',
+                    hintStyle: TextStyle(
+                      color: AppColors.textHint,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.vpn_key_outlined,
+                      color: AppColors.textHint,
+                      size: 20,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
                     ),
                   ),
                 ),
               ),
-          ],
-        ),
+              const SizedBox(height: 30),
+              SizedBox(
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _submitting ? null : _manualLogin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.olive,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(32),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'LOGIN',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.8,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+              ),
       ),
     );
   }
 }
+
+      class _TabButton extends StatelessWidget {
+        const _TabButton({
+          required this.label,
+          required this.selected,
+          required this.onTap,
+        });
+
+        final String label;
+        final bool selected;
+        final VoidCallback? onTap;
+
+        @override
+        Widget build(BuildContext context) {
+          return GestureDetector(
+            onTap: onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+              decoration: BoxDecoration(
+                color: selected ? Colors.white : Colors.transparent,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: selected
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: selected ? AppColors.textMain : AppColors.textMuted,
+                ),
+              ),
+            ),
+          );
+        }
+      }
