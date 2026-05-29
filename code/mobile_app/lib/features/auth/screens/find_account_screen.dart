@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/errors/api_error.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/models/auth_result.dart';
+import 'otp_verification_screen.dart';
 
 class FindAccountScreen extends StatefulWidget {
   const FindAccountScreen({
     super.key,
     required this.authService,
     required this.onChallengeReady,
+    required this.onAuthSuccess,
     this.onBackTap,
     this.onJoinTap,
   });
 
   final AuthService authService;
   final void Function(AccountChallenge challenge) onChallengeReady;
+  final Future<void> Function(AuthResult result) onAuthSuccess;
   final VoidCallback? onBackTap;
   final VoidCallback? onJoinTap;
 
@@ -50,13 +55,35 @@ class _FindAccountScreenState extends State<FindAccountScreen> {
     }
 
     setState(() => _submitting = true);
+    late final DeviceIdentity deviceIdentity;
     try {
+      deviceIdentity = await widget.authService.loadOrCreateDeviceIdentity();
       final challenge = await widget.authService.findMyAccount(
         email: email,
         password: password,
+        keyId: deviceIdentity.keyId,
       );
       if (!mounted) return;
       widget.onChallengeReady(challenge);
+    } on ApiError catch (error) {
+      if (error.statusCode == 403 && error.message == 'UNRECOGNIZED_DEVICE') {
+        if (!mounted) return;
+
+        await Navigator.of(context).push<AuthResult>(
+          MaterialPageRoute(
+            builder: (_) => OTPVerificationScreen.device(
+              email: email,
+              keyId: deviceIdentity.keyId,
+              publicKey: deviceIdentity.publicKey,
+              onAuthSuccess: widget.onAuthSuccess,
+            ),
+          ),
+        );
+      } else {
+        if (mounted) {
+          _showError(error.toString());
+        }
+      }
     } catch (error) {
       if (mounted) {
         _showError(error.toString());

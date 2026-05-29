@@ -31,6 +31,7 @@ class LocalStore {
   static const _keySelectedStation = 'selected_station_id';
   static const _keySavedLatitude = 'saved_location_latitude';
   static const _keySavedLongitude = 'saved_location_longitude';
+  static const _keyDeviceInitialized = 'device_initialized';
 
   static Future<BootstrapData> loadBootstrap() async {
     final prefs = await SharedPreferences.getInstance();
@@ -52,6 +53,16 @@ class LocalStore {
   static Future<void> clearToken() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyToken, '');
+  }
+
+  static Future<void> saveDeviceInitialized(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyDeviceInitialized, value);
+  }
+
+  static Future<bool> isDeviceInitialized() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyDeviceInitialized) ?? false;
   }
 
   static Future<UiPrefs> loadUiPrefs() async {

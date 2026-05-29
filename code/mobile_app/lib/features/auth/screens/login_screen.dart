@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/errors/api_error.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/url_utils.dart';
 import '../../../data/models/auth_result.dart';
 import '../../../data/remote/api_client.dart';
+import 'otp_verification_screen.dart';
 
 /// The user login interface for the Smart Locker application.
 ///
@@ -79,12 +82,40 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => _submitting = true);
+    final authService = AuthService(baseUrl: baseUrl);
+    late final DeviceIdentity deviceIdentity;
     try {
+      deviceIdentity = await authService.loadOrCreateDeviceIdentity();
+
       final result = await ApiClient(
         baseUrl: baseUrl,
         token: '',
-      ).login(email: email, password: password);
+      ).login(email: email, password: password, keyId: deviceIdentity.keyId);
       await widget.onAuthSuccess(result);
+    } on ApiError catch (error) {
+      if (error.statusCode == 403 && error.message == 'UNRECOGNIZED_DEVICE') {
+        if (!mounted) {
+          return;
+        }
+
+        final result = await Navigator.of(context).push<AuthResult>(
+          MaterialPageRoute(
+            builder: (_) => OTPVerificationScreen.device(
+              email: email,
+              keyId: deviceIdentity.keyId,
+              publicKey: deviceIdentity.publicKey,
+            ),
+          ),
+        );
+
+        if (result != null) {
+          await widget.onAuthSuccess(result);
+        }
+      } else {
+        if (mounted) {
+          _showError(error.toString());
+        }
+      }
     } catch (e) {
       if (mounted) _showError(e.toString());
     }

@@ -121,6 +121,7 @@ class _AuthScreenState extends State<AuthScreen> {
         return FindAccountScreen(
           authService: _authService,
           onChallengeReady: _handleAccountChallenge,
+          onAuthSuccess: widget.onAuthSuccess,
           onBackTap: _openLanding,
           onJoinTap: _openRegister,
         );

@@ -23,6 +23,7 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   String? _cachedToken;
   bool _initialized = false;
+  Future<void>? _initializing;
 
   int _lockerReminderId(String stationId, String lockerId) =>
       Object.hash('locker_reminder', stationId, lockerId) & 0x7fffffff;
@@ -162,6 +163,26 @@ tz.setLocalLocation(tz.getLocation(timeZoneInfo.identifier));
   }
 
   Future<void> initialize() async {
+    if (_initialized) {
+      return;
+    }
+
+    if (_initializing != null) {
+      await _initializing;
+      return;
+    }
+
+    final initialization = _initialize();
+    _initializing = initialization;
+
+    try {
+      await initialization;
+    } finally {
+      _initializing = null;
+    }
+  }
+
+  Future<void> _initialize() async {
     if (_initialized) {
       return;
     }

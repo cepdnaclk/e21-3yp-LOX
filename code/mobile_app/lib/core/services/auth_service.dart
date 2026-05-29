@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:local_auth/local_auth.dart';
 
+import '../../core/errors/api_error.dart';
 import '../../data/models/auth_result.dart';
 import '../../data/models/user_profile.dart';
 import 'crypto_service.dart';
@@ -23,6 +25,23 @@ class TrustedIdentity {
 
   bool get hasTrustedDeviceData =>
       userId.isNotEmpty && userName.isNotEmpty && privateKey.isNotEmpty;
+}
+
+class DeviceIdentity {
+  const DeviceIdentity({
+    required this.keyId,
+    required this.publicKey,
+    required this.privateKey,
+    required this.isInitialized,
+  });
+
+  final String keyId;
+  final String publicKey;
+  final String privateKey;
+  final bool isInitialized;
+
+  bool get hasDeviceData =>
+      keyId.isNotEmpty && publicKey.isNotEmpty && privateKey.isNotEmpty;
 }
 
 class AccountChallenge {
@@ -59,6 +78,10 @@ class AuthService {
   static const _kUserId = 'userId';
   static const _kBiometricEnabled = 'isBiometricEnabled';
   static const _kPrivateKey = 'privateKey';
+  static const _kDeviceKeyId = 'deviceKeyId';
+  static const _kDevicePublicKey = 'devicePublicKey';
+  static const _kDevicePrivateKey = 'devicePrivateKey';
+  static const _kDeviceInitialized = 'deviceInitialized';
 
   Future<TrustedIdentity> loadTrustedIdentity() async {
     final values = await _secureStorage.readAll();
@@ -84,9 +107,50 @@ class AuthService {
     await _secureStorage.write(key: _kBiometricEnabled, value: value.toString());
   }
 
+  Future<DeviceIdentity> loadOrCreateDeviceIdentity() async {
+    final values = await _secureStorage.readAll();
+    final keyId = values[_kDeviceKeyId] ?? '';
+    final publicKey = values[_kDevicePublicKey] ?? '';
+    final privateKey = values[_kDevicePrivateKey] ?? '';
+    final initialized = (values[_kDeviceInitialized] ?? 'false') == 'true';
+
+    if (keyId.isNotEmpty && publicKey.isNotEmpty && privateKey.isNotEmpty) {
+      return DeviceIdentity(
+        keyId: keyId,
+        publicKey: publicKey,
+        privateKey: privateKey,
+        isInitialized: initialized,
+      );
+    }
+
+    final deviceKeyPair = await _cryptoService.generateRsaKeyPair();
+    final generatedKeyId = _generateDeviceKeyId();
+
+    await _secureStorage.write(key: _kDeviceKeyId, value: generatedKeyId);
+    await _secureStorage.write(key: _kDevicePublicKey, value: deviceKeyPair.publicKeyJwk);
+    await _secureStorage.write(key: _kDevicePrivateKey, value: deviceKeyPair.privateKeyJwk);
+    await _secureStorage.write(key: _kDeviceInitialized, value: 'false');
+
+    return DeviceIdentity(
+      keyId: generatedKeyId,
+      publicKey: deviceKeyPair.publicKeyJwk,
+      privateKey: deviceKeyPair.privateKeyJwk,
+      isInitialized: false,
+    );
+  }
+
+  Future<void> setDeviceInitialized(bool value) async {
+    await _secureStorage.write(key: _kDeviceInitialized, value: value.toString());
+  }
+
   Future<bool> isBiometricEnabled() async {
     final value = await _secureStorage.read(key: _kBiometricEnabled);
     return value == 'true';
+  }
+
+  String _generateDeviceKeyId() {
+    final bytes = List<int>.generate(16, (_) => Random.secure().nextInt(256));
+    return base64UrlEncode(bytes).replaceAll('=', '');
   }
 
   Future<bool> promptForBiometric() async {
@@ -108,10 +172,11 @@ class AuthService {
   Future<AccountChallenge> findMyAccount({
     required String email,
     required String password,
+    required String keyId,
   }) async {
     final payload = await _post(
       '/api/auth/b2c/find-account',
-      {'email': email, 'password': password},
+      {'email': email, 'password': password, 'key_id': keyId},
     );
 
     return AccountChallenge(
@@ -295,8 +360,10 @@ class AuthService {
         jsonDecode(response.body) as Map<String, dynamic>? ?? const {};
 
     if (response.statusCode >= 400) {
-      throw Exception(
+      throw ApiError(
         decoded['message']?.toString() ?? 'Request failed: ${response.statusCode}',
+        statusCode: response.statusCode,
+        payload: decoded,
       );
     }
 

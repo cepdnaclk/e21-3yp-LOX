@@ -91,6 +91,8 @@ class ApiClient {
       throw ApiError(
         payload['message']?.toString() ??
             'Request failed (${response.statusCode})',
+        statusCode: response.statusCode,
+        payload: payload,
       );
     }
 
@@ -100,12 +102,17 @@ class ApiClient {
   Future<AuthResult> login({
     required String email,
     required String password,
+    required String keyId,
   }) async {
     final payload = await _request(
       'POST',
       '/api/users/login',
       includeAuth: false,
-      body: {'email': email, 'password': password},
+      body: {
+        'email': email,
+        'password': password,
+        'key_id': keyId,
+      },
     );
 
     final tkn = payload['token']?.toString() ?? '';
@@ -135,7 +142,37 @@ class ApiClient {
     );
 
     // After successful registration, immediately login to get the token
-    return login(email: email, password: password);
+    return login(email: email, password: password, keyId: '');
+  }
+
+  Future<AuthResult> verifyDevice({
+    required String email,
+    required String otpCode,
+    required String keyId,
+    required String publicKey,
+  }) async {
+    final payload = await _request(
+      'POST',
+      '/api/users/verify-device',
+      includeAuth: false,
+      body: {
+        'email': email,
+        'otpCode': otpCode,
+        'key_id': keyId,
+        'public_key': publicKey,
+      },
+    );
+
+    final tkn = payload['token']?.toString() ?? '';
+    if (tkn.isEmpty) throw const ApiError('Login failed: missing token');
+
+    return AuthResult(
+      baseUrl: baseUrl,
+      token: tkn,
+      user: UserProfile.fromJson(
+        payload['user'] as Map<String, dynamic>? ?? const {},
+      ),
+    );
   }
 
   /// Call GET request to /api/users/me to fetch the current user's profile using the stored token.

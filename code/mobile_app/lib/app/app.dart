@@ -46,7 +46,18 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
   void initState() {
     super.initState();
     _authService = AuthService(baseUrl: _baseUrl);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_bootstrapNotifications());
+    });
     _restoreSession();
+  }
+
+  Future<void> _bootstrapNotifications() async {
+    try {
+      await NotificationService.instance.initialize();
+    } catch (error) {
+      debugPrint('Notification bootstrap skipped: $error');
+    }
   }
 
   /// Asynchronously check for a saved token and attempt to restore the session.
@@ -188,7 +199,7 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
 
   Future<void> _configurePushNotifications(SessionData session) async {
     try {
-      await NotificationService.instance.initialize();
+      await _bootstrapNotifications();
 
       await NotificationService.instance.registerTokenWithBackend(
         backendBaseUrl: _baseUrl,
