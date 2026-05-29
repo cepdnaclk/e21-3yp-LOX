@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken")
 
 const User = require("../models/master/User")
 const { authenticateToken } = require("../middleware/auth")
+const { sendOtpEmail } = require("../services/emailService")
 
 const router = express.Router()
 
@@ -177,9 +178,7 @@ router.post("/b2c/register-device-authenticated", authenticateToken, async (req,
 
 router.post("/b2c/find-account", async (req, res) => {
   try {
-    cleanupExpiredChallenges()
-
-    const { email, password } = req.body
+    const { email, password, key_id } = req.body
 
     if (!email || !password) {
       return res.status(400).json({ message: "email and password are required" })
@@ -195,22 +194,54 @@ router.post("/b2c/find-account", async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" })
     }
 
-    const transactionId = crypto.randomUUID()
-    const otp = (Math.floor(100000 + Math.random() * 900000)).toString()
+    const isRecognizedDevice = Boolean(
+      key_id &&
+      Array.isArray(user.trusted_devices) &&
+      user.trusted_devices.some((device) => device && device.key_id === key_id)
+    )
 
-    otpChallenges.set(transactionId, {
-      userId: user._id.toString(),
-      otp,
-      verified: false,
-      expiresAt: Date.now() + OTP_TTL_MS
-    })
+    if (!isRecognizedDevice) {
+      const otp = crypto.randomInt(100000, 1000000).toString()
+
+      user.login_otp = otp
+      user.login_otp_expires_at = new Date(Date.now() + OTP_TTL_MS)
+      await user.save()
+
+      try {
+        await sendOtpEmail(user.email, otp)
+      } catch (emailError) {
+        console.error("============================================================")
+        console.error("[b2c/find-account] emailError.message:", emailError?.message)
+        console.error("[b2c/find-account] emailError.stack:", emailError?.stack)
+        console.error("[b2c/find-account] emailError JSON:", JSON.stringify(emailError, null, 2))
+
+        return res.status(500).json({
+          message: "DEBUG_EMAIL_FAILED",
+          error: emailError?.message
+        })
+      }
+
+      return res.status(403).json({ message: "UNRECOGNIZED_DEVICE" })
+    }
+
+    user.login_otp = null
+    user.login_otp_expires_at = null
+    await user.save()
+
+    const token = signLoginToken(user)
 
     return res.status(200).json({
-      message: "OTP sent via Azure AD B2C",
-      transactionId,
-      userId: user._id,
-      userName: user.name,
-      debugOtp: process.env.NODE_ENV === "production" ? undefined : otp
+      message: "Login successful",
+      token,
+      token_type: "Bearer",
+      expires_in: process.env.JWT_EXPIRES_IN || "7d",
+      user: {
+        user_id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role || "USER",
+        created_at: user.created_at
+      }
     })
   } catch (error) {
     return res.status(500).json({ message: "Server error", error: error.message })
