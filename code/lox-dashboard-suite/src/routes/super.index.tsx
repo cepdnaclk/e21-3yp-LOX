@@ -200,10 +200,10 @@ function SuperHome() {
 
   return (
     <AppShell role="super" title="Network overview">
-      <div className="grid gap-5 lg:grid-cols-4">
+        <div className="grid gap-5 lg:grid-cols-4">
         <StatCard label="Locker stations" value={numberFormatter.format(stats.station_count)} icon={Building2} tone="primary" />
         <StatCard label="Total lockers" value={numberFormatter.format(stats.locker_count)} icon={Boxes} tone="info" />
-        <StatCard label="Members" value={numberFormatter.format(stats.member_count)} icon={Users} tone="success" />
+        <StatCard label="Total Sub admins and Super admins" value={numberFormatter.format(stats.member_count)} icon={Users} tone="success" />
         <StatCard label="Stations added this week" value={numberFormatter.format(stats.station_additions_this_week)} icon={PlusCircle} tone="warning" />
       </div>
 
