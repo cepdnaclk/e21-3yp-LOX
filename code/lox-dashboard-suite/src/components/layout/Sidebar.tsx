@@ -23,7 +23,6 @@ const superAdminNav: Item[] = [
   { to: "/super/stations", label: "Stations", icon: Building2 },
   { to: "/super/chat", label: "Messages", icon: MessageSquare },
   { to: "/super/notifications", label: "Notifications", icon: Bell },
-  { to: "/super/broadcast", label: "Broadcast", icon: Megaphone },
   { to: "/super/insights", label: "Insights", icon: TrendingUp },
   { to: "/super/admins", label: "Admins", icon: ShieldCheck },
 ];
