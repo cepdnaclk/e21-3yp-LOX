@@ -14,12 +14,12 @@ export const Route = createFileRoute("/super/insights")({
 });
 
 const districts = [
-  { d: "Ernakulam", v: 92 },
-  { d: "Trivandrum", v: 86 },
-  { d: "Bangalore", v: 78 },
-  { d: "Mumbai", v: 72 },
-  { d: "Delhi", v: 68 },
-  { d: "Kozhikode", v: 54 },
+  { d: "Lab 1", v: 92 },
+  { d: "Library", v: 86 },
+  { d: "Main library", v: 78 },
+  { d: "Locker station 5", v: 72 },
+  { d: "CCC LoxHQ", v: 68 },
+  { d: "kbar Nell hall Locker station", v: 54 },
 ];
 
 function InsightsPage() {
@@ -67,7 +67,7 @@ function InsightsPage() {
           </div>
         </Card>
 
-        <Card title="Most active districts" subtitle="Avg occupancy">
+        <Card title="Most active locker stations" subtitle="Avg occupancy">
           <div className="space-y-3">
             {districts.map((d) => (
               <div key={d.d}>

@@ -40,10 +40,10 @@ export const members = [
 ];
 
 export const stations = [
-  { id: "LX-KCH-01", name: "Kochi Central", district: "Ernakulam", lockers: 72, occ: 38, admin: "Aarav Mehta" },
-  { id: "LX-TVM-04", name: "Trivandrum Hub", district: "Trivandrum", lockers: 96, occ: 71, admin: "Sneha Pillai" },
-  { id: "LX-CLT-02", name: "Calicut Beach Point", district: "Kozhikode", lockers: 48, occ: 22, admin: "Rohan Das" },
-  { id: "LX-BLR-09", name: "Bangalore Tech Park", district: "Bangalore", lockers: 120, occ: 88, admin: "Kavya R." },
-  { id: "LX-MUM-03", name: "Mumbai Marine Drive", district: "Mumbai", lockers: 84, occ: 54, admin: "Imran Shaikh" },
-  { id: "LX-DEL-07", name: "Delhi Metro Hub", district: "New Delhi", lockers: 110, occ: 79, admin: "Neha Verma" },
+  { id: "LX-KCH-01", name: "Kochi Central", district: "Lab1", lockers: 72, occ: 38, admin: "Aarav Mehta" },
+  { id: "LX-TVM-04", name: "Trivandrum Hub", district: "Library", lockers: 96, occ: 71, admin: "Sneha Pillai" },
+  { id: "LX-CLT-02", name: "Calicut Beach Point", district: "kbar Nell hall Locker station", lockers: 48, occ: 22, admin: "Rohan Das" },
+  { id: "LX-BLR-09", name: "Bangalore Tech Park", district: "Main library", lockers: 120, occ: 88, admin: "Kavya R." },
+  { id: "LX-MUM-03", name: "Mumbai Marine Drive", district: "Locker station 5", lockers: 84, occ: 54, admin: "Imran Shaikh" },
+  { id: "LX-DEL-07", name: "Delhi Metro Hub", district: "CCC LoxHQ", lockers: 110, occ: 79, admin: "Neha Verma" },
 ];
