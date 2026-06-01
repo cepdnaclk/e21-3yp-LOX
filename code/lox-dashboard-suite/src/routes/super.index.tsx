@@ -236,7 +236,6 @@ function SuperHome() {
           <h3 className="text-sm font-semibold text-foreground mb-3">Network snapshot</h3>
           <div className="space-y-4 text-sm">
             {[
-              { l: "Average occupancy", v: `${network.average_occupancy_rate}%` },
               { l: "Active stations", v: numberFormatter.format(network.active_stations) },
               { l: "Stations tracked", v: numberFormatter.format(network.stations_with_lockers) },
               { l: "Stations added this week", v: numberFormatter.format(stats.station_additions_this_week) },
