@@ -2,6 +2,7 @@ const mongoose = require("mongoose")
 
 const lockerSchema = new mongoose.Schema({
   locker_id:   { type: String, required: true, unique: true },
+  created_at:  { type: Date, default: Date.now },
 
   lock_state: {
     type:    String,

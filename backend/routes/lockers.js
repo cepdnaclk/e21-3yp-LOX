@@ -63,7 +63,7 @@ router.post("/add", async (req, res) => {
     }
 
     const Locker = getLockerModel(station_id)
-    const docs   = lockers.map((id) => ({ locker_id: id }))
+    const docs   = lockers.map((id) => ({ locker_id: id, created_at: new Date() }))
 
     const inserted = await Locker.insertMany(docs, { ordered: false }).catch((err) => {
       if (err.code === 11000) return err.insertedDocs

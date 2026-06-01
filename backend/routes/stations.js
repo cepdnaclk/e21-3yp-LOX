@@ -18,6 +18,26 @@ const getLockerModel = (stationId) => {
 
 const normalizeStationId = (value) => String(value || "").trim().toUpperCase()
 
+const toDateKey = (date) => {
+  const value = new Date(date)
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`
+}
+
+const startOfDay = (date) => {
+  const value = new Date(date)
+  value.setHours(0, 0, 0, 0)
+  return value
+}
+
+const formatChartLabel = (date) => {
+  const value = new Date(date)
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric"
+  }).format(value)
+}
+
 const parseNumber = (value) => {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
@@ -84,6 +104,7 @@ const respondStation = async (station) => {
     locker_count,
     estimated_members: station.estimated_members || 0,
     notes: station.notes || "",
+    created_at: station.created_at || station._id?.getTimestamp?.() || null,
     location: {
       address: station.location.address,
       city: station.location.city,
@@ -100,6 +121,7 @@ const saveStation = async ({ existingStation, payload }) => {
   const station_db_uri = existingStation?.station_db_uri || buildStationDatabaseUri(payload.station_id)
 
   const station = existingStation || new LockerStation()
+  station.created_at = station.created_at || station._id?.getTimestamp?.() || new Date()
   station.station_id = payload.station_id
   station.name = payload.name
   station.locker_count = payload.locker_count
@@ -152,14 +174,50 @@ router.post(["/", "/add"], authenticateToken, requireRole("super_admin"), async 
 router.get("/", async (req, res) => {
   try {
     const stations = await LockerStation.find({ status: "active" })
-      .select("station_id name locker_count estimated_members notes location.latitude location.longitude location.city location.address location.district status station_db_uri last_heartbeat_at -_id")
+      .select("station_id name locker_count estimated_members notes location.latitude location.longitude location.city location.address location.district status station_db_uri created_at last_heartbeat_at -_id")
 
     const result = await Promise.all(stations.map((station) => respondStation(station)))
+
+    const chartWindow = 6
+    const today = startOfDay(new Date())
+    const startDate = new Date(today)
+    startDate.setDate(startDate.getDate() - chartWindow)
+
+    const stationCreationCounts = new Map()
+    for (let offset = 0; offset <= chartWindow; offset += 1) {
+      const current = new Date(startDate)
+      current.setDate(startDate.getDate() + offset)
+      stationCreationCounts.set(toDateKey(current), 0)
+    }
+
+    result.forEach((station) => {
+      if (!station.created_at) {
+        return
+      }
+
+      const createdAt = new Date(station.created_at)
+      if (Number.isNaN(createdAt.getTime()) || createdAt < startDate) {
+        return
+      }
+
+      const dateKey = toDateKey(createdAt)
+      if (stationCreationCounts.has(dateKey)) {
+        stationCreationCounts.set(dateKey, stationCreationCounts.get(dateKey) + 1)
+      }
+    })
+
+    const station_creation_series = Array.from(stationCreationCounts.entries()).map(([date, count]) => ({
+      date,
+      label: formatChartLabel(date),
+      count
+    }))
 
     res.status(200).json({
       message: "Stations retrieved successfully",
       count: result.length,
-      stations: result
+      stations: result,
+      station_creation_series,
+      station_additions_this_week: station_creation_series.reduce((sum, day) => sum + day.count, 0)
     })
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message })
