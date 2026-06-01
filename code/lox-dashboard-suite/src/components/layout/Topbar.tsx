@@ -1,5 +1,6 @@
-import { Bell, Search, Settings } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Bell, LogOut, Settings } from "lucide-react";
+import { Link, useRouter } from "@tanstack/react-router";
+import { clearAuthSession } from "@/lib/auth";
 
 export function Topbar({
   title,
@@ -14,6 +15,7 @@ export function Topbar({
   userName?: string;
   userDetail?: string;
 }) {
+  const router = useRouter();
   const avatar = userName
     ? userName
         .split(" ")
@@ -34,46 +36,55 @@ export function Topbar({
         </p>
       </div>
 
-      <div className="ml-auto flex flex-1 max-w-md items-center">
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            placeholder="Search lockers, members, stations…"
-            className="w-full rounded-xl border border-input bg-card pl-9 pr-3 py-2 text-sm shadow-soft outline-none focus:ring-2 focus:ring-ring/40"
-          />
-        </div>
+      <div className="ml-auto flex items-center gap-2">
+        <Link
+          to={role === "super" ? "/super/notifications" : "/admin/chat"}
+          className="relative grid h-10 w-10 place-items-center rounded-xl border border-border bg-card hover:bg-secondary transition"
+        >
+          <Bell className="h-4 w-4 text-foreground" />
+          {notificationCount > 0 ? (
+            <span className="absolute -right-1 -top-1 grid min-h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground shadow-sm">
+              {notificationCount > 99 ? "99+" : notificationCount}
+            </span>
+          ) : (
+            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive animate-pulse-dot" />
+          )}
+        </Link>
+        <button className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-card hover:bg-secondary transition">
+          <Settings className="h-4 w-4 text-foreground" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            clearAuthSession();
+            void router.navigate({ to: "/login" });
+          }}
+          className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-card hover:bg-secondary transition"
+          aria-label="Sign out"
+          title="Sign out"
+        >
+          <LogOut className="h-4 w-4 text-foreground" />
+        </button>
+
+        <Link
+          to={role === "super" ? "/super" : "/admin/station"}
+          className="flex items-center gap-3 rounded-xl border border-border bg-card pl-1 pr-3 py-1 hover:bg-secondary transition"
+          aria-label={role === "super" ? "Open super admin overview" : "Open sub admin overview"}
+        >
+          <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-primary text-primary-foreground text-xs font-semibold">
+            {avatar}
+          </div>
+          <div className="hidden sm:block text-left">
+            <div className="text-xs font-semibold text-foreground leading-tight">
+              {userName ?? (role === "sub" ? "Aarav Mehta" : "LOX HQ")}
+            </div>
+            <div className="text-[10px] text-muted-foreground leading-tight">
+              {userDetail ?? (role === "sub" ? "Kochi Central" : "Super admin")}
+            </div>
+          </div>
+        </Link>
       </div>
-
-      <Link
-        to={role === "super" ? "/super/notifications" : "/admin/chat"}
-        className="relative grid h-10 w-10 place-items-center rounded-xl border border-border bg-card hover:bg-secondary transition"
-      >
-        <Bell className="h-4 w-4 text-foreground" />
-        {notificationCount > 0 ? (
-          <span className="absolute -right-1 -top-1 grid min-h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground shadow-sm">
-            {notificationCount > 99 ? "99+" : notificationCount}
-          </span>
-        ) : (
-          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive animate-pulse-dot" />
-        )}
-      </Link>
-      <button className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-card hover:bg-secondary transition">
-        <Settings className="h-4 w-4 text-foreground" />
-      </button>
-
-      <Link to="/login" className="flex items-center gap-3 rounded-xl border border-border bg-card pl-1 pr-3 py-1 hover:bg-secondary transition">
-        <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-primary text-primary-foreground text-xs font-semibold">
-          {avatar}
-        </div>
-        <div className="hidden sm:block text-left">
-          <div className="text-xs font-semibold text-foreground leading-tight">
-            {userName ?? (role === "sub" ? "Aarav Mehta" : "LOX HQ")}
-          </div>
-          <div className="text-[10px] text-muted-foreground leading-tight">
-            {userDetail ?? (role === "sub" ? "Kochi Central" : "Super admin")}
-          </div>
-        </div>
-      </Link>
     </header>
   );
 }
