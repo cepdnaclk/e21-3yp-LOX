@@ -19,11 +19,7 @@ const getLockerModel = (stationId) => {
 }
 
 const getStationCreatedAt = (station) => {
-  const fallbackTimestamp = station._id && typeof station._id.getTimestamp === "function"
-    ? station._id.getTimestamp()
-    : null
-
-  return station.created_at || fallbackTimestamp || station.last_heartbeat_at || null
+  return station.created_at || null
 }
 
 const toDateKey = (date) => {

@@ -7,7 +7,7 @@ const lockerStationSchema = new mongoose.Schema({
   estimated_members: { type: Number, default: 0, min: 0 },
   notes: { type: String, default: "" },
   station_db_uri: { type: String, default: "" },
-  created_at: { type: Date, default: Date.now },
+  created_at: { type: Date, default: Date.now, immutable: true },
   status:     {
     type:    String,
     enum:    ["active", "maintenance", "offline", "deleted"],

@@ -13,6 +13,7 @@ export const Route = createFileRoute("/super/")({
 });
 
 type OverviewStation = {
+  estimated_members: number;
   station_id: string;
   name: string;
   status: string;
@@ -115,7 +116,10 @@ function SuperHome() {
         setStationAdditionsThisWeek(stationsResponse.station_additions_this_week || 0);
         setMemberCount(usersResponse.count || 0);
         setAdminsByStation(new Map((adminsResponse.admins || [])
-          .map((admin) => [String(admin.station_id || "").trim().toUpperCase(), admin.station_name || admin.name])
+          .map((admin): readonly [string, string] => [
+            String(admin.station_id || "").trim().toUpperCase(),
+            admin.station_name || admin.name,
+          ])
           .filter(([stationId]) => Boolean(stationId))));
       } catch (err) {
         if (!active) return;
@@ -268,7 +272,7 @@ function SuperHome() {
           {filteredStations.map((station) => {
             const pct = station.occupancy_rate;
             const createdAtLabel = station.created_at ? dateTimeFormatter.format(new Date(station.created_at)) : "Creation date unavailable";
-            const ownerName = adminsByStation.get(station.station_id) || station.owner_name;
+            const ownerName = adminsByStation.get(station.station_id) || station.owner_name || "Unassigned";
             return (
               <Link key={station.station_id} to="/super/stations" className="group rounded-2xl border border-border bg-card overflow-hidden shadow-soft hover:shadow-glow transition hover:-translate-y-0.5">
                 <div className="relative h-28 bg-gradient-primary overflow-hidden">
@@ -296,7 +300,7 @@ function SuperHome() {
                   <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                     <Cell k="Lockers" v={numberFormatter.format(station.locker_count)} />
                     <Cell k="In use" v={numberFormatter.format(station.in_use_count)} />
-                    <Cell k="Owner" v={ownerName.split(" ")[0]} />
+                    <Cell k="Owner" v={String(ownerName).split(" ")[0]} />
                   </div>
                 </div>
               </Link>

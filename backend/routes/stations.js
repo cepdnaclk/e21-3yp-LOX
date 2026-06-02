@@ -43,6 +43,8 @@ const parseNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+const getStationCreatedAt = (station) => station.created_at || null
+
 const validateStationPayload = (payload) => {
   const station_id = normalizeStationId(payload.station_id)
   const name = String(payload.name || "").trim()
@@ -104,7 +106,7 @@ const respondStation = async (station) => {
     locker_count,
     estimated_members: station.estimated_members || 0,
     notes: station.notes || "",
-    created_at: station.created_at || station._id?.getTimestamp?.() || null,
+    created_at: getStationCreatedAt(station),
     location: {
       address: station.location.address,
       city: station.location.city,
@@ -119,9 +121,10 @@ const respondStation = async (station) => {
 
 const saveStation = async ({ existingStation, payload }) => {
   const station_db_uri = existingStation?.station_db_uri || buildStationDatabaseUri(payload.station_id)
+  const created_at = existingStation?.created_at || existingStation?._id?.getTimestamp?.() || new Date()
 
   const station = existingStation || new LockerStation()
-  station.created_at = station.created_at || station._id?.getTimestamp?.() || new Date()
+  station.created_at = created_at
   station.station_id = payload.station_id
   station.name = payload.name
   station.locker_count = payload.locker_count
