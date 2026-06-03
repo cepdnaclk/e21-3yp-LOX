@@ -38,7 +38,7 @@ export function Topbar({
 
       <div className="ml-auto flex items-center gap-2">
         <Link
-          to={role === "super" ? "/super/notifications" : "/admin/chat"}
+          to={role === "super" ? "/super/notifications" : "/admin/notifications"}
           className="relative grid h-10 w-10 place-items-center rounded-xl border border-border bg-card hover:bg-secondary transition"
         >
           <Bell className="h-4 w-4 text-foreground" />

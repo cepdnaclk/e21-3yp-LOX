@@ -249,9 +249,14 @@ router.get("/me", authenticateToken, async (req, res) => {
   }
 })
 
-router.get("/notifications", authenticateToken, requireRole("super_admin"), async (req, res) => {
+router.get("/notifications", authenticateToken, requireRole(["super_admin", "sub_admin"]), async (req, res) => {
   try {
-    const requests = await AuthRequest.find()
+    let query = {}
+    if (req.user.role === "sub_admin") {
+      query = { role: "sub_admin", station_id: req.user.station_id }
+    }
+
+    const requests = await AuthRequest.find(query)
       .sort({ created_at: -1 })
       .limit(50)
 
@@ -358,13 +363,19 @@ router.delete("/admins/:user_id", authenticateToken, requireRole("super_admin"),
   }
 })
 
-router.post("/requests/:request_id/approve", authenticateToken, requireRole("super_admin"), async (req, res) => {
+router.post("/requests/:request_id/approve", authenticateToken, requireRole(["super_admin", "sub_admin"]), async (req, res) => {
   try {
     const { request_id } = req.params
     const request = await AuthRequest.findById(request_id)
 
     if (!request) {
       return res.status(404).json({ message: "Request not found" })
+    }
+
+    if (req.user.role === "sub_admin") {
+      if (request.role !== "sub_admin" || request.station_id !== req.user.station_id) {
+        return res.status(403).json({ message: "You can only approve sub admin requests for your station" })
+      }
     }
 
     if (request.request_status !== "pending") {
@@ -407,13 +418,19 @@ router.post("/requests/:request_id/approve", authenticateToken, requireRole("sup
   }
 })
 
-router.post("/requests/:request_id/reject", authenticateToken, requireRole("super_admin"), async (req, res) => {
+router.post("/requests/:request_id/reject", authenticateToken, requireRole(["super_admin", "sub_admin"]), async (req, res) => {
   try {
     const { request_id } = req.params
     const request = await AuthRequest.findById(request_id)
 
     if (!request) {
       return res.status(404).json({ message: "Request not found" })
+    }
+
+    if (req.user.role === "sub_admin") {
+      if (request.role !== "sub_admin" || request.station_id !== req.user.station_id) {
+        return res.status(403).json({ message: "You can only reject sub admin requests for your station" })
+      }
     }
 
     if (request.request_status !== "pending") {

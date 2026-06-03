@@ -24,6 +24,7 @@ import { Route as SuperBroadcastRouteImport } from './routes/super.broadcast'
 import { Route as SuperAdminsRouteImport } from './routes/super.admins'
 import { Route as AdminStationRouteImport } from './routes/admin.station'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
+import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminMembersRouteImport } from './routes/admin.members'
 import { Route as AdminLockersRouteImport } from './routes/admin.lockers'
 import { Route as AdminChatRouteImport } from './routes/admin.chat'
@@ -104,6 +105,11 @@ const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
   path: '/payments',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminNotificationsRoute = AdminNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminMembersRoute = AdminMembersRouteImport.update({
   id: '/members',
   path: '/members',
@@ -135,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/admin/chat': typeof AdminChatRoute
   '/admin/lockers': typeof AdminLockersRoute
   '/admin/members': typeof AdminMembersRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/station': typeof AdminStationRoute
   '/super/admins': typeof SuperAdminsRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/admin/chat': typeof AdminChatRoute
   '/admin/lockers': typeof AdminLockersRoute
   '/admin/members': typeof AdminMembersRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/station': typeof AdminStationRoute
   '/super/admins': typeof SuperAdminsRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/admin/chat': typeof AdminChatRoute
   '/admin/lockers': typeof AdminLockersRoute
   '/admin/members': typeof AdminMembersRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/station': typeof AdminStationRoute
   '/super/admins': typeof SuperAdminsRoute
@@ -199,6 +208,7 @@ export interface FileRouteTypes {
     | '/admin/chat'
     | '/admin/lockers'
     | '/admin/members'
+    | '/admin/notifications'
     | '/admin/payments'
     | '/admin/station'
     | '/super/admins'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/admin/chat'
     | '/admin/lockers'
     | '/admin/members'
+    | '/admin/notifications'
     | '/admin/payments'
     | '/admin/station'
     | '/super/admins'
@@ -239,6 +250,7 @@ export interface FileRouteTypes {
     | '/admin/chat'
     | '/admin/lockers'
     | '/admin/members'
+    | '/admin/notifications'
     | '/admin/payments'
     | '/admin/station'
     | '/super/admins'
@@ -366,6 +378,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPaymentsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/notifications': {
+      id: '/admin/notifications'
+      path: '/notifications'
+      fullPath: '/admin/notifications'
+      preLoaderRoute: typeof AdminNotificationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/members': {
       id: '/admin/members'
       path: '/members'
@@ -402,6 +421,7 @@ interface AdminRouteChildren {
   AdminChatRoute: typeof AdminChatRoute
   AdminLockersRoute: typeof AdminLockersRoute
   AdminMembersRoute: typeof AdminMembersRoute
+  AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminStationRoute: typeof AdminStationRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -412,6 +432,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminChatRoute: AdminChatRoute,
   AdminLockersRoute: AdminLockersRoute,
   AdminMembersRoute: AdminMembersRoute,
+  AdminNotificationsRoute: AdminNotificationsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminStationRoute: AdminStationRoute,
   AdminIndexRoute: AdminIndexRoute,

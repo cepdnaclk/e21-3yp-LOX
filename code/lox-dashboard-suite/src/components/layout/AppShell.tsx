@@ -26,23 +26,24 @@ export function AppShell({
     const refreshNotificationCount = async (currentSession = getAuthSession()) => {
       if (!currentSession) return 0;
 
-      const chatResponse = await apiRequest<{ unread_count: number }>("/chat/notifications", {
-        headers: {
-          Authorization: `Bearer ${currentSession.token}`,
-        },
-      });
+      try {
+        const chatResponse = await apiRequest<{ unread_count: number }>("/chat/notifications", {
+          headers: {
+            Authorization: `Bearer ${currentSession.token}`,
+          },
+        });
 
-      if (role === "super") {
         const adminResponse = await apiRequest<{ unread_count: number }>("/auth/notifications", {
           headers: {
             Authorization: `Bearer ${currentSession.token}`,
           },
         });
 
-        return chatResponse.unread_count + adminResponse.unread_count;
+        return (chatResponse.unread_count || 0) + (adminResponse.unread_count || 0);
+      } catch (error) {
+        console.error("Failed to fetch notifications", error);
+        return 0;
       }
-
-      return chatResponse.unread_count;
     };
 
     const loadAuth = async () => {
