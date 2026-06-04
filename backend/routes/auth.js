@@ -338,6 +338,90 @@ router.get("/admins", authenticateToken, requireRole("super_admin"), async (req,
   }
 })
 
+// GET /api/auth/station-members?search=...
+// Sub admin: list all sub admins at their station
+router.get("/station-members", authenticateToken, requireRole("sub_admin"), async (req, res) => {
+  try {
+    const stationId = normalizeText(req.user.station_id).toUpperCase()
+
+    if (!stationId) {
+      return res.status(403).json({ message: "Your account is not assigned to a locker station" })
+    }
+
+    const search = normalizeText(req.query.search)
+
+    const query = {
+      role: "sub_admin",
+      station_id: stationId,
+      status: { $ne: "disabled" }
+    }
+
+    if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")
+      const pattern = new RegExp(escapedSearch, "i")
+      query.$or = [
+        { name: pattern },
+        { email: pattern }
+      ]
+    }
+
+    const users = await User.find(query)
+      .sort({ created_at: -1 })
+      .select("name email role status station_id station_name created_at approved_at")
+
+    const admins = users.map((user) => toManagedAdminDto(user, user.station_name || null))
+
+    res.status(200).json({
+      message: "Station members retrieved successfully",
+      count: admins.length,
+      station_id: stationId,
+      admins
+    })
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message })
+  }
+})
+
+// DELETE /api/auth/station-members/:user_id
+// Sub admin: remove another sub admin at the same station
+router.delete("/station-members/:user_id", authenticateToken, requireRole("sub_admin"), async (req, res) => {
+  try {
+    const requestingStationId = normalizeText(req.user.station_id).toUpperCase()
+    const { user_id } = req.params
+
+    if (!requestingStationId) {
+      return res.status(403).json({ message: "Your account is not assigned to a locker station" })
+    }
+
+    if (req.user.user_id === user_id) {
+      return res.status(400).json({ message: "You cannot remove your own account" })
+    }
+
+    const targetUser = await User.findById(user_id)
+    if (!targetUser) {
+      return res.status(404).json({ message: "Admin account not found" })
+    }
+
+    if (targetUser.role !== "sub_admin") {
+      return res.status(400).json({ message: "Only sub admin accounts can be removed" })
+    }
+
+    const targetStationId = normalizeText(targetUser.station_id).toUpperCase()
+    if (targetStationId !== requestingStationId) {
+      return res.status(403).json({ message: "You can only remove sub admins from your own station" })
+    }
+
+    await User.findByIdAndDelete(user_id)
+
+    res.status(200).json({
+      message: "Sub admin removed successfully",
+      removed_user_id: user_id
+    })
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message })
+  }
+})
+
 // DELETE /api/auth/admins/:user_id
 router.delete("/admins/:user_id", authenticateToken, requireRole("super_admin"), async (req, res) => {
   try {
