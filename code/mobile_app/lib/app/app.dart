@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../core/constants/app_constants.dart';
+import '../core/services/auth_service.dart';
+import '../core/services/notification_service.dart';
 import '../core/utils/url_utils.dart';
 
 import '../data/local/local_store.dart';
@@ -26,9 +30,13 @@ class SmartLockerApp extends StatefulWidget {
 }
 
 class _SmartLockerAppState extends State<SmartLockerApp> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   bool _loading = true;
   SessionData? _session;
   String? _bootError;
+  late final AuthService _authService;
+  bool _showBiometricReminder = false;
+  bool _openAccountTabOnHome = false;
 
   // Get the base url state
   String get _baseUrl => normalizeApiBaseUrl(AppConstants.defaultApiBaseUrl);
@@ -37,7 +45,19 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
   @override
   void initState() {
     super.initState();
+    _authService = AuthService(baseUrl: _baseUrl);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_bootstrapNotifications());
+    });
     _restoreSession();
+  }
+
+  Future<void> _bootstrapNotifications() async {
+    try {
+      await NotificationService.instance.initialize();
+    } catch (error) {
+      debugPrint('Notification bootstrap skipped: $error');
+    }
   }
 
   /// Asynchronously check for a saved token and attempt to restore the session.
@@ -75,6 +95,8 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
         _loading = false;
         _bootError = null;
       });
+
+      unawaited(_configurePushNotifications(_session!));
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -93,6 +115,8 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
     });
 
     try {
+      await _authService.ensureTrustedDeviceRegistration(result);
+
       final client = ApiClient(
         baseUrl: _baseUrl, // always from AppConfig
         token: result.token,
@@ -106,7 +130,13 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
       setState(() {
         _session = SessionData(client: client, user: result.user);
         _loading = false;
+        _showBiometricReminder = true;
+        _openAccountTabOnHome = false;
       });
+
+      unawaited(_maybeOfferBiometrics());
+
+      unawaited(_configurePushNotifications(_session!));
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -114,6 +144,48 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
         _bootError = error.toString();
       });
     }
+  }
+
+  Future<void> _maybeOfferBiometrics() async {
+    final enabled = await _authService.isBiometricEnabled();
+    if (enabled || !mounted || !_showBiometricReminder) {
+      return;
+    }
+
+    await showDialog<void>(
+      context: _navigatorKey.currentContext ?? context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Secure your account'),
+          content: const Text(
+            'Open the Account tab and enable biometrics to secure this trusted device for faster future logins.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Not now'),
+            ),
+            FilledButton(
+              onPressed: () {
+                setState(() {
+                  _openAccountTabOnHome = true;
+                });
+                Navigator.of(context).pop();
+              },
+              child: const Text('Open account tab'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _showBiometricReminder = false;
+    });
   }
 
   /// Handle logout by clearing the saved token and resetting the session state.
@@ -125,10 +197,24 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
     });
   }
 
+  Future<void> _configurePushNotifications(SessionData session) async {
+    try {
+      await _bootstrapNotifications();
+
+      await NotificationService.instance.registerTokenWithBackend(
+        backendBaseUrl: _baseUrl,
+        authToken: session.client.token,
+      );
+    } catch (error) {
+      debugPrint('FCM bootstrap skipped: $error');
+    }
+  }
+
   /// Build the main app widget.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       title: 'Smart Locker',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -150,7 +236,11 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
               onAuthSuccess: _handleAuthSuccess,
             )
           // Valid session: Show HomeScreen and pass the logout callback
-          : HomeScreen(session: _session!, onLogout: _logout),
+          : HomeScreen(
+              session: _session!,
+              onLogout: _logout,
+              initialTabIndex: _openAccountTabOnHome ? 3 : 0,
+            ),
     );
   }
 }

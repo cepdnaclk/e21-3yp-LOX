@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/url_utils.dart';
-import '../../../data/models/auth_result.dart';
-import '../../../data/remote/api_client.dart';
 
 /// The user registration interface for the Smart Locker application.
 ///
@@ -16,16 +15,20 @@ import '../../../data/remote/api_client.dart';
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({
     super.key,
-    required this.onAuthSuccess,
+    required this.onRegistrationCompleted,
     this.onLoginTap,
+    this.onBackTap,
     this.showTabToggle = true,
   });
 
-  /// Callback executed when the API successfully registers the user and returns an [AuthResult].
-  final Future<void> Function(AuthResult result) onAuthSuccess;
+  /// Callback executed after successful registration and local trusted-device binding.
+  final Future<void> Function() onRegistrationCompleted;
 
   /// Callback to switch the parent [AuthScreen] back to the Login tab.
   final VoidCallback? onLoginTap;
+
+  /// Callback used by the back button to return to the auth landing page.
+  final VoidCallback? onBackTap;
 
   /// Determines if the [ LOGIN | JOIN ] toggle should be rendered.
   final bool showTabToggle;
@@ -87,11 +90,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _submitting = true);
     try {
-      final result = await ApiClient(
-        baseUrl: baseUrl,
-        token: '',
-      ).register(name: name, email: email, password: password);
-      await widget.onAuthSuccess(result);
+      await AuthService(baseUrl: baseUrl).registerAndBindCurrentDevice(
+        name: name,
+        email: email,
+        password: password,
+      );
+      await widget.onRegistrationCompleted();
     } catch (e) {
       if (mounted) _showError(e.toString());
     }
@@ -100,176 +104,195 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
-          children: [
-            const SizedBox(height: 28),
-            if (widget.showTabToggle)
-              Center(
-                child: Container(
-                  height: 44,
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: AppColors.fieldBackground,
-                    borderRadius: BorderRadius.circular(22),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          widget.onBackTap?.call();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            color: AppColors.textMain,
+            onPressed: widget.onBackTap,
+          ),
+        ),
+        body: SafeArea(
+          top: false,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
+            children: [
+              const SizedBox(height: 12),
+              if (widget.showTabToggle)
+                Center(
+                  child: Container(
+                    height: 44,
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.fieldBackground,
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _TabButton(
+                          label: 'LOGIN',
+                          selected: false,
+                          onTap: widget.onLoginTap,
+                        ),
+                        const _TabButton(
+                          label: 'JOIN',
+                          selected: true,
+                          onTap: null,
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                ),
+              const SizedBox(height: 36),
+              SvgPicture.asset(
+                'assets/images/lox_logo_auth.svg',
+                width: 90,
+                height: 90,
+              ),
+              const Text(
+                'Create Account',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textMain,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'JOIN THE SECURE LOCKER NETWORK',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
+                  color: AppColors.textLabel,
+                ),
+              ),
+              const SizedBox(height: 36),
+              const _FieldLabel('FULL NAME'),
+              const SizedBox(height: 8),
+              _LockerTextField(
+                controller: _nameController,
+                hintText: 'John Doe',
+                icon: Icons.person_outline_rounded,
+                fieldBg: AppColors.fieldBackground,
+                hintColor: AppColors.textHint,
+              ),
+              const SizedBox(height: 20),
+              const _FieldLabel('EMAIL ADDRESS'),
+              const SizedBox(height: 8),
+              _LockerTextField(
+                controller: _emailController,
+                hintText: 'you@example.com',
+                icon: Icons.mail_outline_rounded,
+                keyboardType: TextInputType.emailAddress,
+                fieldBg: AppColors.fieldBackground,
+                hintColor: AppColors.textHint,
+              ),
+              const SizedBox(height: 20),
+              const _FieldLabel('PASSWORD'),
+              const SizedBox(height: 8),
+              _LockerTextField(
+                controller: _passwordController,
+                hintText: '••••••••',
+                icon: Icons.vpn_key_outlined,
+                obscureText: true,
+                fieldBg: AppColors.fieldBackground,
+                hintColor: AppColors.textHint,
+              ),
+              const SizedBox(height: 20),
+              const _FieldLabel('CONFIRM PASSWORD'),
+              const SizedBox(height: 8),
+              _LockerTextField(
+                controller: _confirmPasswordController,
+                hintText: '••••••••',
+                icon: Icons.vpn_key_outlined,
+                obscureText: true,
+                fieldBg: AppColors.fieldBackground,
+                hintColor: AppColors.textHint,
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _submitting ? null : _register,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.olive,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor:
+                        AppColors.olive.withValues(alpha: 0.6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(32),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'CREATE ACCOUNT',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.8,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Center(
+                child: RichText(
+                  textAlign: TextAlign.center,
+                  text: const TextSpan(
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: AppColors.textHint,
+                      letterSpacing: 0.5,
+                    ),
                     children: [
-                      _TabButton(
-                        label: 'LOGIN',
-                        selected: false,
-                        onTap:
-                            widget.onLoginTap ?? () => Navigator.pop(context),
+                      TextSpan(text: 'BY CONTINUING, YOU AGREE TO OUR '),
+                      TextSpan(
+                        text: 'SECURITY PROTOCOLS',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.oliveDark,
+                        ),
                       ),
-                      const _TabButton(
-                        label: 'JOIN',
-                        selected: true,
-                        onTap: null,
+                      TextSpan(text: ' & '),
+                      TextSpan(
+                        text: 'TERMS OF USE',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.oliveDark,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-            const SizedBox(height: 36),
-            SvgPicture.asset(
-              'assets/images/lox_logo_auth.svg',
-              width: 90,
-              height: 90,
-            ),
-            const Text(
-              'Create Account',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textMain,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'JOIN THE SECURE LOCKER NETWORK',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.2,
-                color: AppColors.textLabel,
-              ),
-            ),
-            const SizedBox(height: 36),
-            const _FieldLabel('FULL NAME'),
-            const SizedBox(height: 8),
-            _LockerTextField(
-              controller: _nameController,
-              hintText: 'John Doe',
-              icon: Icons.person_outline_rounded,
-              fieldBg: AppColors.fieldBackground,
-              hintColor: AppColors.textHint,
-            ),
-            const SizedBox(height: 20),
-            const _FieldLabel('EMAIL ADDRESS'),
-            const SizedBox(height: 8),
-            _LockerTextField(
-              controller: _emailController,
-              hintText: 'you@example.com',
-              icon: Icons.mail_outline_rounded,
-              keyboardType: TextInputType.emailAddress,
-              fieldBg: AppColors.fieldBackground,
-              hintColor: AppColors.textHint,
-            ),
-            const SizedBox(height: 20),
-            const _FieldLabel('PASSWORD'),
-            const SizedBox(height: 8),
-            _LockerTextField(
-              controller: _passwordController,
-              hintText: '••••••••',
-              icon: Icons.vpn_key_outlined,
-              obscureText: true,
-              fieldBg: AppColors.fieldBackground,
-              hintColor: AppColors.textHint,
-            ),
-            const SizedBox(height: 20),
-            const _FieldLabel('CONFIRM PASSWORD'),
-            const SizedBox(height: 8),
-            _LockerTextField(
-              controller: _confirmPasswordController,
-              hintText: '••••••••',
-              icon: Icons.vpn_key_outlined,
-              obscureText: true,
-              fieldBg: AppColors.fieldBackground,
-              hintColor: AppColors.textHint,
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _submitting ? null : _register,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.olive,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.olive.withOpacity(0.6),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(32),
-                  ),
-                  elevation: 0,
-                ),
-                child: _submitting
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text(
-                        'CREATE ACCOUNT',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.8,
-                        ),
-                      ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Center(
-              child: RichText(
-                textAlign: TextAlign.center,
-                text: const TextSpan(
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: AppColors.textHint,
-                    letterSpacing: 0.5,
-                  ),
-                  children: [
-                    TextSpan(text: 'BY CONTINUING, YOU AGREE TO OUR '),
-                    TextSpan(
-                      text: 'SECURITY PROTOCOLS',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.oliveDark,
-                      ),
-                    ),
-                    TextSpan(text: ' & '),
-                    TextSpan(
-                      text: 'TERMS OF USE',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.oliveDark,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 28),
-          ],
+              const SizedBox(height: 28),
+            ],
+          ),
         ),
       ),
     );
@@ -319,7 +342,7 @@ class _TabButton extends StatelessWidget {
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),

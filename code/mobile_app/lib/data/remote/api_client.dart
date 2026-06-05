@@ -91,6 +91,8 @@ class ApiClient {
       throw ApiError(
         payload['message']?.toString() ??
             'Request failed (${response.statusCode})',
+        statusCode: response.statusCode,
+        payload: payload,
       );
     }
 
@@ -100,12 +102,17 @@ class ApiClient {
   Future<AuthResult> login({
     required String email,
     required String password,
+    required String keyId,
   }) async {
     final payload = await _request(
       'POST',
       '/api/users/login',
       includeAuth: false,
-      body: {'email': email, 'password': password},
+      body: {
+        'email': email,
+        'password': password,
+        'key_id': keyId,
+      },
     );
 
     final tkn = payload['token']?.toString() ?? '';
@@ -135,7 +142,37 @@ class ApiClient {
     );
 
     // After successful registration, immediately login to get the token
-    return login(email: email, password: password);
+    return login(email: email, password: password, keyId: '');
+  }
+
+  Future<AuthResult> verifyDevice({
+    required String email,
+    required String otpCode,
+    required String keyId,
+    required String publicKey,
+  }) async {
+    final payload = await _request(
+      'POST',
+      '/api/users/verify-device',
+      includeAuth: false,
+      body: {
+        'email': email,
+        'otpCode': otpCode,
+        'key_id': keyId,
+        'public_key': publicKey,
+      },
+    );
+
+    final tkn = payload['token']?.toString() ?? '';
+    if (tkn.isEmpty) throw const ApiError('Login failed: missing token');
+
+    return AuthResult(
+      baseUrl: baseUrl,
+      token: tkn,
+      user: UserProfile.fromJson(
+        payload['user'] as Map<String, dynamic>? ?? const {},
+      ),
+    );
   }
 
   /// Call GET request to /api/users/me to fetch the current user's profile using the stored token.
@@ -414,6 +451,41 @@ class ApiClient {
       return Locker.fromJson(lockerData);
     } catch (e) {
       debugPrint('❌ Error requesting release: $e');
+      rethrow;
+    }
+  }
+
+  /// Complete a mock overdue payment and start the 30-minute grace period.
+  Future<Locker> payOverdueLocker({
+    required String stationId,
+    required String lockerId,
+    double amount = 5.0,
+    required String cardHolderName,
+    required String cardNumber,
+    required String expiryMonthYear,
+    required String cvv,
+  }) async {
+    debugPrint('📡 Paying overdue fee for locker: $lockerId at station: $stationId');
+    try {
+      final payload = await _request(
+        'POST',
+        '/api/payments/mock-checkout',
+        body: {
+          'station_id': stationId,
+          'user_id': userId,
+          'locker_id': lockerId,
+          'amount': amount,
+          'card_holder_name': cardHolderName,
+          'card_number': cardNumber,
+          'expiry_month_year': expiryMonthYear,
+          'cvv': cvv,
+        },
+      );
+      debugPrint('✅ Mock payment completed successfully');
+      final lockerData = payload['locker'] as Map<String, dynamic>? ?? const {};
+      return Locker.fromJson(lockerData);
+    } catch (e) {
+      debugPrint('❌ Error paying overdue fee: $e');
       rethrow;
     }
   }

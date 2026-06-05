@@ -7,8 +7,8 @@
 // ─────────────────────────────────────────────────────────
 
 // Wi-Fi
-const char* ssid     = "HUAWEI-E8372-3A0F";
-const char* password = "55529256";
+const char* ssid     = "M13";
+const char* password = "deeshann";
 
 // MQTT broker
 const char* mqttServer   = "3e037e542d2944a3ae4266e4d6f6c874.s1.eu.hivemq.cloud";
@@ -30,11 +30,15 @@ struct LockerConfig {
   int         sensorPin;
 };
 
+/*
+  Changed L-001 to L01 configuration.
+  Must use the same implementation in all logics
+*/
 LockerConfig lockers[] = {
-  { "L-001", 23, 4  },
-  { "L-002", 22, 5  },
-  { "L-003", 21, 18 },
-  { "L-004", 19, 16 }
+  { "L01", 23, 4  },
+  { "L02", 22, 5  },
+  { "L03", 21, 18 },
+  { "L04", 19, 16 }
 };
 
 const int LOCKER_COUNT = sizeof(lockers) / sizeof(lockers[0]);
@@ -54,7 +58,7 @@ PubSubClient     mqttClient(wifiClient);
 // ─────────────────────────────────────────────────────────
 void applyLockerState(int index, bool locked) {
   // Active-low relay: LOW energizes, HIGH de-energizes
-  digitalWrite(lockers[index].relayPin, locked ? HIGH : LOW)
+  digitalWrite(lockers[index].relayPin, locked ? HIGH : LOW);
 
   // Build state topic: locker/{stationId}/{lockerId}/state
   char stateTopic[64];
@@ -197,7 +201,7 @@ void loop() {
   }
 
   if (!mqttClient.connected()) {
-    connectMqtt()
+    connectMqtt();
   }
 
   mqttClient.loop();
