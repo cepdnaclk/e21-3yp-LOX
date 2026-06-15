@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { apiGet } from "@/lib/api";
+import { SuperAdminStore } from "@/components/super-admin-store";
 
 export const Route = createFileRoute("/_app/store/")({
   head: () => ({ meta: [{ title: "Store — LOX Smart Locker" }] }),
@@ -18,6 +19,7 @@ function StorePage() {
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
 
   // Filters
@@ -31,10 +33,13 @@ function StorePage() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) {
+    const uStr = localStorage.getItem('user');
+    if (!token || !uStr) {
       navigate({ to: "/" });
       return;
     }
+    const u = JSON.parse(uStr);
+    setUser(u);
 
     const loadStore = async () => {
       try {
@@ -103,6 +108,26 @@ function StorePage() {
   }, [products, q, cat, color, minPrice, maxPrice, delivery, sortBy]);
 
   if (loading) return <div className="p-12 text-center text-muted-foreground">Loading store...</div>;
+
+  const loadStore = async () => {
+    setLoading(true);
+    try {
+      const [pData, oData] = await Promise.all([
+        apiGet('/products').catch(() => ({ products: [] })),
+        apiGet('/orders').catch(() => ({ orders: [] }))
+      ]);
+      setProducts(pData?.products || []);
+      setOrders(oData?.orders || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (user?.role === 'SUPER_ADMIN') {
+    return <SuperAdminStore products={products} orders={orders} reloadStore={loadStore} />;
+  }
 
   return (
     <div className="space-y-6">
