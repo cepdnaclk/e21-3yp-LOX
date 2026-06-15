@@ -60,8 +60,8 @@ function LoginPage() {
         </div>
 
         <div className="relative z-10 flex items-center gap-3">
-          <div className="h-11 w-11 rounded-2xl bg-white/15 backdrop-blur grid place-items-center border border-white/30">
-            <LockKeyhole className="h-6 w-6" />
+          <div className="h-12 w-12 rounded-2xl overflow-hidden bg-white/15 backdrop-blur grid place-items-center border border-white/30">
+            <img src="/logo.jpg" alt="LOX Logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <p className="text-lg font-bold tracking-tight">LOX</p>
@@ -129,8 +129,8 @@ function LoginPage() {
           className="w-full max-w-md"
         >
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="h-10 w-10 rounded-2xl gradient-primary grid place-items-center text-primary-foreground">
-              <LockKeyhole className="h-5 w-5" />
+            <div className="h-12 w-12 rounded-2xl overflow-hidden gradient-primary grid place-items-center text-primary-foreground">
+              <img src="/logo.jpg" alt="LOX Logo" className="w-full h-full object-cover" />
             </div>
             <p className="text-lg font-bold">LOX Smart Locker</p>
           </div>

@@ -38,8 +38,8 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <aside className="flex h-full w-64 flex-col bg-sidebar border-r border-sidebar-border">
       <div className="px-6 py-6 flex items-center gap-3">
-        <div className="h-10 w-10 rounded-2xl gradient-primary grid place-items-center text-primary-foreground shadow-md">
-          <LockKeyhole className="h-5 w-5" />
+        <div className="h-10 w-10 rounded-xl overflow-hidden gradient-primary grid place-items-center text-primary-foreground shadow-md">
+          <img src="/logo.jpg" alt="LOX Logo" className="w-full h-full object-cover" />
         </div>
         <div>
           <p className="text-base font-bold tracking-tight">LOX</p>
