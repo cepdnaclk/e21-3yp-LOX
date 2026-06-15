@@ -6,8 +6,14 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const uStr = localStorage.getItem('user');
-    if (uStr) setUser(JSON.parse(uStr));
+    const loadUser = () => {
+      const uStr = localStorage.getItem('user');
+      if (uStr) setUser(JSON.parse(uStr));
+    };
+    loadUser();
+
+    window.addEventListener('userUpdated', loadUser);
+    return () => window.removeEventListener('userUpdated', loadUser);
   }, []);
 
   const handleLogout = () => {
@@ -28,9 +34,13 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
               <p className="text-sm font-semibold">{user.name}</p>
               <p className="text-xs text-muted-foreground">{user.role}</p>
             </div>
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-accent grid place-items-center text-primary-foreground text-sm font-semibold">
-              {user.name?.substring(0, 2).toUpperCase() || 'U'}
-            </div>
+            {user.avatarUrl ? (
+              <img src={user.avatarUrl} alt={user.name} className="h-9 w-9 rounded-xl object-cover shrink-0 border border-border" />
+            ) : (
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-accent grid place-items-center text-primary-foreground text-sm font-semibold shrink-0">
+                {user.name?.substring(0, 2).toUpperCase() || 'U'}
+              </div>
+            )}
           </>
         )}
         <Link

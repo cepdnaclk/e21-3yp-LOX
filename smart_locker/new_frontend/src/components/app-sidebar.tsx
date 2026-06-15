@@ -19,8 +19,14 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const uStr = localStorage.getItem('user');
-    if (uStr) setUser(JSON.parse(uStr));
+    const loadUser = () => {
+      const uStr = localStorage.getItem('user');
+      if (uStr) setUser(JSON.parse(uStr));
+    };
+    loadUser();
+
+    window.addEventListener('userUpdated', loadUser);
+    return () => window.removeEventListener('userUpdated', loadUser);
   }, []);
 
   const handleLogout = () => {
@@ -89,9 +95,13 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
         </Link>
         {user && (
           <div className="mt-3 flex items-center gap-3 p-3 rounded-2xl bg-muted/60">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-accent grid place-items-center text-primary-foreground text-sm font-semibold shrink-0">
-              {user.name?.substring(0, 2).toUpperCase() || 'U'}
-            </div>
+            {user.avatarUrl ? (
+              <img src={user.avatarUrl} alt={user.name} className="h-10 w-10 rounded-xl object-cover shrink-0" />
+            ) : (
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-accent grid place-items-center text-primary-foreground text-sm font-semibold shrink-0">
+                {user.name?.substring(0, 2).toUpperCase() || 'U'}
+              </div>
+            )}
             <div className="min-w-0">
               <p className="text-sm font-semibold truncate">{user.name}</p>
               <p className="text-xs text-muted-foreground truncate">{user.role}</p>
