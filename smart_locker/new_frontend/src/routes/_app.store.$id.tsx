@@ -1,32 +1,82 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { ArrowLeft, ShoppingBag, Star, Check, Truck, Shield, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { products, reviews } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/store/$id")({
   head: () => ({ meta: [{ title: "Product — LOX Store" }] }),
-  notFoundComponent: () => <div className="p-12 text-center">Product not found</div>,
-  errorComponent: ({ error }) => <div className="p-12 text-center text-destructive">{error.message}</div>,
   loader: ({ params }) => {
-    const product = products.find((p) => p.id === params.id);
-    if (!product) throw notFound();
-    return { product };
+    return { id: params.id };
   },
   component: ProductPage,
 });
 
 function ProductPage() {
-  const { product } = Route.useLoaderData();
+  const { id } = Route.useLoaderData();
+  const navigate = useNavigate();
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [checkingOut, setCheckingOut] = useState(false);
   const [active, setActive] = useState(0);
-  const related = products.filter((p) => p.id !== product.id).slice(0, 4);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate({ to: "/" });
+      return;
+    }
+
+    fetch(`http://localhost:3001/api/products/${id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(data => {
+        setProduct(data.product);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [id, navigate]);
+
+  const handleCheckout = async () => {
+    try {
+      setCheckingOut(true);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:3001/api/payment/checkout`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ productId: product._id })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Checkout failed');
+      
+      if (data.sessionUrl) {
+        window.location.href = data.sessionUrl;
+      } else {
+        toast.error("Stripe is not configured on the backend.");
+        setCheckingOut(false);
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+      setCheckingOut(false);
+    }
+  };
+
+  if (loading) return <div className="p-12 text-center text-muted-foreground">Loading product details...</div>;
+  if (!product) return <div className="p-12 text-center text-destructive">Product not found</div>;
 
   return (
     <div className="space-y-10">
-      <Link to="/store" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
+      <Link to="/store" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition">
         <ArrowLeft className="h-4 w-4" /> Back to store
       </Link>
 
@@ -35,138 +85,141 @@ function ProductPage() {
           <motion.div
             key={active}
             initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
-            className="aspect-square rounded-3xl overflow-hidden relative card-soft"
-            style={{ backgroundImage: product.gradient }}
+            className="aspect-square rounded-3xl overflow-hidden relative card-soft bg-muted flex items-center justify-center"
           >
-            <div className="absolute inset-0 grid place-items-center">
-              <ShoppingBag className="h-32 w-32 text-white/70" />
-            </div>
+            {product.imageUrl ? (
+              <img src={product.imageUrl} alt={product.name} className="object-cover w-full h-full" />
+            ) : (
+              <ShoppingBag className="h-32 w-32 text-muted-foreground/30" />
+            )}
           </motion.div>
+          
           <div className="grid grid-cols-4 gap-3 mt-4">
             {[0, 1, 2, 3].map((i) => (
               <button
                 key={i}
                 onClick={() => setActive(i)}
                 className={cn(
-                  "aspect-square rounded-xl border transition",
-                  active === i ? "border-primary ring-2 ring-primary/30" : "border-border"
+                  "aspect-square rounded-xl border transition overflow-hidden bg-muted flex items-center justify-center",
+                  active === i ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50"
                 )}
-                style={{ backgroundImage: product.gradient, opacity: 0.6 + i * 0.1 }}
-              />
+              >
+                {product.imageUrl ? (
+                  <img src={product.imageUrl} className="object-cover w-full h-full opacity-80" alt="thumb" />
+                ) : (
+                  <ShoppingBag className="h-8 w-8 text-muted-foreground/20" />
+                )}
+              </button>
             ))}
           </div>
         </div>
 
         <div>
-          <p className="text-sm text-primary font-medium">{product.category}</p>
-          <h1 className="mt-1 text-3xl lg:text-4xl font-bold tracking-tight">{product.name}</h1>
-          <div className="mt-3 flex items-center gap-3 text-sm">
-            <span className="inline-flex items-center gap-1 text-warning"><Star className="h-4 w-4 fill-warning" />{product.rating}</span>
-            <span className="text-muted-foreground">· {product.reviews} reviews</span>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-primary font-medium tracking-wide uppercase">{product.category}</p>
+            {product.badge && (
+              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-900 text-white shadow-sm">
+                {product.badge}
+              </span>
+            )}
           </div>
-          <p className="mt-5 text-muted-foreground leading-relaxed">{product.description}</p>
-
-          <div className="mt-6 flex items-baseline gap-3">
-            <p className="text-4xl font-bold">${product.price.toLocaleString()}</p>
-            <p className="text-sm text-muted-foreground line-through">${(product.price * 1.2).toFixed(0)}</p>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-success/10 text-success">In stock</span>
+          
+          <h1 className="mt-2 text-3xl lg:text-4xl font-bold tracking-tight">{product.name}</h1>
+          <div className="mt-4 flex items-center gap-3 text-sm">
+            <span className="inline-flex items-center gap-1 text-warning font-semibold">
+              <Star className="h-4 w-4 fill-warning" />
+              {product.rating}
+            </span>
+            <span className="text-muted-foreground">· {product.reviews || 0} reviews</span>
+            <span className="text-muted-foreground">· {product.sold || 0} sold</span>
           </div>
+          <p className="mt-6 text-muted-foreground leading-relaxed text-base">{product.description}</p>
 
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Button onClick={() => toast.success("Added to cart")} className="rounded-xl gradient-primary text-primary-foreground hover:opacity-90 h-12 px-6">
-              Buy Now
-            </Button>
-            <Button variant="outline" className="rounded-xl h-12 px-6">Add to cart</Button>
+          <div className="mt-8 p-6 card-soft border-primary/10">
+            <div className="flex items-baseline gap-4">
+              <p className="text-4xl font-extrabold text-foreground tracking-tight">Rs. {product.price.toLocaleString()}</p>
+              {product.compareAtPrice > product.price && (
+                <p className="text-lg text-muted-foreground line-through font-medium">Rs. {product.compareAtPrice.toLocaleString()}</p>
+              )}
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-4">
+              <Button onClick={handleCheckout} disabled={checkingOut} className="rounded-xl gradient-primary text-primary-foreground hover:opacity-90 h-14 px-8 text-base shadow-md font-bold flex-1">
+                {checkingOut ? "Redirecting..." : "Buy Now"}
+              </Button>
+              <Button variant="outline" className="rounded-xl h-14 px-8 text-base border-2 font-semibold">
+                Add to cart
+              </Button>
+            </div>
+            <p className="text-xs text-center text-muted-foreground mt-4">Secure checkout powered by Stripe</p>
           </div>
 
           <div className="mt-8 grid sm:grid-cols-3 gap-3">
             {[
-              { icon: Truck, label: "Free shipping" },
+              { icon: Truck, label: `${product.deliveryLabel || 'Standard delivery'}\n(${product.deliveryDays} days)` },
               { icon: Shield, label: "2-year warranty" },
               { icon: RotateCcw, label: "30-day returns" },
             ].map((b) => (
-              <div key={b.label} className="card-soft p-3 flex items-center gap-2 text-sm">
-                <b.icon className="h-4 w-4 text-primary" /> {b.label}
+              <div key={b.label} className="card-soft p-4 flex flex-col items-center justify-center text-center gap-2 text-sm border-transparent hover:border-primary/20 transition">
+                <b.icon className="h-6 w-6 text-primary" /> 
+                <span className="whitespace-pre-line font-medium leading-tight">{b.label}</span>
               </div>
             ))}
           </div>
 
-          <div className="mt-8">
-            <h3 className="font-semibold">Key features</h3>
-            <ul className="mt-3 grid sm:grid-cols-2 gap-2">
-              {product.features.map((f: string) => (
-                <li key={f} className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-success" /> {f}
-                </li>
+          {product.features && product.features.length > 0 && (
+            <div className="mt-10">
+              <h3 className="text-lg font-bold">Key features</h3>
+              <ul className="mt-4 space-y-3">
+                {product.features.map((f: string) => (
+                  <li key={f} className="flex items-start gap-3 text-sm text-muted-foreground">
+                    <Check className="h-5 w-5 text-success shrink-0" /> <span className="pt-0.5 leading-relaxed">{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-[1fr_300px] gap-10 mt-12 border-t pt-10">
+        <div>
+           <h3 className="text-2xl font-bold mb-6">Specifications</h3>
+           <div className="grid sm:grid-cols-2 gap-4">
+             <div className="p-4 rounded-xl border bg-card">
+               <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">Art Style / Access</p>
+               <p className="font-semibold text-base mt-1">{product.artStyle || 'Standard'}</p>
+             </div>
+             <div className="p-4 rounded-xl border bg-card">
+               <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">Delivery Time</p>
+               <p className="font-semibold text-base mt-1">{product.deliveryDays} Business Days</p>
+             </div>
+             <div className="p-4 rounded-xl border bg-card">
+               <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">Stock Availability</p>
+               <p className="font-semibold text-base mt-1">{product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}</p>
+             </div>
+             <div className="p-4 rounded-xl border bg-card">
+               <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">Delivery Fee</p>
+               <p className="font-semibold text-base mt-1">{product.deliveryFee === 0 ? 'Free' : `Rs. ${product.deliveryFee}`}</p>
+             </div>
+           </div>
+        </div>
+
+        {product.colors && product.colors.length > 0 && (
+          <div>
+            <h3 className="text-lg font-bold mb-4">Available Colors</h3>
+            <div className="space-y-3">
+              {product.colors.map((c: any) => (
+                <div key={c.name} className="flex items-center gap-3 p-3 rounded-xl border bg-card">
+                  <span className="h-6 w-6 rounded-full border shadow-sm" style={{ backgroundColor: c.name.toLowerCase() === 'grey' ? '#9ca3af' : c.name.toLowerCase() === 'black' ? '#1f2937' : c.name.toLowerCase() === 'red' ? '#ef4444' : c.name.toLowerCase() === 'walnut' ? '#78350f' : c.value }} />
+                  <p className="font-medium text-sm">{c.name}</p>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Specs */}
-      <div className="card-soft p-6">
-        <h3 className="text-lg font-semibold">Specifications</h3>
-        <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-          {[
-            ["Power", "100-240V AC"],
-            ["Connectivity", "Wi-Fi · Ethernet"],
-            ["Material", "Powder-coated steel"],
-            ["Dimensions", "60 × 40 × 30 cm"],
-            ["Weight", "18 kg"],
-            ["Battery backup", "12 hours"],
-            ["Operating temp", "-10° to 50°C"],
-            ["Compliance", "CE · FCC · RoHS"],
-          ].map(([k, v]) => (
-            <div key={k} className="p-3 rounded-xl bg-muted/40">
-              <p className="text-xs text-muted-foreground">{k}</p>
-              <p className="font-medium">{v}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Reviews */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4">What customers say</h3>
-        <div className="grid md:grid-cols-3 gap-4">
-          {reviews.map((r) => (
-            <div key={r.id} className="card-soft p-5">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground grid place-items-center text-sm font-bold">
-                  {r.name.split(" ").map((n) => n[0]).join("")}
-                </div>
-                <div>
-                  <p className="font-medium text-sm">{r.name}</p>
-                  <p className="text-xs text-muted-foreground">{r.role}</p>
-                </div>
-              </div>
-              <div className="mt-3 flex">
-                {Array.from({ length: r.rating }).map((_, i) => <Star key={i} className="h-4 w-4 text-warning fill-warning" />)}
-              </div>
-              <p className="mt-3 text-sm text-muted-foreground">{r.text}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Related */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4">You may also like</h3>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {related.map((p) => (
-            <Link key={p.id} to="/store/$id" params={{ id: p.id }} className="card-soft overflow-hidden hover:-translate-y-1 transition">
-              <div className="aspect-square grid place-items-center" style={{ backgroundImage: p.gradient }}>
-                <ShoppingBag className="h-12 w-12 text-white/70" />
-              </div>
-              <div className="p-3">
-                <p className="text-sm font-medium truncate">{p.name}</p>
-                <p className="text-sm text-muted-foreground">${p.price.toLocaleString()}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
