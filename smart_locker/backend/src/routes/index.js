@@ -8,6 +8,7 @@ const orderRoutes = require('./orderRoutes');
 const paymentRoutes = require('./paymentRoutes');
 const requestRoutes = require('./requestRoutes');
 const eventRoutes = require('./eventRoutes');
+const dashboardRoutes = require('./dashboardRoutes');
 const { healthHandler } = require('../controllers/healthController');
 const { requireAuth } = require('../middleware/authMiddleware');
 const { listQueueHandler } = require('../controllers/requestController');
@@ -24,6 +25,7 @@ router.use('/orders', orderRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/requests', requestRoutes);
 router.use('/events', eventRoutes);
+router.use('/dashboard', dashboardRoutes);
 router.get('/queue', requireAuth, listQueueHandler);
 
 module.exports = router;

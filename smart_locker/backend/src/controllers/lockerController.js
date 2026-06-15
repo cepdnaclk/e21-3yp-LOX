@@ -123,7 +123,10 @@ const releaseLockerHandler = asyncHandler(async (req, res) => {
   await locker.save();
   await publishLockerBookingStatus(locker);
 
-  await assignWaitingQueue(locker.stationId);
+  // Trigger queue assignment in the background without blocking the release response
+  assignWaitingQueue(locker.stationId).catch((err) => {
+    console.error(`[Queue Assignment] Failed in background for station ${locker.stationId}:`, err.message);
+  });
 
   if (userIdToNotify) {
     sendPushNotification(

@@ -10,10 +10,10 @@ const mqttEnabled = Boolean(env.mqttServer && env.mqttUsername && env.mqttPasswo
 
 const client = mqttEnabled
   ? mqtt.connect(env.mqttServer, {
-      username: env.mqttUsername,
-      password: env.mqttPassword,
-      reconnectPeriod: 5000
-    })
+    username: env.mqttUsername,
+    password: env.mqttPassword,
+    reconnectPeriod: 5000
+  })
   : null;
 
 let lastMqttError = '';
@@ -126,13 +126,13 @@ async function publishLockerBookingStatus(locker) {
   const legacyTopic = `locker/${getLegacyCode(locker.code)}/booking`;
 
   const topics = new Set([canonicalTopic, legacyTopic]);
-  for (const topic of topics) {
-    try {
-      await publishRetained(topic, value);
-    } catch (error) {
-      console.error(`Failed to publish booking status to ${topic}:`, error.message);
-    }
-  }
+  await Promise.all(
+    [...topics].map((topic) =>
+      publishRetained(topic, value).catch((error) => {
+        console.error(`Failed to publish booking status to ${topic}:`, error.message);
+      })
+    )
+  );
 }
 
 async function publishLockerSecurityIgnoreCommand(locker) {
@@ -144,22 +144,26 @@ async function publishLockerSecurityIgnoreCommand(locker) {
   const legacyTopic = `locker/${getLegacyCode(locker.code)}/security`;
   const topics = new Set([canonicalTopic, legacyTopic]);
 
-  for (const topic of topics) {
-    await new Promise((resolve, reject) => {
-      if (!client || !client.connected) {
-        reject(new Error('MQTT broker not connected'));
-        return;
-      }
-
-      client.publish(topic, 'IGNORE', (err) => {
-        if (err) {
-          reject(err);
+  await Promise.all(
+    [...topics].map((topic) => {
+      return new Promise((resolve, reject) => {
+        if (!client || !client.connected) {
+          reject(new Error('MQTT broker not connected'));
           return;
         }
-        resolve();
+
+        client.publish(topic, 'IGNORE', (err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve();
+        });
       });
-    });
-  }
+    })
+  ).catch((error) => {
+    console.error(`Failed to publish security ignore command:`, error.message);
+  });
 }
 
 function publishLockerCommand(locker, command) {
