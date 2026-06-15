@@ -14,4 +14,7 @@ export default defineConfig({
       entry: "server"
     },
   },
+  nitro: {
+    preset: "aws_amplify"
+  }
 });
