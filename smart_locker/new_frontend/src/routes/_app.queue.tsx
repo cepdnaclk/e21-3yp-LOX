@@ -6,6 +6,7 @@ import { ListOrdered, Clock, User, CheckCircle2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { apiGet } from "@/lib/api";
 
 export const Route = createFileRoute("/_app/queue")({
   head: () => ({ meta: [{ title: "Queue — LOX Smart Locker" }] }),
@@ -24,10 +25,7 @@ function QueuePage() {
 
   const fetchStations = async (t: string) => {
     try {
-      const res = await fetch("http://localhost:3001/api/stations", {
-        headers: { Authorization: `Bearer ${t}` },
-      });
-      const data = await res.json();
+      const data = await apiGet('/stations');
       const stList = data.stations || [];
       setStationsList(stList);
       if (stList.length > 0 && !stationId) {
@@ -42,10 +40,7 @@ function QueuePage() {
   const fetchQueue = async (t: string, sId: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:3001/api/requests/queue/list?stationId=${sId}`, {
-        headers: { Authorization: `Bearer ${t}` },
-      });
-      const data = await res.json();
+      const data = await apiGet(`/requests/queue/list?stationId=${sId}`);
       setQueueEntries(data.queueEntries || []);
     } catch (e) {
       console.error(e);

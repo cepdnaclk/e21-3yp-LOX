@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useState, useEffect, useRef } from "react";
+import { apiGet, apiMutate } from "@/lib/api";
 
 export const Route = createFileRoute("/_app/account")({
   head: () => ({ meta: [{ title: "My Account — LOX Smart Locker" }] }),
@@ -34,15 +35,9 @@ function AccountPage() {
 
   const fetchProfile = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
+      const data = await apiGet('/auth/me');
       
-      const res = await fetch("http://localhost:3001/api/auth/me", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      
-      if (res.ok && data.user) {
+      if (data && data.user) {
         const u = data.user;
         setName(u.name || "");
         setEmail(u.email || "");
@@ -69,20 +64,9 @@ function AccountPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:3001/api/auth/me", {
-        method: "PATCH",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify({
-          name, email, phone, jobTitle, bio, avatarUrl, homeBackgroundUrl
-        })
-      });
-      
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to save profile");
+      const data = await apiMutate('/auth/me', 'PATCH', {
+        name, email, phone, jobTitle, bio, avatarUrl, homeBackgroundUrl
+      }, ['/auth/me']);
       
       toast.success("Profile saved successfully");
       

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type LockerStatus } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
+import { apiGet, apiMutate } from "@/lib/api";
 
 export const Route = createFileRoute("/_app/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — LOX Smart Locker" }] }),
@@ -42,34 +43,44 @@ function Dashboard() {
 
   const fetchAll = async (t: string, u: any) => {
     try {
-      if (u.role === 'USER') {
-        const reqRes = await fetch('http://localhost:3001/api/requests', { headers: { Authorization: `Bearer ${t}` } });
-        const reqData = await reqRes.json();
-        setMyRequests(reqData.requests || []);
+      // Fire all independent requests in parallel using apiGet (uses cache if available)
+      const stationsPromise = apiGet('/stations');
 
-        const lockRes = await fetch('http://localhost:3001/api/lockers', { headers: { Authorization: `Bearer ${t}` } });
-        const lockData = await lockRes.json();
-        setMyLockers(lockData.lockers || []);
+      let requestsPromise: Promise<any> | null = null;
+      let lockersPromise: Promise<any> | null = null;
+      let pendingPromise: Promise<any> | null = null;
+
+      if (u.role === 'USER') {
+        requestsPromise = apiGet('/requests');
+        lockersPromise = apiGet('/lockers');
       }
 
       if (u.role === 'SUB_ADMIN' || u.role === 'SUPER_ADMIN') {
-        const pReqRes = await fetch('http://localhost:3001/api/requests?status=PENDING', { headers: { Authorization: `Bearer ${t}` } });
-        const pReqData = await pReqRes.json();
-        setPendingRequests(pReqData.requests || []);
+        pendingPromise = apiGet('/requests?status=PENDING');
       }
 
-      const stRes = await fetch('http://localhost:3001/api/stations', { headers: { Authorization: `Bearer ${t}` } });
-      const stData = await stRes.json();
+      // Await all in parallel
+      const [stData, reqData, lockData, pReqData] = await Promise.all([
+        stationsPromise,
+        requestsPromise,
+        lockersPromise,
+        pendingPromise
+      ]);
+
+      if (reqData) setMyRequests(reqData.requests || []);
+      if (lockData) setMyLockers(lockData.lockers || []);
+      if (pReqData) setPendingRequests(pReqData.requests || []);
+
       const stList = stData.stations || [];
       setStationsList(stList);
       if (stList.length > 0 && !stationId) setStationId(stList[0]._id);
 
+      // This depends on stations data, so it runs after
       const st001 = stList.find((s: any) => s.code === 'ST001');
       const fetchLockersId = st001 ? st001._id : (stList[0]?._id || '');
 
       if (fetchLockersId) {
-        const genLockRes = await fetch(`http://localhost:3001/api/lockers?stationId=${fetchLockersId}`, { headers: { Authorization: `Bearer ${t}` } });
-        const genLockData = await genLockRes.json();
+        const genLockData = await apiGet(`/lockers?stationId=${fetchLockersId}`);
         setLockers(genLockData.lockers || []);
       }
     } catch (e) {
@@ -95,13 +106,7 @@ function Dashboard() {
     if (!stationId) { toast.error("Please select a station"); return; }
     
     try {
-      const res = await fetch('http://localhost:3001/api/requests/access', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ stationId, note: purpose })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to submit request');
+      await apiMutate('/requests/access', 'POST', { stationId, note: purpose }, ['/requests', '/lockers']);
       
       toast.success("Locker request submitted");
       setPurpose("");
@@ -113,12 +118,7 @@ function Dashboard() {
 
   const cancelRequest = async (id: string) => {
     try {
-      const res = await fetch(`http://localhost:3001/api/requests/${id}/cancel`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to cancel request');
+      await apiMutate(`/requests/${id}/cancel`, 'POST', undefined, ['/requests']);
       toast.success("Request cancelled");
       fetchAll(token, user);
     } catch (err: any) {
@@ -128,12 +128,7 @@ function Dashboard() {
 
   const approveRequest = async (id: string) => {
     try {
-      const res = await fetch(`http://localhost:3001/api/requests/${id}/approve`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to approve');
+      const data = await apiMutate(`/requests/${id}/approve`, 'POST', undefined, ['/requests', '/lockers']);
       toast.success(data.message || "Request approved");
       fetchAll(token, user);
     } catch (err: any) {
@@ -143,12 +138,7 @@ function Dashboard() {
 
   const rejectRequest = async (id: string) => {
     try {
-      const res = await fetch(`http://localhost:3001/api/requests/${id}/reject`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to reject');
+      await apiMutate(`/requests/${id}/reject`, 'POST', undefined, ['/requests']);
       toast.success("Request rejected");
       fetchAll(token, user);
     } catch (err: any) {
@@ -158,12 +148,7 @@ function Dashboard() {
 
   const commandLocker = async (id: string, action: string) => {
     try {
-      const res = await fetch(`http://localhost:3001/api/lockers/${id}/${action}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || `Failed to ${action}`);
+      await apiMutate(`/lockers/${id}/${action}`, 'POST', undefined, ['/lockers']);
       toast.success(`Locker ${action} successful`);
       fetchAll(token, user);
     } catch (err: any) {
@@ -309,6 +294,16 @@ function Dashboard() {
                        {l.lockState}
                     </span>
                   </div>
+                  {isSubAdmin && (
+                    <div className="mt-4 pt-3 border-t border-border grid grid-cols-2 gap-2">
+                      <Button size="sm" variant="outline" className="h-8 text-[11px] px-2" onClick={() => commandLocker(l._id, 'unlock')}><Unlock className="w-3 h-3 mr-1" /> Unlock</Button>
+                      <Button size="sm" variant="outline" className="h-8 text-[11px] px-2" onClick={() => commandLocker(l._id, 'lock')}><LockKeyhole className="w-3 h-3 mr-1" /> Lock</Button>
+                      <Button size="sm" variant="outline" className="h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => commandLocker(l._id, 'release')}><LogOut className="w-3 h-3 mr-1" /> Release</Button>
+                      {l.securityAlertActive && (
+                        <Button size="sm" variant="outline" className="h-8 text-[11px] px-2 border-warning/30 text-warning hover:bg-warning/10" onClick={() => commandLocker(l._id, 'security-ignore')}><CheckCircle2 className="w-3 h-3 mr-1" /> Ignore</Button>
+                      )}
+                    </div>
+                  )}
                 </motion.div>
               );
             })}

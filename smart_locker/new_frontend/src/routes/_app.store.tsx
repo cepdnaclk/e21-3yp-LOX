@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { apiGet } from "@/lib/api";
 
 export const Route = createFileRoute("/_app/store")({
   head: () => ({ meta: [{ title: "Store — LOX Smart Locker" }] }),
@@ -36,8 +37,8 @@ function StorePage() {
     }
 
     Promise.all([
-      fetch('http://localhost:3001/api/products', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : Promise.reject(new Error("cannot fetch products"))),
-      fetch('http://localhost:3001/api/orders', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : Promise.reject(new Error("cannot fetch orders")))
+      apiGet('/products'),
+      apiGet('/orders')
     ]).then(([pData, oData]) => {
       setProducts(pData?.products || []);
       setOrders(oData?.orders || []);

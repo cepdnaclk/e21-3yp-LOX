@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { AnimatedNumber } from "@/components/animated-number";
+import { apiGet } from "@/lib/api";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -44,20 +45,20 @@ function AnalyticsPage() {
   useEffect(() => {
     const fetchAndProcessAnalytics = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:3001/api/requests", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.message || "Failed to fetch requests");
-        
-        const requests = json.data?.requests || json.requests || [];
-        
+        // Fetch only QUEUED and APPROVED requests in parallel using apiGet (uses cache if available)
+        const [queuedJson, approvedJson] = await Promise.all([
+          apiGet("/requests?status=QUEUED"),
+          apiGet("/requests?status=APPROVED")
+        ]);
+
+        const queuedRequests = queuedJson.requests || [];
+        const approvedRequests = approvedJson.requests || [];
+
         // Process data for "today"
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
         const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        
+
         const hourlyData = Array.from({ length: 24 }).map((_, hour) => ({
           hour: `${hour.toString().padStart(2, '0')}:00`,
           queueWaits: 0,
@@ -68,7 +69,8 @@ function AnalyticsPage() {
         let totalQueueWaits = 0;
         let totalLockerAccess = 0;
 
-        requests.forEach((req: any) => {
+        // Count queue entries by creation hour
+        queuedRequests.forEach((req: any) => {
           const createdAt = new Date(req.createdAt);
           if (createdAt >= startOfDay && createdAt <= endOfDay) {
             const hour = createdAt.getHours();
@@ -76,8 +78,11 @@ function AnalyticsPage() {
             hourlyData[hour].total += 1;
             totalQueueWaits += 1;
           }
+        });
 
-          if (req.status === 'APPROVED' && req.approvedAt) {
+        // Count approved accesses by approval hour
+        approvedRequests.forEach((req: any) => {
+          if (req.approvedAt) {
             const approvedAt = new Date(req.approvedAt);
             if (approvedAt >= startOfDay && approvedAt <= endOfDay) {
               const hour = approvedAt.getHours();

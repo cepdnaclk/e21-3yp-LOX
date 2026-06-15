@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { apiGet, apiMutate } from "@/lib/api";
 
 export const Route = createFileRoute("/_app/store/$id")({
   head: () => ({ meta: [{ title: "Product — LOX Store" }] }),
@@ -29,13 +30,7 @@ function ProductPage() {
       return;
     }
 
-    fetch(`http://localhost:3001/api/products/${id}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(r => {
-        if (!r.ok) throw new Error("cannot fetch product");
-        return r.json();
-      })
+    apiGet(`/products/${id}`)
       .then(data => {
         setProduct(data.product);
         setLoading(false);
@@ -50,18 +45,7 @@ function ProductPage() {
   const handleCheckout = async () => {
     try {
       setCheckingOut(true);
-      const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3001/api/payment/checkout`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify({ productId: product._id })
-      });
-      
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Checkout failed');
+      const data = await apiMutate(`/payment/checkout`, 'POST', { productId: product._id });
       
       if (data.sessionUrl) {
         window.location.href = data.sessionUrl;
