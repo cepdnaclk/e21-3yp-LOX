@@ -45,10 +45,10 @@ function ProductPage() {
   const handleCheckout = async () => {
     try {
       setCheckingOut(true);
-      const data = await apiMutate(`/payment/checkout`, 'POST', { productId: product._id });
+      const data = await apiMutate(`/payments/checkout-session`, 'POST', { productId: product.id });
       
-      if (data.sessionUrl) {
-        window.location.href = data.sessionUrl;
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
       } else {
         toast.error("Stripe is not configured on the backend.");
         setCheckingOut(false);

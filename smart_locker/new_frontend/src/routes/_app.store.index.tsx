@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { apiGet } from "@/lib/api";
 
-export const Route = createFileRoute("/_app/store")({
+export const Route = createFileRoute("/_app/store/")({
   head: () => ({ meta: [{ title: "Store — LOX Smart Locker" }] }),
   component: StorePage,
 });
@@ -36,18 +36,30 @@ function StorePage() {
       return;
     }
 
-    Promise.all([
-      apiGet('/products'),
-      apiGet('/orders')
-    ]).then(([pData, oData]) => {
-      setProducts(pData?.products || []);
-      setOrders(oData?.orders || []);
-      setLoading(false);
-    }).catch(err => {
-      console.error(err);
-      toast.error(err.message || "cannot fetch");
-      setLoading(false);
-    });
+    const loadStore = async () => {
+      try {
+        const [pData, oData] = await Promise.all([
+          apiGet('/products').catch(err => {
+            console.error("Products error:", err);
+            return { products: [] };
+          }),
+          apiGet('/orders').catch(err => {
+            console.error("Orders error:", err);
+            return { orders: [] };
+          })
+        ]);
+        
+        setProducts(pData?.products || []);
+        setOrders(oData?.orders || []);
+      } catch (err: any) {
+        console.error(err);
+        toast.error(err.message || "Failed to load store data");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadStore();
   }, [navigate]);
 
   // Derived filter options
@@ -70,7 +82,7 @@ function StorePage() {
     let res = products.filter((p) => {
       if (cat !== "All" && p.category !== cat) return false;
       if (color !== "All" && !p.colors?.some((c: any) => c.name.toLowerCase() === color.toLowerCase())) return false;
-      if (q && !p.name.toLowerCase().includes(q.toLowerCase()) && !p.description.toLowerCase().includes(q.toLowerCase())) return false;
+      if (q && !(p.name || "").toLowerCase().includes(q.toLowerCase()) && !(p.description || "").toLowerCase().includes(q.toLowerCase())) return false;
       
       const price = p.price;
       const min = parseInt(minPrice) || 0;
@@ -211,18 +223,18 @@ function StorePage() {
             ) : (
               <div className="space-y-3">
                 {orders.map(o => (
-                  <div key={o._id} className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
+                  <div key={o.id} className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 bg-primary/10 rounded-lg grid place-items-center text-primary">
                         <Package className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="font-semibold text-sm">Order {o.orderNumber || o._id.substring(o._id.length - 6).toUpperCase()}</p>
+                        <p className="font-semibold text-sm">Order {o.orderNumber || (o.id ? o.id.substring(Math.max(0, o.id.length - 6)).toUpperCase() : o._id?.substring(Math.max(0, o._id.length - 6)).toUpperCase() || 'UNKNOWN')}</p>
                         <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3"/> {new Date(o.createdAt).toLocaleDateString()}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-sm">${o.totalAmount?.toLocaleString()}</p>
+                      <p className="font-bold text-sm">${(o.amount || 0).toLocaleString()}</p>
                       <span className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full", o.status === 'PAID' ? "bg-success/10 text-success" : o.status === 'CANCELLED' ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning")}>
                         {o.status}
                       </span>
@@ -236,7 +248,7 @@ function StorePage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map((p, i) => (
               <motion.div
-                key={p._id}
+                key={p.id}
                 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                 whileHover={{ y: -4 }}
                 className="card-soft overflow-hidden group flex flex-col"
@@ -258,13 +270,13 @@ function StorePage() {
                   <p className="mt-2 text-sm text-muted-foreground line-clamp-3 leading-relaxed flex-1">{p.description}</p>
                   
                   <div className="mt-4 flex items-center justify-between">
-                    <p className="text-xl font-extrabold text-foreground">Rs. {p.price.toLocaleString()}</p>
+                    <p className="text-xl font-extrabold text-foreground">Rs. {(p.price || 0).toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground text-right">{p.deliveryDays} days</p>
                   </div>
                   
                   <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-xs">
                     <div className="flex gap-1.5 items-center">
-                      {p.colors?.slice(0, 3).map((c: any) => (
+                      {(p.colors || []).slice(0, 3).map((c: any) => (
                         <span key={c.name} className="h-3.5 w-3.5 rounded-full border border-border/50 shadow-sm" style={{ backgroundColor: c.name.toLowerCase() === 'grey' ? '#9ca3af' : c.name.toLowerCase() === 'black' ? '#1f2937' : c.name.toLowerCase() === 'red' ? '#ef4444' : c.name.toLowerCase() === 'walnut' ? '#78350f' : c.value }} title={c.name} />
                       ))}
                       <span className="text-muted-foreground ml-1 font-medium">{p.category}</span>
@@ -274,7 +286,7 @@ function StorePage() {
                     </span>
                   </div>
 
-                  <Link to="/store/$id" params={{ id: p._id }} className="mt-4 w-full">
+                  <Link to="/store/$id" params={{ id: p.id }} className="mt-4 w-full">
                     <Button className="w-full rounded-xl bg-card border border-border shadow-sm hover:bg-muted text-foreground">
                       View Details
                     </Button>

@@ -12,13 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppStoreRouteImport } from './routes/_app.store'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppQueueRouteImport } from './routes/_app.queue'
 import { Route as AppHelpRouteImport } from './routes/_app.help'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
 import { Route as AppAccountRouteImport } from './routes/_app.account'
+import { Route as AppStoreIndexRouteImport } from './routes/_app.store.index'
 import { Route as AppStoreIdRouteImport } from './routes/_app.store.$id'
 
 const RegisterRoute = RegisterRouteImport.update({
@@ -34,11 +34,6 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AppStoreRoute = AppStoreRouteImport.update({
-  id: '/store',
-  path: '/store',
-  getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
@@ -70,10 +65,15 @@ const AppAccountRoute = AppAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => AppRoute,
 } as any)
+const AppStoreIndexRoute = AppStoreIndexRouteImport.update({
+  id: '/store/',
+  path: '/store/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppStoreIdRoute = AppStoreIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AppStoreRoute,
+  id: '/store/$id',
+  path: '/store/$id',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -85,8 +85,8 @@ export interface FileRoutesByFullPath {
   '/help': typeof AppHelpRoute
   '/queue': typeof AppQueueRoute
   '/settings': typeof AppSettingsRoute
-  '/store': typeof AppStoreRouteWithChildren
   '/store/$id': typeof AppStoreIdRoute
+  '/store/': typeof AppStoreIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -97,8 +97,8 @@ export interface FileRoutesByTo {
   '/help': typeof AppHelpRoute
   '/queue': typeof AppQueueRoute
   '/settings': typeof AppSettingsRoute
-  '/store': typeof AppStoreRouteWithChildren
   '/store/$id': typeof AppStoreIdRoute
+  '/store': typeof AppStoreIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -111,8 +111,8 @@ export interface FileRoutesById {
   '/_app/help': typeof AppHelpRoute
   '/_app/queue': typeof AppQueueRoute
   '/_app/settings': typeof AppSettingsRoute
-  '/_app/store': typeof AppStoreRouteWithChildren
   '/_app/store/$id': typeof AppStoreIdRoute
+  '/_app/store/': typeof AppStoreIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -125,8 +125,8 @@ export interface FileRouteTypes {
     | '/help'
     | '/queue'
     | '/settings'
-    | '/store'
     | '/store/$id'
+    | '/store/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -137,8 +137,8 @@ export interface FileRouteTypes {
     | '/help'
     | '/queue'
     | '/settings'
-    | '/store'
     | '/store/$id'
+    | '/store'
   id:
     | '__root__'
     | '/'
@@ -150,8 +150,8 @@ export interface FileRouteTypes {
     | '/_app/help'
     | '/_app/queue'
     | '/_app/settings'
-    | '/_app/store'
     | '/_app/store/$id'
+    | '/_app/store/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -182,13 +182,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_app/store': {
-      id: '/_app/store'
-      path: '/store'
-      fullPath: '/store'
-      preLoaderRoute: typeof AppStoreRouteImport
-      parentRoute: typeof AppRoute
     }
     '/_app/settings': {
       id: '/_app/settings'
@@ -232,27 +225,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAccountRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/store/': {
+      id: '/_app/store/'
+      path: '/store'
+      fullPath: '/store/'
+      preLoaderRoute: typeof AppStoreIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/store/$id': {
       id: '/_app/store/$id'
-      path: '/$id'
+      path: '/store/$id'
       fullPath: '/store/$id'
       preLoaderRoute: typeof AppStoreIdRouteImport
-      parentRoute: typeof AppStoreRoute
+      parentRoute: typeof AppRoute
     }
   }
 }
-
-interface AppStoreRouteChildren {
-  AppStoreIdRoute: typeof AppStoreIdRoute
-}
-
-const AppStoreRouteChildren: AppStoreRouteChildren = {
-  AppStoreIdRoute: AppStoreIdRoute,
-}
-
-const AppStoreRouteWithChildren = AppStoreRoute._addFileChildren(
-  AppStoreRouteChildren,
-)
 
 interface AppRouteChildren {
   AppAccountRoute: typeof AppAccountRoute
@@ -261,7 +249,8 @@ interface AppRouteChildren {
   AppHelpRoute: typeof AppHelpRoute
   AppQueueRoute: typeof AppQueueRoute
   AppSettingsRoute: typeof AppSettingsRoute
-  AppStoreRoute: typeof AppStoreRouteWithChildren
+  AppStoreIdRoute: typeof AppStoreIdRoute
+  AppStoreIndexRoute: typeof AppStoreIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -271,7 +260,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppHelpRoute: AppHelpRoute,
   AppQueueRoute: AppQueueRoute,
   AppSettingsRoute: AppSettingsRoute,
-  AppStoreRoute: AppStoreRouteWithChildren,
+  AppStoreIdRoute: AppStoreIdRoute,
+  AppStoreIndexRoute: AppStoreIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
