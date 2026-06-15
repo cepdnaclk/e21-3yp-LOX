@@ -1,6 +1,7 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { LockKeyhole, ArrowRight } from "lucide-react";
+import { API_BASE } from "@/lib/api";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -32,7 +33,7 @@ function RegisterPage() {
     const inviteKey = formData.get('inviteKey') as string;
 
     try {
-      const res = await fetch('http://localhost:3001/api/auth/register', {
+      const res = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password, role, stationCode, inviteKey })
