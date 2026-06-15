@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Star, Search, ShoppingBag, ArrowRight, Package, Calendar } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -35,13 +36,17 @@ function StorePage() {
     }
 
     Promise.all([
-      fetch('http://localhost:3001/api/products', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-      fetch('http://localhost:3001/api/orders', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json())
+      fetch('http://localhost:3001/api/products', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : Promise.reject(new Error("cannot fetch products"))),
+      fetch('http://localhost:3001/api/orders', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : Promise.reject(new Error("cannot fetch orders")))
     ]).then(([pData, oData]) => {
-      setProducts(pData.products || []);
-      setOrders(oData.orders || []);
+      setProducts(pData?.products || []);
+      setOrders(oData?.orders || []);
       setLoading(false);
-    }).catch(console.error);
+    }).catch(err => {
+      console.error(err);
+      toast.error(err.message || "cannot fetch");
+      setLoading(false);
+    });
   }, [navigate]);
 
   // Derived filter options

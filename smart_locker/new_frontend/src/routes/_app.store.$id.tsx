@@ -32,13 +32,17 @@ function ProductPage() {
     fetch(`http://localhost:3001/api/products/${id}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error("cannot fetch product");
+        return r.json();
+      })
       .then(data => {
         setProduct(data.product);
         setLoading(false);
       })
       .catch(err => {
         console.error(err);
+        toast.error(err.message || "Failed to load product details");
         setLoading(false);
       });
   }, [id, navigate]);

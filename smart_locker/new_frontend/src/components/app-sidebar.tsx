@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Store, BarChart3, User, HelpCircle, Settings, LogOut, LockKeyhole } from "lucide-react";
+import { Home, Store, BarChart3, User, HelpCircle, Settings, LogOut, LockKeyhole, ListOrdered } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 const items = [
   { title: "Home", url: "/dashboard", icon: Home },
   { title: "Store", url: "/store", icon: Store },
+  { title: "Queue", url: "/queue", icon: ListOrdered },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "My Account", url: "/account", icon: User },
   { title: "Help", url: "/help", icon: HelpCircle },
