@@ -66,6 +66,14 @@ function QueuePage() {
   useEffect(() => {
     if (token && stationId) {
       fetchQueue(token, stationId);
+      
+      const intervalId = setInterval(() => {
+        // Only refresh silently, don't set loading to true
+        apiGet(`/requests/queue/list?stationId=${stationId}`, { skipCache: true }).then(data => {
+          setQueueEntries(data.queueEntries || []);
+        }).catch(e => console.error(e));
+      }, 5000);
+      return () => clearInterval(intervalId);
     }
   }, [token, stationId]);
 

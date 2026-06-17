@@ -118,10 +118,11 @@ async function assignWaitingQueue(stationId) {
     // Sort by code ascending so the lowest-numbered locker (e.g. L1 before L2) is always picked first
     // Atomically claim the locker to prevent concurrent double-booking
     const freeLocker = await Locker.findOneAndUpdate(
-      { stationId, isBooked: false },
+      { stationId, isBooked: false, isMaintenance: false },
       {
         $set: {
           isBooked: true,
+          isMaintenance: false,
           currentUserId: request.userId,
           activeRequestId: request._id,
           reservedAt: new Date(),
@@ -162,161 +163,161 @@ async function assignWaitingQueue(stationId) {
       }
     );
   }
-}
 
-async function approveRequest(user, requestId) {
-  const request = await AccessRequest.findById(requestId);
-  if (!request) {
-    const error = new Error('Request not found');
-    error.statusCode = 404;
-    throw error;
-  }
-
-  if (!canAccessStation(user, request.stationId)) {
-    const error = new Error('Station access denied');
-    error.statusCode = 403;
-    throw error;
-  }
-
-  // Idempotency guard: if already approved, return the existing state without touching lockers
-  if (request.status === RequestStatuses.APPROVED) {
-    const locker = request.lockerId ? await Locker.findById(request.lockerId) : null;
-    return { queued: false, request, locker };
-  }
-
-  // Status guard: only PENDING or QUEUED requests can be approved
-  if (request.status !== RequestStatuses.PENDING && request.status !== RequestStatuses.QUEUED) {
-    const error = new Error(`Cannot approve a request with status: ${request.status}`);
-    error.statusCode = 400;
-    throw error;
-  }
-
-  // Sort by code ascending so the lowest-numbered locker (e.g. L1 before L2) is always picked first
-  // Atomically claim the locker to prevent concurrent double-booking
-  const freeLocker = await Locker.findOneAndUpdate(
-    { stationId: request.stationId, isBooked: false },
-    {
-      $set: {
-        isBooked: true,
-        currentUserId: request.userId,
-        activeRequestId: request._id,
-        reservedAt: new Date(),
-        overdueReleasedAt: null,
-        overduePaymentId: null
-      }
-    },
-    { new: true, sort: { code: 1 } }
-  );
-
-  const station = await Station.findById(request.stationId);
-  const stationName = station ? station.name : 'Station';
-
-  request.approvedBy = user._id;
-  request.approvedAt = new Date();
-
-  if (!freeLocker) {
-    request.status = RequestStatuses.QUEUED;
-    await request.save();
-
-    const existing = await QueueEntry.findOne({ requestId: request._id, status: 'WAITING' });
-    if (!existing) {
-      await QueueEntry.create({
-        stationId: request.stationId,
-        requestId: request._id,
-        userId: request.userId,
-        status: 'WAITING'
-      });
+  async function approveRequest(user, requestId) {
+    const request = await AccessRequest.findById(requestId);
+    if (!request) {
+      const error = new Error('Request not found');
+      error.statusCode = 404;
+      throw error;
     }
 
-    // Send push notification for queued request
-    sendPushNotification(
-      request.userId,
-      'Locker Request Queued',
-      `Your request for a locker at ${stationName} has been approved and placed in the queue. You will be notified when a locker becomes available.`,
-      { type: 'LOCKER_QUEUED', requestId: String(request._id) }
+    if (!canAccessStation(user, request.stationId)) {
+      const error = new Error('Station access denied');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    // Idempotency guard: if already approved, return the existing state without touching lockers
+    if (request.status === RequestStatuses.APPROVED) {
+      const locker = request.lockerId ? await Locker.findById(request.lockerId) : null;
+      return { queued: false, request, locker };
+    }
+
+    // Status guard: only PENDING or QUEUED requests can be approved
+    if (request.status !== RequestStatuses.PENDING && request.status !== RequestStatuses.QUEUED) {
+      const error = new Error(`Cannot approve a request with status: ${request.status}`);
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Sort by code ascending so the lowest-numbered locker (e.g. L1 before L2) is always picked first
+    // Atomically claim the locker to prevent concurrent double-booking
+    const freeLocker = await Locker.findOneAndUpdate(
+      { stationId: request.stationId, isBooked: false, isMaintenance: false },
+      {
+        $set: {
+          isBooked: true,
+          isMaintenance: false,
+          currentUserId: request.userId,
+          activeRequestId: request._id,
+          reservedAt: new Date(),
+          overdueReleasedAt: null,
+          overduePaymentId: null
+        }
+      },
+      { new: true, sort: { code: 1 } }
     );
 
-    return { queued: true, request };
-  }
+    const station = await Station.findById(request.stationId);
+    const stationName = station ? station.name : 'Station';
 
-  request.status = RequestStatuses.APPROVED;
-  request.lockerId = freeLocker._id;
-  await request.save();
+    request.approvedBy = user._id;
+    request.approvedAt = new Date();
 
-  // Mark any WAITING queue entries for this request as ASSIGNED since they got a locker
-  await QueueEntry.updateMany(
-    { requestId: request._id, status: 'WAITING' },
-    { $set: { status: 'ASSIGNED' } }
-  );
+    if (!freeLocker) {
+      request.status = RequestStatuses.QUEUED;
+      await request.save();
 
-  await publishLockerBookingStatus(freeLocker);
+      const existing = await QueueEntry.findOne({ requestId: request._id, status: 'WAITING' });
+      if (!existing) {
+        await QueueEntry.create({
+          stationId: request.stationId,
+          requestId: request._id,
+          userId: request.userId,
+          status: 'WAITING'
+        });
+      }
 
-  await logEvent(freeLocker, 'REQUEST_APPROVED', 'User request approved and assigned', { requestId: request._id });
+      // Send push notification for queued request
+      sendPushNotification(
+        request.userId,
+        'Locker Request Queued',
+        `Your request for a locker at ${stationName} has been approved and placed in the queue. You will be notified when a locker becomes available.`,
+        { type: 'LOCKER_QUEUED', requestId: String(request._id) }
+      );
 
-  // Send push notification for approved & assigned request
-  sendPushNotification(
-    request.userId,
-    'Locker Request Approved',
-    `Your request for a locker at ${stationName} has been approved. Locker ${freeLocker.code} is assigned to you.`,
-    {
-      type: 'LOCKER_ASSIGNED',
-      lockerId: String(freeLocker._id),
-      lockerCode: freeLocker.code,
-      requestId: String(request._id)
+      return { queued: true, request };
     }
-  );
 
-  return { queued: false, request, locker: freeLocker };
-}
+    request.status = RequestStatuses.APPROVED;
+    request.lockerId = freeLocker._id;
+    await request.save();
 
-async function rejectRequest(user, requestId) {
-  const request = await AccessRequest.findById(requestId);
-  if (!request) {
-    const error = new Error('Request not found');
-    error.statusCode = 404;
-    throw error;
+    // Mark any WAITING queue entries for this request as ASSIGNED since they got a locker
+    await QueueEntry.updateMany(
+      { requestId: request._id, status: 'WAITING' },
+      { $set: { status: 'ASSIGNED' } }
+    );
+
+    await publishLockerBookingStatus(freeLocker);
+
+    await logEvent(freeLocker, 'REQUEST_APPROVED', 'User request approved and assigned', { requestId: request._id });
+
+    // Send push notification for approved & assigned request
+    sendPushNotification(
+      request.userId,
+      'Locker Request Approved',
+      `Your request for a locker at ${stationName} has been approved. Locker ${freeLocker.code} is assigned to you.`,
+      {
+        type: 'LOCKER_ASSIGNED',
+        lockerId: String(freeLocker._id),
+        lockerCode: freeLocker.code,
+        requestId: String(request._id)
+      }
+    );
+
+    return { queued: false, request, locker: freeLocker };
   }
 
-  if (!canAccessStation(user, request.stationId)) {
-    const error = new Error('Station access denied');
-    error.statusCode = 403;
-    throw error;
+  async function rejectRequest(user, requestId) {
+    const request = await AccessRequest.findById(requestId);
+    if (!request) {
+      const error = new Error('Request not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (!canAccessStation(user, request.stationId)) {
+      const error = new Error('Station access denied');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    request.status = RequestStatuses.REJECTED;
+    request.rejectedBy = user._id;
+    request.rejectedAt = new Date();
+    await request.save();
+
+    await QueueEntry.updateMany({ requestId: request._id, status: 'WAITING' }, { $set: { status: 'CANCELLED' } });
+
+    return request;
   }
 
-  request.status = RequestStatuses.REJECTED;
-  request.rejectedBy = user._id;
-  request.rejectedAt = new Date();
-  await request.save();
+  async function listQueue(user, stationId) {
+    if (user.role !== 'USER' && !canAccessStation(user, stationId)) {
+      const error = new Error('Station access denied');
+      error.statusCode = 403;
+      throw error;
+    }
 
-  await QueueEntry.updateMany({ requestId: request._id, status: 'WAITING' }, { $set: { status: 'CANCELLED' } });
+    const filter = { stationId, status: 'WAITING' };
+    if (user.role === 'USER') {
+      filter.userId = user._id;
+    }
 
-  return request;
-}
-
-async function listQueue(user, stationId) {
-  if (user.role !== 'USER' && !canAccessStation(user, stationId)) {
-    const error = new Error('Station access denied');
-    error.statusCode = 403;
-    throw error;
+    return QueueEntry.find(filter)
+      .populate('userId', 'name email')
+      .populate('requestId', 'status createdAt')
+      .sort({ createdAt: 1 });
   }
 
-  const filter = { stationId, status: 'WAITING' };
-  if (user.role === 'USER') {
-    filter.userId = user._id;
-  }
-
-  return QueueEntry.find(filter)
-    .populate('userId', 'name email')
-    .populate('requestId', 'status createdAt')
-    .sort({ createdAt: 1 });
-}
-
-module.exports = {
-  listRequests,
-  createRequest,
-  cancelRequest,
-  approveRequest,
-  rejectRequest,
-  listQueue,
-  assignWaitingQueue
-};
+  module.exports = {
+    listRequests,
+    createRequest,
+    cancelRequest,
+    approveRequest,
+    rejectRequest,
+    listQueue,
+    assignWaitingQueue
+  };

@@ -41,22 +41,22 @@ function Dashboard() {
 
   const navigate = useNavigate();
 
-  const fetchAll = async (t: string, u: any) => {
+  const fetchAll = async (t: string, u: any, skipCache = false) => {
     try {
       // Fire all independent requests in parallel using apiGet (uses cache if available)
-      const stationsPromise = apiGet('/stations');
+      const stationsPromise = apiGet('/stations', { skipCache });
 
       let requestsPromise: Promise<any> | null = null;
       let lockersPromise: Promise<any> | null = null;
       let pendingPromise: Promise<any> | null = null;
 
       if (u.role === 'USER') {
-        requestsPromise = apiGet('/requests');
-        lockersPromise = apiGet('/lockers');
+        requestsPromise = apiGet('/requests', { skipCache });
+        lockersPromise = apiGet('/lockers', { skipCache });
       }
 
       if (u.role === 'SUB_ADMIN' || u.role === 'SUPER_ADMIN') {
-        pendingPromise = apiGet('/requests?status=PENDING');
+        pendingPromise = apiGet('/requests?status=PENDING', { skipCache });
       }
 
       // Await all in parallel
@@ -80,7 +80,7 @@ function Dashboard() {
       const fetchLockersId = st001 ? st001._id : (stList[0]?._id || '');
 
       if (fetchLockersId) {
-        const genLockData = await apiGet(`/lockers?stationId=${fetchLockersId}`);
+        const genLockData = await apiGet(`/lockers?stationId=${fetchLockersId}`, { skipCache });
         setLockers(genLockData.lockers || []);
       }
     } catch (e) {
@@ -99,6 +99,11 @@ function Dashboard() {
     setUser(u);
     setToken(t);
     fetchAll(t, u);
+
+    const intervalId = setInterval(() => {
+      fetchAll(t, u, true);
+    }, 5000);
+    return () => clearInterval(intervalId);
   }, [navigate]);
 
   const submitRequest = async (e: React.FormEvent) => {
@@ -157,7 +162,7 @@ function Dashboard() {
   };
 
   const getLockerStatus = (l: any): LockerStatus => {
-    if (l.securityAlertActive) return "maintenance";
+    if (l.isMaintenance) return "maintenance";
     if (l.isBooked) return "occupied";
     return "available";
   };
@@ -285,6 +290,17 @@ function Dashboard() {
                   </div>
                   <p className="mt-3 text-sm font-semibold">{l.code}</p>
                   <p className="text-xs text-muted-foreground">{s.label}</p>
+                  
+                  {l.securityAlertActive && (
+                    <div className="mt-3 p-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold flex items-center gap-1.5 shadow-sm">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive"></span>
+                      </span>
+                      Security Alert!
+                    </div>
+                  )}
+
                   <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1">
                       {l.doorState === "OPEN" ? <DoorOpen className="h-3.5 w-3.5" /> : <DoorClosed className="h-3.5 w-3.5" />}
@@ -295,13 +311,18 @@ function Dashboard() {
                     </span>
                   </div>
                   {isSubAdmin && (
-                    <div className="mt-4 pt-3 border-t border-border grid grid-cols-2 gap-2">
-                      <Button size="sm" variant="outline" className="h-8 text-[11px] px-2" onClick={() => commandLocker(l._id, 'unlock')}><Unlock className="w-3 h-3 mr-1" /> Unlock</Button>
-                      <Button size="sm" variant="outline" className="h-8 text-[11px] px-2" onClick={() => commandLocker(l._id, 'lock')}><LockKeyhole className="w-3 h-3 mr-1" /> Lock</Button>
-                      <Button size="sm" variant="outline" className="h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => commandLocker(l._id, 'release')}><LogOut className="w-3 h-3 mr-1" /> Release</Button>
-                      {l.securityAlertActive && (
-                        <Button size="sm" variant="outline" className="h-8 text-[11px] px-2 border-warning/30 text-warning hover:bg-warning/10" onClick={() => commandLocker(l._id, 'security-ignore')}><CheckCircle2 className="w-3 h-3 mr-1" /> Ignore</Button>
-                      )}
+                    <div className="mt-4 pt-3 border-t border-border flex flex-col gap-2">
+                      <div className="grid grid-cols-3 gap-2">
+                        <Button title="Unlock" size="sm" variant="outline" className="h-8 text-[11px] px-2" onClick={() => commandLocker(l._id, 'unlock')}><Unlock className="w-3 h-3" /></Button>
+                        <Button title="Lock" size="sm" variant="outline" className="h-8 text-[11px] px-2" onClick={() => commandLocker(l._id, 'lock')}><LockKeyhole className="w-3 h-3" /></Button>
+                        <Button title="Release User" size="sm" variant="outline" className="h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => commandLocker(l._id, 'release')}><LogOut className="w-3 h-3" /></Button>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2">
+                        <Button size="sm" variant="outline" className={cn("h-8 text-[11px] px-2", l.isMaintenance ? "border-success/30 text-success hover:bg-success/10" : "border-warning/30 text-warning hover:bg-warning/10")} onClick={() => commandLocker(l._id, 'maintenance')}><Wrench className="w-3 h-3 mr-1" /> {l.isMaintenance ? 'Mark Ready' : 'Maintenance'}</Button>
+                        {l.securityAlertActive && (
+                          <Button size="sm" variant="outline" className="h-8 text-[11px] px-2 bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20" onClick={() => commandLocker(l._id, 'security-ignore')}><CheckCircle2 className="w-3 h-3 mr-1" /> Ignore Alert</Button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </motion.div>
