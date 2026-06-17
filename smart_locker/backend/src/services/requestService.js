@@ -68,7 +68,7 @@ async function cancelRequest(user, requestId) {
 }
 
 async function assignWaitingQueue(stationId) {
-  const freeLocker = await Locker.findOne({ stationId, isBooked: false }).sort({ createdAt: 1 });
+  const freeLocker = await Locker.findOne({ stationId, isBooked: false, isMaintenance: false }).sort({ createdAt: 1 });
   if (!freeLocker) {
     return;
   }
@@ -114,7 +114,7 @@ async function approveRequest(user, requestId) {
     throw error;
   }
 
-  const freeLocker = await Locker.findOne({ stationId: request.stationId, isBooked: false }).sort({ createdAt: 1 });
+  const freeLocker = await Locker.findOne({ stationId: request.stationId, isBooked: false, isMaintenance: false }).sort({ createdAt: 1 });
 
   request.approvedBy = user._id;
   request.approvedAt = new Date();

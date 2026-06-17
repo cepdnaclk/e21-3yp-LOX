@@ -73,16 +73,36 @@ const ignoreSecurityAlertHandler = asyncHandler(async (req, res) => {
     return res.status(403).json({ message: 'Station access denied' });
   }
 
-  if (locker.code !== 'L1') {
-    return res.status(400).json({ message: 'Security ignore is available for Locker L1 only' });
-  }
-
   await publishLockerSecurityIgnoreCommand(locker);
-  await logEvent(locker, 'SECURITY_IGNORED', 'User ignored L1 door security warning', {
+  await logEvent(locker, 'SECURITY_IGNORED', `User ignored door security warning for locker ${locker.code}`, {
     byUserId: req.user._id
   });
 
-  return success(res, { message: 'Security warning ignored for Locker L1' });
+  return success(res, { message: `Security warning ignored for Locker ${locker.code}` });
+});
+
+const toggleMaintenanceHandler = asyncHandler(async (req, res) => {
+  const locker = await Locker.findById(req.params.lockerId);
+  if (!locker) {
+    return res.status(404).json({ message: 'Locker not found' });
+  }
+
+  if (req.user.role !== Roles.SUB_ADMIN && req.user.role !== Roles.SUPER_ADMIN) {
+    return res.status(403).json({ message: 'Only admins can toggle maintenance mode' });
+  }
+
+  if (!canAccessStation(req.user, locker.stationId)) {
+    return res.status(403).json({ message: 'Station access denied' });
+  }
+
+  locker.isMaintenance = !locker.isMaintenance;
+  await locker.save();
+
+  if (!locker.isMaintenance && !locker.isBooked) {
+    await assignWaitingQueue(locker.stationId);
+  }
+
+  return success(res, { message: `Locker maintenance mode ${locker.isMaintenance ? 'enabled' : 'disabled'}` });
 });
 
 module.exports = {
@@ -91,5 +111,6 @@ module.exports = {
   unlockLockerHandler,
   lockLockerHandler,
   releaseLockerHandler,
-  ignoreSecurityAlertHandler
+  ignoreSecurityAlertHandler,
+  toggleMaintenanceHandler
 };

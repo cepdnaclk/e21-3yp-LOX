@@ -65,6 +65,11 @@ function StorePage() {
     };
     
     loadStore();
+
+    const intervalId = setInterval(() => {
+      loadStore();
+    }, 5000);
+    return () => clearInterval(intervalId);
   }, [navigate]);
 
   // Derived filter options

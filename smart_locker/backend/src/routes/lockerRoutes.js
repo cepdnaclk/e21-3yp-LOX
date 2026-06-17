@@ -5,7 +5,8 @@ const {
   unlockLockerHandler,
   lockLockerHandler,
   releaseLockerHandler,
-  ignoreSecurityAlertHandler
+  ignoreSecurityAlertHandler,
+  toggleMaintenanceHandler
 } = require('../controllers/lockerController');
 const { requireAuth, allowRoles } = require('../middleware/authMiddleware');
 const { Roles } = require('../constants/enums');
@@ -19,5 +20,6 @@ router.post('/:lockerId/unlock', unlockLockerHandler);
 router.post('/:lockerId/lock', lockLockerHandler);
 router.post('/:lockerId/release', releaseLockerHandler);
 router.post('/:lockerId/security-ignore', ignoreSecurityAlertHandler);
+router.post('/:lockerId/maintenance', toggleMaintenanceHandler);
 
 module.exports = router;

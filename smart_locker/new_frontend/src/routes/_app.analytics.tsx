@@ -115,7 +115,14 @@ function AnalyticsPage() {
         setLoading(false);
       }
     };
+    
     fetchAndProcessAnalytics();
+
+    const intervalId = setInterval(() => {
+      fetchAndProcessAnalytics();
+    }, 5000);
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   if (loading) {

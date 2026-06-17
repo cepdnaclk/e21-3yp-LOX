@@ -14,6 +14,7 @@ const lockerSchema = new mongoose.Schema(
     securityAlertActive: { type: Boolean, default: false },
     securityAlertMessage: { type: String, default: '' },
     securityAlertUpdatedAt: { type: Date, default: null },
+    isMaintenance: { type: Boolean, default: false },
     isBooked: { type: Boolean, default: false },
     currentUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     activeRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'AccessRequest', default: null },
