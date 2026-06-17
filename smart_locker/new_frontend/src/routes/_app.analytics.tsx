@@ -43,12 +43,12 @@ function AnalyticsPage() {
   } | null>(null);
 
   useEffect(() => {
-    const fetchAndProcessAnalytics = async () => {
+    const fetchAndProcessAnalytics = async (skipCache = false) => {
       try {
         // Fetch only QUEUED and APPROVED requests in parallel using apiGet (uses cache if available)
         const [queuedJson, approvedJson] = await Promise.all([
-          apiGet("/requests?status=QUEUED"),
-          apiGet("/requests?status=APPROVED")
+          apiGet("/requests?status=QUEUED", { skipCache }),
+          apiGet("/requests?status=APPROVED", { skipCache })
         ]);
 
         const queuedRequests = queuedJson.requests || [];
@@ -115,7 +115,14 @@ function AnalyticsPage() {
         setLoading(false);
       }
     };
+    
     fetchAndProcessAnalytics();
+
+    const intervalId = setInterval(() => {
+      fetchAndProcessAnalytics(true);
+    }, 5000);
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   if (loading) {

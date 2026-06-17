@@ -118,10 +118,11 @@ async function assignWaitingQueue(stationId) {
     // Sort by code ascending so the lowest-numbered locker (e.g. L1 before L2) is always picked first
     // Atomically claim the locker to prevent concurrent double-booking
     const freeLocker = await Locker.findOneAndUpdate(
-      { stationId, isBooked: false },
+      { stationId, isBooked: false, isMaintenance: false },
       {
         $set: {
           isBooked: true,
+          isMaintenance: false,
           currentUserId: request.userId,
           activeRequestId: request._id,
           reservedAt: new Date(),
@@ -194,10 +195,11 @@ async function approveRequest(user, requestId) {
   // Sort by code ascending so the lowest-numbered locker (e.g. L1 before L2) is always picked first
   // Atomically claim the locker to prevent concurrent double-booking
   const freeLocker = await Locker.findOneAndUpdate(
-    { stationId: request.stationId, isBooked: false },
+    { stationId: request.stationId, isBooked: false, isMaintenance: false },
     {
       $set: {
         isBooked: true,
+        isMaintenance: false,
         currentUserId: request.userId,
         activeRequestId: request._id,
         reservedAt: new Date(),
