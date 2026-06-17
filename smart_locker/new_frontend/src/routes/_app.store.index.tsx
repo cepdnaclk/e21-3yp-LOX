@@ -67,7 +67,7 @@ function StorePage() {
     loadStore();
 
     const intervalId = setInterval(() => {
-      loadStore();
+      loadStore(true);
     }, 5000);
     return () => clearInterval(intervalId);
   }, [navigate]);
@@ -114,12 +114,12 @@ function StorePage() {
 
   if (loading) return <div className="p-12 text-center text-muted-foreground">Loading store...</div>;
 
-  const loadStore = async () => {
+  const loadStore = async (skipCache = false) => {
     setLoading(true);
     try {
       const [pData, oData] = await Promise.all([
-        apiGet('/products').catch(() => ({ products: [] })),
-        apiGet('/orders').catch(() => ({ orders: [] }))
+        apiGet('/products', { skipCache }).catch(() => ({ products: [] })),
+        apiGet('/orders', { skipCache }).catch(() => ({ orders: [] }))
       ]);
       setProducts(pData?.products || []);
       setOrders(oData?.orders || []);

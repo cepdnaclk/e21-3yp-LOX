@@ -41,22 +41,22 @@ function Dashboard() {
 
   const navigate = useNavigate();
 
-  const fetchAll = async (t: string, u: any) => {
+  const fetchAll = async (t: string, u: any, skipCache = false) => {
     try {
       // Fire all independent requests in parallel using apiGet (uses cache if available)
-      const stationsPromise = apiGet('/stations');
+      const stationsPromise = apiGet('/stations', { skipCache });
 
       let requestsPromise: Promise<any> | null = null;
       let lockersPromise: Promise<any> | null = null;
       let pendingPromise: Promise<any> | null = null;
 
       if (u.role === 'USER') {
-        requestsPromise = apiGet('/requests');
-        lockersPromise = apiGet('/lockers');
+        requestsPromise = apiGet('/requests', { skipCache });
+        lockersPromise = apiGet('/lockers', { skipCache });
       }
 
       if (u.role === 'SUB_ADMIN' || u.role === 'SUPER_ADMIN') {
-        pendingPromise = apiGet('/requests?status=PENDING');
+        pendingPromise = apiGet('/requests?status=PENDING', { skipCache });
       }
 
       // Await all in parallel
@@ -80,7 +80,7 @@ function Dashboard() {
       const fetchLockersId = st001 ? st001._id : (stList[0]?._id || '');
 
       if (fetchLockersId) {
-        const genLockData = await apiGet(`/lockers?stationId=${fetchLockersId}`);
+        const genLockData = await apiGet(`/lockers?stationId=${fetchLockersId}`, { skipCache });
         setLockers(genLockData.lockers || []);
       }
     } catch (e) {
@@ -101,7 +101,7 @@ function Dashboard() {
     fetchAll(t, u);
 
     const intervalId = setInterval(() => {
-      fetchAll(t, u);
+      fetchAll(t, u, true);
     }, 5000);
     return () => clearInterval(intervalId);
   }, [navigate]);
