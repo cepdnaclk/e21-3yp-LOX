@@ -3,8 +3,7 @@ import '../../../../../data/models/user_profile.dart';
 import '../../../../../data/remote/api_client.dart';
 import '../../../../../core/theme/app_colors.dart';
 import 'profile_edit_screen.dart';
-
-import '../../../../../core/services/biometric_service.dart';
+import '../../../../../core/theme/theme_style.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({
@@ -25,406 +24,203 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  bool _biometricEnabled = false;
-  bool _deviceSupportsBiometrics = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadBiometricSettings();
-  }
-
-  Future<void> _loadBiometricSettings() async {
-    final supports = await BiometricService.instance.canAuthenticate();
-    final enabled = await BiometricService.instance.isBiometricEnabled();
-    setState(() {
-      _deviceSupportsBiometrics = supports;
-      _biometricEnabled = enabled;
-    });
-  }
-
-  Future<void> _disableBiometrics() async {
-    await BiometricService.instance.clearCredentials();
-    setState(() {
-      _biometricEnabled = false;
-    });
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Biometric authentication disabled.'),
-        ),
-      );
-    }
-  }
-
-  Future<void> _enableBiometrics() async {
-    final passwordController = TextEditingController();
-    bool checking = false;
-    String? errorMsg;
-
-    await showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: const Text(
-                'Confirm Password',
-                style: TextStyle(fontWeight: FontWeight.w900),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Enter your password to enable biometric login.',
-                    style: TextStyle(fontSize: 14, color: AppColors.textLabel),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: passwordController,
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      hintText: 'Password',
-                      errorText: errorMsg,
-                      prefixIcon: const Icon(Icons.vpn_key_outlined),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('CANCEL'),
-                ),
-                ElevatedButton(
-                  onPressed: checking
-                      ? null
-                      : () async {
-                          final password = passwordController.text;
-                          if (password.isEmpty) {
-                            setDialogState(() {
-                              errorMsg = 'Password cannot be empty.';
-                            });
-                            return;
-                          }
-
-                          setDialogState(() {
-                            checking = true;
-                            errorMsg = null;
-                          });
-
-                          try {
-                            // Test credentials by hitting login endpoint
-                            final baseUrl = widget.client.baseUrl;
-                            final authClient = ApiClient(baseUrl: baseUrl, token: '');
-                            await authClient.login(
-                              email: widget.user.email,
-                              password: password,
-                            );
-
-                            // Credentials are correct! Prompt for biometrics
-                            final authenticated = await BiometricService.instance.authenticate(
-                              'Confirm your biometrics to enable fingerprint login',
-                            );
-
-                            if (authenticated) {
-                              await BiometricService.instance.saveCredentials(
-                                widget.user.email,
-                                password,
-                              );
-                              await BiometricService.instance.setBiometricEnabled(true);
-                              if (!context.mounted) return;
-                              setState(() {
-                                _biometricEnabled = true;
-                              });
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Biometric authentication enabled successfully.'),
-                                ),
-                              );
-                              if (Navigator.canPop(context)) {
-                                Navigator.pop(context);
-                              }
-                            } else {
-                              setDialogState(() {
-                                checking = false;
-                                errorMsg = 'Biometric verification failed.';
-                              });
-                            }
-                          } catch (e) {
-                            setDialogState(() {
-                              checking = false;
-                              errorMsg = 'Invalid password or connection error.';
-                            });
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.olive,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: checking
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text('CONFIRM'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final themeStyle = theme.extension<AppThemeStyle>() ?? AppThemeStyle(
+      cardRadius: 20,
+      buttonRadius: 16,
+      fieldRadius: 14,
+      navBarBg: theme.colorScheme.surface,
+      navBarBlur: 10,
+      navBarActiveColor: theme.colorScheme.primary,
+    );
+
     final hasBackground = widget.user.homeBackgroundUrl.isNotEmpty;
     final hasAvatar = widget.user.avatarUrl.isNotEmpty;
 
-    return ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        // Premium Cover and Avatar Header Stack
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              height: 180,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: AppColors.olive.withOpacity(0.15),
-                image: hasBackground
-                    ? DecorationImage(
-                        image: NetworkImage(widget.user.homeBackgroundUrl),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-                gradient: !hasBackground
-                    ? const LinearGradient(
-                        colors: [AppColors.olive, AppColors.oliveDark],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-              ),
-            ),
-            Positioned(
-              bottom: -50,
-              left: 24,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundColor: AppColors.fieldBackground,
-                  backgroundImage: hasAvatar ? NetworkImage(widget.user.avatarUrl) : null,
-                  child: !hasAvatar
-                      ? const Icon(Icons.person, size: 50, color: AppColors.textLabel)
-                      : null,
-                ),
-              ),
-            ),
-          ],
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      extendBodyBehindAppBar: true, // Let profile header display behind transparent AppBar
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_rounded, color: theme.colorScheme.onSurface),
+          onPressed: () => Navigator.pop(context),
         ),
-        const SizedBox(height: 60),
-
-        // User Meta
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          // Premium Cover and Avatar Header Stack
+          Stack(
+            clipBehavior: Clip.none,
             children: [
-              Text(
-                widget.user.name,
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.textMain,
-                ),
-              ),
-              if (widget.user.jobTitle.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  widget.user.jobTitle,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.olive.withOpacity(0.9),
+              GestureDetector(
+                onTap: hasBackground
+                    ? () => _viewImage(
+                          widget.user.homeBackgroundUrl,
+                          'cover_hero',
+                          'Background Image',
+                        )
+                    : null,
+                child: Hero(
+                  tag: 'cover_hero',
+                  child: Container(
+                    height: 180,
+                    width: double.infinity,
+                    color: theme.colorScheme.primary.withOpacity(0.15),
+                    child: hasBackground
+                        ? Image.network(
+                            widget.user.homeBackgroundUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: 180,
+                          )
+                        : Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [theme.colorScheme.primary, theme.colorScheme.primary.withOpacity(0.8)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                          ),
                   ),
                 ),
-              ],
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              ),
+              Positioned(
+                bottom: -50,
+                left: 24,
+                child: GestureDetector(
+                  onTap: hasAvatar
+                      ? () => _viewImage(
+                            widget.user.avatarUrl,
+                            'avatar_hero',
+                            'Profile Picture',
+                          )
+                      : null,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: AppColors.olive.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(8),
+                      color: theme.colorScheme.surface,
+                      shape: BoxShape.circle,
                     ),
-                    child: Text(
-                      widget.user.role,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.1,
-                        color: AppColors.olive,
+                    child: Hero(
+                      tag: 'avatar_hero',
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                        backgroundImage: hasAvatar ? NetworkImage(widget.user.avatarUrl) : null,
+                        child: !hasAvatar
+                            ? Icon(Icons.person, size: 50, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7))
+                            : null,
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 24),
+          const SizedBox(height: 60),
 
-        // Profile details
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Card(
-            color: Colors.white,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: BorderSide(color: Colors.black.withOpacity(0.06)),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'CONTACT & DESCRIPTION',
+          // User Meta
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.user.name,
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                if (widget.user.jobTitle.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.user.jobTitle,
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.4,
-                      color: AppColors.textLabel,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.primary.withOpacity(0.9),
                     ),
                   ),
-                  const Divider(height: 24),
-                  _buildDetailItem(Icons.email_outlined, 'Email Address', widget.user.email),
-                  if (widget.user.phone.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    _buildDetailItem(Icons.phone_outlined, 'Phone Number', widget.user.phone),
-                  ],
-                  if (widget.user.bio.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    _buildDetailItem(Icons.info_outline, 'Biography', widget.user.bio),
-                  ],
                 ],
-              ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        widget.user.role,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-        ),
+          const SizedBox(height: 24),
 
-        const SizedBox(height: 24),
-
-        // Security Settings Card
-        if (_deviceSupportsBiometrics) ...[
+          // Profile details
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Card(
-              color: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: Colors.black.withOpacity(0.06)),
-              ),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'SECURITY SETTINGS',
+                    Text(
+                      'CONTACT & DESCRIPTION',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.4,
-                        color: AppColors.textLabel,
+                        color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
                       ),
                     ),
                     const Divider(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.fingerprint_rounded, color: AppColors.olive, size: 24),
-                            SizedBox(width: 14),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Biometric Login',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textMain,
-                                  ),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  'Enable fingerprint/face access',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textLabel,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        Switch.adaptive(
-                          value: _biometricEnabled,
-                          activeColor: AppColors.olive,
-                          onChanged: (val) {
-                            if (val) {
-                              _enableBiometrics();
-                            } else {
-                              _disableBiometrics();
-                            }
-                          },
-                        ),
-                      ],
-                    ),
+                    _buildDetailItem(theme, Icons.email_outlined, 'Email Address', widget.user.email),
+                    if (widget.user.phone.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      _buildDetailItem(theme, Icons.phone_outlined, 'Phone Number', widget.user.phone),
+                    ],
+                    if (widget.user.bio.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      _buildDetailItem(theme, Icons.info_outline, 'Biography', widget.user.bio),
+                    ],
                   ],
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
         ],
-
-        // Action panel
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+          child: Row(
             children: [
-              SizedBox(
-                width: double.infinity,
-                height: 52,
+              Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () async {
                     final updated = await Navigator.of(context).push<UserProfile>(
@@ -436,35 +232,35 @@ class _AccountScreenState extends State<AccountScreen> {
                       widget.onProfileUpdated(updated);
                     }
                   },
-                  icon: const Icon(Icons.edit_outlined),
+                  icon: const Icon(Icons.edit_outlined, size: 18),
                   label: const Text(
-                    'EDIT PROFILE DETAILS',
-                    style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.8),
+                    'Edit Profile',
+                    style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.5, fontSize: 14),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.olive,
-                    side: const BorderSide(color: AppColors.olive, width: 1.5),
+                    foregroundColor: theme.colorScheme.primary,
+                    side: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(themeStyle.buttonRadius),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
+              const SizedBox(width: 12),
+              Expanded(
                 child: ElevatedButton.icon(
                   onPressed: widget.onLogout,
-                  icon: const Icon(Icons.logout_rounded, color: Colors.white),
+                  icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 18),
                   label: const Text(
-                    'LOGOUT ACCOUNT',
-                    style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.8, color: Colors.white),
+                    'Logout',
+                    style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.5, color: Colors.white, fontSize: 14),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFC95454),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(themeStyle.buttonRadius),
                     ),
                     elevation: 0,
                   ),
@@ -473,16 +269,15 @@ class _AccountScreenState extends State<AccountScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 48),
-      ],
+      ),
     );
   }
 
-  Widget _buildDetailItem(IconData icon, String title, String value) {
+  Widget _buildDetailItem(ThemeData theme, IconData icon, String title, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: AppColors.olive, size: 22),
+        Icon(icon, color: theme.colorScheme.primary, size: 22),
         const SizedBox(width: 14),
         Expanded(
           child: Column(
@@ -490,25 +285,107 @@ class _AccountScreenState extends State<AccountScreen> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textLabel,
+                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textMain,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  void _viewImage(String url, String tag, String title) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black.withOpacity(0.9),
+        pageBuilder: (context, _, __) => FullScreenImageViewer(imageUrl: url, tag: tag, title: title),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 250),
+        reverseTransitionDuration: const Duration(milliseconds: 200),
+      ),
+    );
+  }
+}
+
+class FullScreenImageViewer extends StatelessWidget {
+  const FullScreenImageViewer({
+    super.key,
+    required this.imageUrl,
+    required this.tag,
+    required this.title,
+  });
+
+  final String imageUrl;
+  final String tag;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          title,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: GestureDetector(
+        onTap: () => Navigator.pop(context),
+        behavior: HitTestBehavior.opaque,
+        child: Center(
+          child: GestureDetector(
+            onTap: () {}, // Prevent taps on the image itself from closing it
+            child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Hero(
+                tag: tag,
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Center(
+                      child: Icon(Icons.broken_image, color: Colors.white, size: 64),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

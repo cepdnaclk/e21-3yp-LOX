@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../../core/theme/theme_style.dart';
 
 /// A customized, interactive pill-shaped button used to display and trigger location selection.
 ///
@@ -22,36 +23,48 @@ class LocationPill extends StatelessWidget {
   /// Passing null will automatically disable the ink ripple effect.
   final VoidCallback? onTap;
 
-  static const _pillBg = Color(0xFFE7E4DD);
-  static const _olive  = Color(0xFF5B5A3D);
-  static const _text   = Color(0xFF1F1E1B);
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final themeStyle = theme.extension<AppThemeStyle>() ?? AppThemeStyle(
+      cardRadius: 20,
+      buttonRadius: 16,
+      fieldRadius: 20,
+      navBarBg: theme.colorScheme.surface,
+      navBarBlur: 10,
+      navBarActiveColor: theme.colorScheme.primary,
+    );
+
+    final pillBg = theme.colorScheme.primary.withOpacity(0.08);
+    final primaryColor = theme.colorScheme.primary;
+    final txtColor = theme.colorScheme.onSurface;
+
     return InkWell(
-      // Match the border radius to the container to ensure the splash effect doesn't bleed outside the rounded corners.
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(themeStyle.fieldRadius),
       onTap: onTap,
       child: Container(
         height: 56,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: _pillBg,
-          borderRadius: BorderRadius.circular(20),
+          color: pillBg,
+          borderRadius: BorderRadius.circular(themeStyle.fieldRadius),
+          border: themeStyle.cardBorder != null 
+              ? Border.all(color: primaryColor.withOpacity(0.3), width: 1.2) 
+              : null,
         ),
         child: Row(
           children: [
-            const CircleAvatar(
-              backgroundColor: Color(0xFFDCD8D0),
-              child: Icon(Icons.place_outlined, color: _olive),
+            CircleAvatar(
+              backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+              child: Icon(Icons.place_outlined, color: primaryColor),
             ),
             const SizedBox(width: 12),
             // Location Text Label
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(
-                  color: _text,
+                style: TextStyle(
+                  color: txtColor,
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
@@ -59,12 +72,12 @@ class LocationPill extends StatelessWidget {
               ),
             ),
             if (loading)
-              const SizedBox(
+              SizedBox(
                 width: 18, height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: CircularProgressIndicator(strokeWidth: 2, color: primaryColor),
               )
             else
-              const Icon(Icons.keyboard_arrow_down_rounded),
+              Icon(Icons.keyboard_arrow_down_rounded, color: primaryColor),
           ],
         ),
       ),

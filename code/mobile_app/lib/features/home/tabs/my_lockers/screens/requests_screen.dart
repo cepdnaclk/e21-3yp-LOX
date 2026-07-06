@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../core/extensions/string_extensions.dart';
-import '../../../../../core/theme/app_colors.dart';
+import '../../../../../data/local/local_store.dart';
 import '../../../../../data/models/access_request.dart';
 import '../../../../../data/models/locker.dart';
 import '../../../../../data/models/station.dart';
@@ -40,6 +40,52 @@ class RequestsScreen extends StatelessWidget {
     }
   }
 
+  /// Injects locker status history events into the notification system.
+  /// Each request generates at most one notification, identified by a dedup key.
+  Future<void> _injectHistoryNotifications(List<AccessRequest> historyRequests, Map<String, Station> stationMap) async {
+    for (final request in historyRequests) {
+      final stationName = stationMap[request.stationId]?.name ?? request.stationName.ifEmpty('a station');
+      final ts = request.createdAt ?? DateTime.now();
+
+      String title;
+      String body;
+
+      switch (request.status) {
+        case 'APPROVED':
+          if (request.lockerCode.isNotEmpty) {
+            title = 'Locker Assigned – ${request.lockerCode}';
+            body = 'You were assigned locker ${request.lockerCode} at $stationName.';
+          } else {
+            title = 'Booking Approved';
+            body = 'Your booking request at $stationName was approved.';
+          }
+          break;
+        case 'REJECTED':
+          title = 'Booking Rejected';
+          body = 'Your booking request at $stationName was rejected.${request.note.isNotEmpty ? " Note: ${request.note}" : ""}';
+          break;
+        case 'CANCELLED':
+          title = 'Booking Cancelled';
+          body = 'Your booking at $stationName was cancelled.';
+          break;
+        case 'QUEUED':
+          title = 'Added to Queue';
+          body = 'Your request at $stationName is queued. You will be notified when a locker becomes available.';
+          break;
+        case 'PENDING':
+          title = 'Booking Pending';
+          body = 'Your booking request at $stationName is pending review.';
+          break;
+        default:
+          continue;
+      }
+
+      // Dedup key: requestId + status ensures one notification per status event
+      final dedupeId = 'req_${request.id}_${request.status}';
+      await LocalStore.addNotificationIfNew(dedupeId, title, body, ts);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final stationMap = {for (final s in stations) s.id: s};
@@ -60,33 +106,41 @@ class RequestsScreen extends StatelessWidget {
       }
     }
 
+    // All requests that are NOT the currently-active one are treated as history
+    final historyRequests = requests.where((r) => r.id != activeRequest?.id).toList();
+
+    // Inject history items into notifications (fire-and-forget; deduped)
+    _injectHistoryNotifications(historyRequests, stationMap);
+
+    final theme = Theme.of(context);
+
     if (requests.isEmpty) {
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.transparent,
         appBar: AppBar(
-          backgroundColor: AppColors.background,
+          backgroundColor: Colors.transparent,
           elevation: 0,
-          title: const Text(
+          title: Text(
             'My Bookings',
             style: TextStyle(
               fontWeight: FontWeight.w900,
-              color: AppColors.textMain,
+              color: theme.colorScheme.onSurface,
             ),
           ),
         ),
         body: RefreshIndicator(
           onRefresh: onRefresh,
           child: ListView(
-            children: const [
-              SizedBox(height: 120),
-              Icon(Icons.bookmark_border, size: 64, color: AppColors.textMuted),
-              SizedBox(height: 8),
+            children: [
+              const SizedBox(height: 120),
+              Icon(Icons.bookmark_border, size: 64, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5)),
+              const SizedBox(height: 8),
               Center(
                 child: Text(
                   'No locker requests yet.',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textLabel,
+                    color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
                   ),
                 ),
               ),
@@ -96,21 +150,16 @@ class RequestsScreen extends StatelessWidget {
       );
     }
 
-    // Filter requests list to exclude the one being controlled in the active card
-    final listRequests = requests
-        .where((r) => r.id != activeRequest?.id)
-        .toList();
-
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'My Bookings',
           style: TextStyle(
             fontWeight: FontWeight.w900,
-            color: AppColors.textMain,
+            color: theme.colorScheme.onSurface,
           ),
         ),
       ),
@@ -118,9 +167,9 @@ class RequestsScreen extends StatelessWidget {
         child: RefreshIndicator(
           onRefresh: onRefresh,
           child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 110),
             children: [
-              // Active locker control card
+              // Active locker control card (if any)
               if (activeLocker != null && activeRequest != null) ...[
                 ActiveLockerCard(
                   locker: activeLocker,
@@ -146,212 +195,41 @@ class RequestsScreen extends StatelessWidget {
                 const SizedBox(height: 20),
               ],
 
-              // History list
-              _HistorySection(
-                listRequests: listRequests,
-                stationMap: stationMap,
-              ),
+              // If no active booking, show a helpful note directing to notifications
+              if (activeLocker == null) ...[
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 60),
+                    child: Column(
+                      children: [
+                        Icon(Icons.bookmark_border, size: 64, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3)),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No active booking',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Past booking history is available\nin the Notifications page.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _HistorySection extends StatefulWidget {
-  const _HistorySection({required this.listRequests, required this.stationMap});
-
-  final List<AccessRequest> listRequests;
-  final Map<String, Station> stationMap;
-
-  @override
-  State<_HistorySection> createState() => _HistorySectionState();
-}
-
-class _HistorySectionState extends State<_HistorySection> {
-  bool _isExpanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.listRequests.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Card(
-          color: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.black.withOpacity(0.06)),
-          ),
-          child: InkWell(
-            onTap: () {
-              setState(() {
-                _isExpanded = !_isExpanded;
-              });
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.history_rounded,
-                        color: AppColors.olive,
-                        size: 22,
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'View History',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textMain,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.olive.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${widget.listRequests.length}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.olive,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  AnimatedRotation(
-                    turns: _isExpanded ? 0.5 : 0.0,
-                    duration: const Duration(milliseconds: 200),
-                    child: const Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: AppColors.textMuted,
-                      size: 26,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        AnimatedCrossFade(
-          firstChild: const SizedBox(width: double.infinity),
-          secondChild: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 8),
-              ...widget.listRequests.map((request) {
-                final station = widget.stationMap[request.stationId];
-                final stationName =
-                    station?.name ??
-                    request.stationName.ifEmpty('Unknown station');
-
-                Color statusColor = AppColors.textLabel;
-                if (request.status == 'APPROVED') {
-                  statusColor = AppColors.olive;
-                }
-                if (request.status == 'QUEUED') {
-                  statusColor = const Color(0xFFD97706);
-                }
-                if (request.status == 'REJECTED' ||
-                    request.status == 'CANCELLED') {
-                  statusColor = const Color(0xFFC95454);
-                }
-
-                return Card(
-                  color: Colors.white,
-                  elevation: 0,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: Colors.black.withOpacity(0.06)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              stationName,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.textMain,
-                              ),
-                            ),
-                            Text(
-                              request.status,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 11,
-                                color: statusColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        if (request.note.isNotEmpty)
-                          Text(
-                            'Note: ${request.note}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 13,
-                              color: AppColors.textLabel,
-                            ),
-                          ),
-                        if (request.lockerCode.isNotEmpty)
-                          Text(
-                            'Assigned locker: ${request.lockerCode}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                              color: AppColors.olive,
-                            ),
-                          ),
-                        if (request.createdAt != null) ...[
-                          const SizedBox(height: 6),
-                          Text(
-                            'Submitted: ${request.createdAt!.toLocal().toString().split('.').first}',
-                            style: const TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                );
-              }),
-            ],
-          ),
-          crossFadeState: _isExpanded
-              ? CrossFadeState.showSecond
-              : CrossFadeState.showFirst,
-          duration: const Duration(milliseconds: 250),
-        ),
-      ],
     );
   }
 }

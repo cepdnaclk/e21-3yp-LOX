@@ -3,6 +3,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../data/remote/api_client.dart';
+import '../../data/local/local_store.dart';
 
 class FirebaseNotificationService {
   FirebaseNotificationService._privateConstructor();
@@ -60,6 +61,12 @@ class FirebaseNotificationService {
       // 4. Foreground message listener
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         debugPrint('Received foreground notification: ${message.notification?.title}');
+        if (message.notification != null) {
+          LocalStore.addNotification(
+            message.notification!.title ?? 'Locker Alert',
+            message.notification!.body ?? '',
+          );
+        }
         _showForegroundSystemNotification(message);
       });
 

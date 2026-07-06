@@ -9,6 +9,8 @@ import '../widgets/location_pill.dart';
 import '../widgets/sort_pill.dart';
 import '../widgets/station_card.dart';
 import '../../../../../core/services/biometric_service.dart';
+import '../../../../../data/local/local_store.dart';
+import 'notification_screen.dart';
 
 /// Defines the available sorting strategies for the stations list.
 enum HomeStationSort { distance, availability }
@@ -56,6 +58,7 @@ class StationsView extends StatefulWidget {
 
 class _StationsViewState extends State<StationsView> {
   bool _promptShown = false;
+  int _unreadNotificationsCount = 0;
 
   @override
   void initState() {
@@ -63,6 +66,25 @@ class _StationsViewState extends State<StationsView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndShowBiometricPrompt();
     });
+    _loadUnreadNotifications();
+  }
+
+  Future<void> _loadUnreadNotifications() async {
+    final count = await LocalStore.getUnreadNotificationCount();
+    if (mounted) {
+      setState(() {
+        _unreadNotificationsCount = count;
+      });
+    }
+  }
+
+  Future<void> _openNotifications() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const NotificationScreen(),
+      ),
+    );
+    await _loadUnreadNotifications();
   }
 
   Future<void> _checkAndShowBiometricPrompt() async {
@@ -194,9 +216,7 @@ class _StationsViewState extends State<StationsView> {
     );
   }
 
-  static const _bg   = Color(0xFFF6F5F1);
-  static const _muted = Color(0xFFA6A39B);
-  static const _text  = Color(0xFF1F1E1B);
+
 
   /// The current active sorting method (defaults to distance).
   HomeStationSort _sort = HomeStationSort.distance;
@@ -214,6 +234,13 @@ class _StationsViewState extends State<StationsView> {
   Future<void> _pickCurrentLocation() async {
     setState(() => _locLoading = true);
     try {
+      // Verify app settings permission is enabled
+      final appLocPref = await LocalStore.isLocationEnabled();
+      if (!appLocPref) {
+        _show('Location access is disabled in Settings.');
+        return;
+      }
+
       // Verify hardware services are active
       final enabled = await Geolocator.isLocationServiceEnabled();
       if (!enabled) { _show('Location services are disabled.'); return; }
@@ -362,6 +389,10 @@ class _StationsViewState extends State<StationsView> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final mutedColor = theme.colorScheme.onSurfaceVariant.withOpacity(0.7);
+    final txtColor = theme.colorScheme.onSurface;
+
     final activeLocationText = widget.locationDraft.trim().isEmpty
         ? (widget.savedLocation.trim().isEmpty
             ? 'Tap to set location'
@@ -371,19 +402,65 @@ class _StationsViewState extends State<StationsView> {
     final sorted = _sortedStations;
 
     return Container(
-      color: _bg,
+      color: Colors.transparent, // Let parent mainDecoration show through!
       child: RefreshIndicator(
         onRefresh: widget.onRefresh,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
           children: [
-            const Text(
-              'ACTIVE LOCATION',
-              style: TextStyle(
-                color: _muted,
-                fontSize: 12,
-                letterSpacing: 2.2,
-                fontWeight: FontWeight.w800,
+            Align(
+              alignment: Alignment.centerRight,
+              child: GestureDetector(
+                onTap: _openNotifications,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface.withOpacity(0.8),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.notifications_none_rounded,
+                        color: txtColor,
+                        size: 22,
+                      ),
+                    ),
+                    if (_unreadNotificationsCount > 0)
+                      Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.redAccent,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            '$_unreadNotificationsCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -401,13 +478,13 @@ class _StationsViewState extends State<StationsView> {
             // Title & controls section
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'All Stations',
                     style: TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.w900,
-                      color: _text,
+                      color: txtColor,
                     ),
                   ),
                 ),
@@ -424,12 +501,12 @@ class _StationsViewState extends State<StationsView> {
 
             // Station list or empty state message
             if (sorted.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 40),
+              Padding(
+                padding: const EdgeInsets.only(top: 40),
                 child: Center(
                   child: Text('No stations found.',
                       style: TextStyle(
-                          color: _muted,
+                          color: mutedColor,
                           fontWeight: FontWeight.w700)),
                 ),
               )

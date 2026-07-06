@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../../../data/models/station.dart';
+import '../../../../../core/theme/theme_style.dart';
 
 /// A reusable UI component that displays a summary card for a single locker station.
 ///
@@ -33,29 +34,38 @@ class StationCard extends StatelessWidget {
   /// Callback triggered when the entire card is tapped.
   final VoidCallback onTap;
 
-  static const _card  = Colors.white;
-  static const _muted = Color(0xFFA6A39B);
-  static const _text  = Color(0xFF1F1E1B);
-  static const _olive = Color(0xFF5B5A3D);
-  static const _track = Color(0xFFE7E4DD);
-
   @override
   Widget build(BuildContext context) {
-    // Calculate the availability ratio for the progress bar.
-    // Handles the edge case where a station has 0 total lockers to avoid division by zero.
-    // Clamps the result between 0.0 and 1.0 just in case data gets out of sync.
+    final theme = Theme.of(context);
+    final themeStyle = theme.extension<AppThemeStyle>() ?? AppThemeStyle(
+      cardRadius: 26,
+      buttonRadius: 16,
+      fieldRadius: 14,
+      navBarBg: theme.colorScheme.surface,
+      navBarBlur: 10,
+      navBarActiveColor: theme.colorScheme.primary,
+    );
+
+    final cardBg = themeStyle.cardBg ?? theme.colorScheme.surface;
+    final txtColor = theme.colorScheme.onSurface;
+    final mutedColor = theme.colorScheme.onSurfaceVariant.withOpacity(0.7);
+    final primaryColor = theme.colorScheme.primary;
+    final trackColor = theme.colorScheme.outlineVariant.withOpacity(0.3);
+
+    // Calculate availability ratio
     final ratio = total == 0 ? 0.0 : (free / total).clamp(0.0, 1.0);
 
     return InkWell(
-      borderRadius: BorderRadius.circular(26),
+      borderRadius: BorderRadius.circular(themeStyle.cardRadius),
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: _card,
-          borderRadius: BorderRadius.circular(26),
-          boxShadow: [
+          color: cardBg,
+          borderRadius: BorderRadius.circular(themeStyle.cardRadius),
+          border: themeStyle.cardBorder,
+          boxShadow: themeStyle.cardShadow ?? [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: Colors.black.withOpacity(0.06),
               blurRadius: 18,
               offset: const Offset(0, 10),
             ),
@@ -63,15 +73,15 @@ class StationCard extends StatelessWidget {
         ),
         padding: const EdgeInsets.all(16),
         child: Row(
-          // Leading Icon
           children: [
+            // Leading Icon container
             Container(
               width: 60, height: 60,
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F0EC),
-                borderRadius: BorderRadius.circular(18),
+                color: theme.colorScheme.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(math.max(themeStyle.cardRadius - 8, 8.0)),
               ),
-              child: const Icon(Icons.lock_outline_rounded, color: _olive),
+              child: Icon(Icons.lock_outline_rounded, color: primaryColor),
             ),
             const SizedBox(width: 14),
 
@@ -80,16 +90,15 @@ class StationCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   // Station name
                   Text(
                     station.name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
-                      color: _text,
+                      color: txtColor,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -99,8 +108,8 @@ class StationCard extends StatelessWidget {
                     station.code,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: _muted,
+                    style: TextStyle(
+                      color: mutedColor,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.3,
                     ),
@@ -108,30 +117,29 @@ class StationCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      // math.max prevents negative totals from rendering if bad data arrives
                       Text(
                         '$free / ${math.max(total, 0)} available',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w800,
-                          color: _olive,
+                          color: primaryColor,
                         ),
                       ),
                       const Spacer(),
 
-                      // Distance Badge (Only renders if a distance was calculated)
+                      // Distance Badge
                       if (distanceLabel != null)
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF1F0EC),
+                            color: theme.colorScheme.primary.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
                             distanceLabel!,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w900,
-                              color: _text,
+                              color: txtColor,
                             ),
                           ),
                         ),
@@ -139,15 +147,14 @@ class StationCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
 
-                  // Visual Availability Indicator
+                  // Availability Progress Bar
                   ClipRRect(
                     borderRadius: BorderRadius.circular(999),
                     child: LinearProgressIndicator(
                       value: ratio,
                       minHeight: 8,
-                      backgroundColor: _track,
-                      valueColor:
-                          const AlwaysStoppedAnimation(_olive),
+                      backgroundColor: trackColor,
+                      valueColor: AlwaysStoppedAnimation(primaryColor),
                     ),
                   ),
                 ],
@@ -155,7 +162,7 @@ class StationCard extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             
-            const Icon(Icons.chevron_right_rounded, color: _muted),
+            Icon(Icons.chevron_right_rounded, color: mutedColor),
           ],
         ),
       ),

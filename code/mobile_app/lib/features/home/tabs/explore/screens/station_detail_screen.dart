@@ -195,7 +195,7 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
                           : (freeCount / _lockers.length).clamp(0.0, 1.0),
                       minHeight: 8,
                       backgroundColor: AppColors.fieldBackground,
-                      valueColor: const AlwaysStoppedAnimation(AppColors.olive),
+                      valueColor: AlwaysStoppedAnimation(AppColors.olive),
                     ),
                   ),
                   const SizedBox(height: 16),

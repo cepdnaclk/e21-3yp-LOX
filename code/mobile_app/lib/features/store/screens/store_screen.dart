@@ -263,8 +263,8 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
             DropdownButton<String>(
               value: _sortMode,
               underline: const SizedBox(),
-              icon: const Icon(Icons.arrow_drop_down, color: AppColors.olive),
-              style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.olive),
+              icon: Icon(Icons.arrow_drop_down, color: AppColors.olive),
+              style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.olive),
               onChanged: (val) {
                 if (val != null) setState(() => _sortMode = val);
               },
@@ -436,7 +436,7 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
                         children: [
                           Text(
                             'Rs. ${product.price.round()}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w900,
                               color: AppColors.olive,

@@ -187,7 +187,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     children: [
                       Text(
                         'Rs. ${widget.product.price.round()}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w900,
                           color: AppColors.olive,
@@ -345,7 +345,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         padding: const EdgeInsets.only(bottom: 6),
                         child: Row(
                           children: [
-                            const Icon(Icons.check_circle_outline, color: AppColors.olive, size: 18),
+                            Icon(Icons.check_circle_outline, color: AppColors.olive, size: 18),
                             const SizedBox(width: 8),
                             Text(
                               f,
@@ -373,7 +373,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.local_shipping_outlined, color: AppColors.olive, size: 24),
+                        Icon(Icons.local_shipping_outlined, color: AppColors.olive, size: 24),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(

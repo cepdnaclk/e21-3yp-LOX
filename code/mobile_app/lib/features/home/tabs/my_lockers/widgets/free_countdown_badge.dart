@@ -4,6 +4,7 @@ import '../../../../../data/models/locker.dart';
 import '../../../../../data/models/station.dart';
 import '../../../../../core/utils/reservation_phase.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/theme_style.dart';
 
 /// A self-updating widget that shows the reservation phase as a colored badge.
 /// Ticks every second as long as it's mounted.
@@ -53,10 +54,19 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
 
   @override
   Widget build(BuildContext context) {
-    return _buildBadge();
+    final theme = Theme.of(context);
+    final themeStyle = theme.extension<AppThemeStyle>() ?? AppThemeStyle(
+      cardRadius: 16,
+      buttonRadius: 12,
+      fieldRadius: 12,
+      navBarBg: theme.colorScheme.surface,
+      navBarBlur: 10,
+      navBarActiveColor: theme.colorScheme.primary,
+    );
+    return _buildBadge(themeStyle);
   }
 
-  Widget _buildBadge() {
+  Widget _buildBadge(AppThemeStyle themeStyle) {
     switch (_status.phase) {
       case ReservationPhase.active:
         return _badge(
@@ -65,6 +75,7 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
           icon: Icons.timer_outlined,
           label: 'FREE TIME REMAINING',
           value: formatCountdown(_status.timeRemainingMs),
+          themeStyle: themeStyle,
         );
 
       case ReservationPhase.overdue:
@@ -75,16 +86,18 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
           label: 'OVERDUE',
           value: formatOverdueDuration(_status.overdueMs),
           subtext: 'Fee: \$${_status.chargeAmount.toStringAsFixed(2)}',
+          themeStyle: themeStyle,
         );
 
       case ReservationPhase.overdueReleased:
         return _badge(
-          color: AppColors.olive,
-          bgColor: AppColors.olive,
+          color: Theme.of(context).colorScheme.primary,
+          bgColor: Theme.of(context).colorScheme.primary,
           icon: Icons.check_circle_outline_rounded,
           label: 'GRACE PERIOD',
           value: formatCountdown(_status.timeRemainingMs),
           subtext: 'Unlock & retrieve your items now',
+          themeStyle: themeStyle,
         );
     }
   }
@@ -95,13 +108,14 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
     required IconData icon,
     required String label,
     required String value,
+    required AppThemeStyle themeStyle,
     String? subtext,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: bgColor.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(themeStyle.fieldRadius),
         border: Border.all(color: bgColor.withOpacity(0.22)),
       ),
       child: Row(
@@ -153,6 +167,7 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
     required IconData icon,
     required String label,
     required String value,
+    required AppThemeStyle themeStyle,
     String? subtext,
   }) {
     // Use TweenAnimationBuilder for a pulsing alpha effect on overdue
@@ -164,7 +179,7 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: bgColor.withOpacity(alpha),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(themeStyle.fieldRadius),
           border: Border.all(color: bgColor.withOpacity(0.3)),
         ),
         child: child,

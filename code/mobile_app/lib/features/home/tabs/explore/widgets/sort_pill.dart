@@ -1,5 +1,7 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../screens/explore_screen.dart';
+import '../../../../../core/theme/theme_style.dart';
 
 
 /// A custom segmented control widget that allows the user to toggle between different sorting strategies for the stations list.
@@ -23,20 +25,33 @@ class SortPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final themeStyle = theme.extension<AppThemeStyle>() ?? AppThemeStyle(
+      cardRadius: 20,
+      buttonRadius: 16,
+      fieldRadius: 24,
+      navBarBg: theme.colorScheme.surface,
+      navBarBlur: 10,
+      navBarActiveColor: theme.colorScheme.primary,
+    );
+
     return Container(
       height: 46,
-      padding: const EdgeInsets.all(6),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F0EC),
-        borderRadius: BorderRadius.circular(24),
+        color: theme.colorScheme.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(themeStyle.fieldRadius),
+        border: themeStyle.cardBorder != null 
+            ? Border.all(color: theme.colorScheme.primary.withOpacity(0.3), width: 1.2) 
+            : null,
       ),
       child: Row(
         children: [
-          // Expanded ensures both segments take up exactly 50% of the width
           Expanded(
             child: _Segment(
               active: value == HomeStationSort.distance,
               text: 'Distance',
+              themeStyle: themeStyle,
               onTap: () => onChanged(HomeStationSort.distance),
             ),
           ),
@@ -44,6 +59,7 @@ class SortPill extends StatelessWidget {
             child: _Segment(
               active: value == HomeStationSort.availability,
               text: 'High availability',
+              themeStyle: themeStyle,
               onTap: () => onChanged(HomeStationSort.availability),
             ),
           ),
@@ -53,55 +69,49 @@ class SortPill extends StatelessWidget {
   }
 }
 
-/// A private helper widget representing an individual selectable segment within the [SortPill].
-///
-/// Handles its own active/inactive styling, including text color and an elevated shadow effect when active.
 class _Segment extends StatelessWidget {
   const _Segment({
     required this.active,
     required this.text,
+    required this.themeStyle,
     required this.onTap,
   });
 
-  /// Determines if this segment is currently selected.
-  /// If true, applies a white background, shadow, and dark text.
   final bool active;
-
-  /// The display label for this segment. (e.g., "Distance" or "High availability")
   final String text;
-
-  /// Callback triggered when this specific segment is tapped.
+  final AppThemeStyle themeStyle;
   final VoidCallback onTap;
-
-  static const _muted = Color(0xFFA6A39B);
-  static const _text  = Color(0xFF1F1E1B);
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final innerRadius = math.max(themeStyle.fieldRadius - 4, 8.0);
+    final activeBg = themeStyle.cardBg ?? theme.colorScheme.surface;
+    final activeTxt = theme.colorScheme.primary;
+    final inactiveTxt = theme.colorScheme.onSurfaceVariant.withOpacity(0.6);
+
     return InkWell(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(innerRadius),
       onTap: onTap,
       child: Container(
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          // Active state gets a solid white background; inactive is transparent to let the parent track color show through.
-          color: active ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(18),
-          // Apply a soft drop shadow only when active to make it "pop".
+          color: active ? activeBg : Colors.transparent,
+          borderRadius: BorderRadius.circular(innerRadius),
           boxShadow: active
-              ? [
+              ? (themeStyle.cardShadow ?? [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.07),
+                    color: Colors.black.withOpacity(0.07),
                     blurRadius: 14,
                     offset: const Offset(0, 8),
                   ),
-                ]
+                ])
               : null,
         ),
         child: Text(
           text,
           style: TextStyle(
-            color: active ? _text : _muted,
+            color: active ? activeTxt : inactiveTxt,
             fontWeight: FontWeight.w900,
           ),
         ),

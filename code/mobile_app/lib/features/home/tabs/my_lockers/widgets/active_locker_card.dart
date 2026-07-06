@@ -5,6 +5,7 @@ import '../../../../../data/models/locker.dart';
 import '../../../../../data/models/station.dart';
 import '../../../../../data/remote/api_client.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/theme_style.dart';
 import '../../../../../core/services/biometric_service.dart';
 import '../../../../../core/utils/reservation_phase.dart';
 import 'free_countdown_badge.dart';
@@ -141,26 +142,55 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
     final isOverdue = phase == ReservationPhase.overdue;
     final isOverdueReleased = phase == ReservationPhase.overdueReleased;
 
-    // Card border color based on phase
-    Color borderColor;
+    final theme = Theme.of(context);
+    final themeStyle = theme.extension<AppThemeStyle>() ?? AppThemeStyle(
+      cardRadius: 22,
+      buttonRadius: 16,
+      fieldRadius: 14,
+      navBarBg: theme.colorScheme.surface,
+      navBarBlur: 10,
+      navBarActiveColor: theme.colorScheme.primary,
+    );
+
+    // Dynamic Card background color
+    final cardBg = themeStyle.cardBg ?? theme.colorScheme.surface;
+
+    // Card border and shadow based on phase and theme settings
+    BoxDecoration cardDecoration;
     if (isOverdue) {
-      borderColor = const Color(0xFFB42318).withOpacity(0.4);
+      cardDecoration = BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(themeStyle.cardRadius),
+        border: Border.all(
+          color: const Color(0xFFB42318).withOpacity(0.4),
+          width: 1.8,
+        ),
+        boxShadow: themeStyle.cardShadow,
+      );
     } else if (alert) {
-      borderColor = const Color(0xFFF8B4B4);
+      cardDecoration = BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(themeStyle.cardRadius),
+        border: Border.all(
+          color: const Color(0xFFF8B4B4),
+          width: 1.5,
+        ),
+        boxShadow: themeStyle.cardShadow,
+      );
     } else {
-      borderColor = Colors.black.withOpacity(0.06);
+      cardDecoration = BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(themeStyle.cardRadius),
+        border: themeStyle.cardBorder ?? Border.all(
+          color: theme.colorScheme.onSurface.withOpacity(0.08),
+          width: 1.0,
+        ),
+        boxShadow: themeStyle.cardShadow,
+      );
     }
 
-    return Card(
-      color: Colors.white,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: BorderSide(
-          color: borderColor,
-          width: isOverdue ? 1.8 : (alert ? 1.5 : 1),
-        ),
-      ),
+    return Container(
+      decoration: cardDecoration,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -172,15 +202,15 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: (isOverdue ? const Color(0xFFB42318) : AppColors.olive).withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(10),
+                    color: (isOverdue ? const Color(0xFFB42318) : theme.colorScheme.primary).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(themeStyle.buttonRadius - 4 > 4 ? themeStyle.buttonRadius - 4 : 8),
                   ),
                   child: Text(
                     widget.locker.code,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
-                      color: isOverdue ? const Color(0xFFB42318) : AppColors.olive,
+                      color: isOverdue ? const Color(0xFFB42318) : theme.colorScheme.primary,
                     ),
                   ),
                 ),
@@ -189,31 +219,31 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'MY ASSIGNED LOCKER',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 1.2,
-                          color: AppColors.textLabel,
+                          color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
                         ),
                       ),
                       Text(
                         widget.stationName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w900,
-                          color: AppColors.textMain,
+                          color: theme.colorScheme.onSurface,
                         ),
                       ),
                     ],
                   ),
                 ),
                 if (_busy)
-                  const SizedBox(
+                  SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.olive),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: theme.colorScheme.primary),
                   ),
               ],
             ),
@@ -237,7 +267,7 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
                     'LOCK STATE',
                     lock,
                     isLocked ? Icons.lock_outline_rounded : Icons.lock_open_rounded,
-                    isLocked ? AppColors.olive : const Color(0xFFD97706),
+                    isLocked ? theme.colorScheme.primary : const Color(0xFFD97706),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -246,42 +276,11 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
                     'DOOR STATE',
                     door,
                     isClosed ? Icons.sensor_door_outlined : Icons.sensor_door,
-                    isClosed ? AppColors.olive : const Color(0xFFC95454),
+                    isClosed ? theme.colorScheme.primary : const Color(0xFFC95454),
                   ),
                 ),
               ],
             ),
-
-            // Security Alert Box
-            // if (alert) ...[
-            //   const SizedBox(height: 14),
-            //   Container(
-            //     padding: const EdgeInsets.all(12),
-            //     decoration: BoxDecoration(
-            //       color: const Color(0xFFFDE8E8),
-            //       borderRadius: BorderRadius.circular(12),
-            //       border: Border.all(color: const Color(0xFFF8B4B4)),
-            //     ),
-            //     child: Row(
-            //       children: [
-            //         const Icon(Icons.warning_amber_rounded, color: Color(0xFFC81E1E)),
-            //         const SizedBox(width: 10),
-            //         Expanded(
-            //           child: Text(
-            //             widget.locker.securityAlertMessage.isNotEmpty
-            //                 ? widget.locker.securityAlertMessage
-            //                 : 'Security warning active!',
-            //             style: const TextStyle(
-            //               color: Color(0xFFC81E1E),
-            //               fontWeight: FontWeight.w800,
-            //               fontSize: 12,
-            //             ),
-            //           ),
-            //         ),
-            //       ],
-            //     ),
-            //   ),
-            // ],
 
             const Divider(height: 28),
 
@@ -289,15 +288,15 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
 
             // OVERDUE: only show payment button
             if (isOverdue) ...[
-              _buildOverduePaySection(),
+              _buildOverduePaySection(themeStyle),
             ]
             // OVERDUE_RELEASED: show unlock + release only
             else if (isOverdueReleased) ...[
-              _buildOverdueReleasedSection(),
+              _buildOverdueReleasedSection(themeStyle),
             ]
             // ACTIVE: full controls
             else ...[
-              _buildNormalControls(),
+              _buildNormalControls(themeStyle),
             ],
           ],
         ),
@@ -305,25 +304,32 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
     );
   }
 
-  Widget _buildOverduePaySection() {
+  Widget _buildOverduePaySection(AppThemeStyle themeStyle) {
     final charge = _status?.chargeAmount ?? 0.0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Adaptive Alert Box Colors for Dark/Light Mode
+    final alertBg = isDark ? const Color(0xFF3B1E1E) : const Color(0xFFFDE8E8);
+    final alertBorderColor = isDark ? const Color(0xFF7F1D1D) : const Color(0xFFF8B4B4);
+    final alertTextColor = isDark ? const Color(0xFFFCA3A3) : const Color(0xFFC81E1E);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFFDE8E8),
+            color: alertBg,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFF8B4B4)),
+            border: Border.all(color: alertBorderColor),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Payment Required',
                 style: TextStyle(
-                  color: Color(0xFFC81E1E),
+                  color: alertTextColor,
                   fontWeight: FontWeight.w900,
                   fontSize: 13,
                 ),
@@ -332,7 +338,7 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
               Text(
                 'Your free storage period has expired. Pay the overdue fee to unlock and retrieve your items.',
                 style: TextStyle(
-                  color: const Color(0xFFC81E1E).withOpacity(0.8),
+                  color: alertTextColor.withOpacity(0.9),
                   fontSize: 12,
                   height: 1.45,
                 ),
@@ -344,7 +350,7 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
         FilledButton.icon(
           style: FilledButton.styleFrom(
             backgroundColor: const Color(0xFFB42318),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(themeStyle.buttonRadius)),
             padding: const EdgeInsets.symmetric(vertical: 14),
           ),
           onPressed: _busy ? null : _onPayOverduePressed,
@@ -358,32 +364,39 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
         Text(
           'After payment, you will have a grace period to retrieve your items.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+          style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6)),
         ),
       ],
     );
   }
 
-  Widget _buildOverdueReleasedSection() {
+  Widget _buildOverdueReleasedSection(AppThemeStyle themeStyle) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Adaptive green alert colors
+    final alertBg = isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5);
+    final alertBorderColor = isDark ? const Color(0xFF065F46) : const Color(0xFF6EE7B7);
+    final alertTextColor = isDark ? const Color(0xFFA7F3D0) : const Color(0xFF027A48);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFECFDF5),
+            color: alertBg,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF6EE7B7)),
+            border: Border.all(color: alertBorderColor),
           ),
-          child: const Row(
+          child: Row(
             children: [
-              Icon(Icons.check_circle_rounded, color: Color(0xFF027A48), size: 20),
-              SizedBox(width: 8),
+              Icon(Icons.check_circle_rounded, color: alertTextColor, size: 20),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Payment confirmed! Unlock your locker and retrieve your items during the grace period.',
                   style: TextStyle(
-                    color: Color(0xFF027A48),
+                    color: alertTextColor,
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
                     height: 1.4,
@@ -399,8 +412,8 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
             Expanded(
               child: FilledButton.icon(
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.olive,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(themeStyle.buttonRadius)),
                 ),
                 onPressed: _busy ? null : _onUnlockPressed,
                 icon: const Icon(Icons.lock_open, size: 18),
@@ -413,7 +426,7 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFFC95454),
                   side: const BorderSide(color: Color(0xFFC95454)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(themeStyle.buttonRadius)),
                 ),
                 onPressed: _busy
                     ? null
@@ -431,7 +444,8 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
     );
   }
 
-  Widget _buildNormalControls() {
+  Widget _buildNormalControls(AppThemeStyle themeStyle) {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -440,8 +454,8 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
             Expanded(
               child: FilledButton.icon(
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.olive,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: theme.colorScheme.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(themeStyle.buttonRadius)),
                 ),
                 onPressed: _busy ? null : _onUnlockPressed,
                 icon: const Icon(Icons.lock_open, size: 18),
@@ -452,8 +466,13 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
             Expanded(
               child: FilledButton.icon(
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.oliveDark,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: theme.brightness == Brightness.dark
+                      ? theme.colorScheme.primaryContainer
+                      : theme.colorScheme.primary.withOpacity(0.85),
+                  foregroundColor: theme.brightness == Brightness.dark
+                      ? theme.colorScheme.onPrimaryContainer
+                      : Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(themeStyle.buttonRadius)),
                 ),
                 onPressed: _busy
                     ? null
@@ -472,7 +491,7 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
           style: OutlinedButton.styleFrom(
             foregroundColor: const Color(0xFFC95454),
             side: const BorderSide(color: Color(0xFFC95454)),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(themeStyle.buttonRadius)),
           ),
           onPressed: _busy
               ? null
@@ -505,10 +524,10 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 8,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textLabel,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
                     letterSpacing: 0.8,
                   ),
                 ),

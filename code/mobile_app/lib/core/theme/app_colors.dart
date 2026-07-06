@@ -5,8 +5,8 @@ class AppColors {
   AppColors._(); // Prevents accidental instantiation
 
   // Primary Brand Colors
-  static const Color olive = Color(0xFF5C5F3E);
-  static const Color oliveDark = Color(0xFF6B6E50);
+  static Color olive = const Color(0xFF5C5F3E);
+  static Color oliveDark = const Color(0xFF6B6E50);
   
   // Backgrounds
   static const Color background = Color(0xFFF0EFEB);

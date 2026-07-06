@@ -230,7 +230,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     onTap: _pickAvatar,
                     child: Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: AppColors.olive,
                         shape: BoxShape.circle,
                       ),

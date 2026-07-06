@@ -93,7 +93,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 28),
           children: [
             const SizedBox(height: 20),
-            const Icon(
+            Icon(
               Icons.phonelink_lock_rounded,
               size: 80,
               color: AppColors.olive,
