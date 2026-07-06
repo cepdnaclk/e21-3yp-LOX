@@ -19,6 +19,7 @@ class RegisterScreen extends StatefulWidget {
     super.key,
     required this.onAuthSuccess,
     this.onLoginTap,
+    this.onBackTap,
     this.showTabToggle = true,
   });
 
@@ -27,6 +28,9 @@ class RegisterScreen extends StatefulWidget {
 
   /// Callback to switch the parent [AuthScreen] back to the Login tab.
   final VoidCallback? onLoginTap;
+
+  /// Callback to navigate back to the Welcome screen.
+  final VoidCallback? onBackTap;
 
   /// Determines if the [ LOGIN | JOIN ] toggle should be rendered.
   final bool showTabToggle;
@@ -42,6 +46,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   late final TextEditingController _passwordController;
   late final TextEditingController _confirmPasswordController;
 
+  // Focus nodes to manage keyboard focus flow
+  late final FocusNode _nameFocusNode;
+  late final FocusNode _emailFocusNode;
+  late final FocusNode _passwordFocusNode;
+  late final FocusNode _confirmPasswordFocusNode;
+
   bool _submitting = false;
 
   @override
@@ -51,6 +61,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailController = TextEditingController();
     _passwordController = TextEditingController();
     _confirmPasswordController = TextEditingController();
+    _nameFocusNode = FocusNode();
+    _emailFocusNode = FocusNode();
+    _passwordFocusNode = FocusNode();
+    _confirmPasswordFocusNode = FocusNode();
   }
 
   @override
@@ -61,6 +75,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _nameFocusNode.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    _confirmPasswordFocusNode.dispose();
     super.dispose();
   }
 
@@ -114,42 +132,71 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: ListView(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28),
-          children: [
-            const SizedBox(height: 28),
-            if (widget.showTabToggle)
-              Center(
-                child: Container(
-                  height: 44,
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: AppColors.fieldBackground,
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _TabButton(
-                        label: 'LOGIN',
-                        selected: false,
-                        onTap:
-                            widget.onLoginTap ?? () => Navigator.pop(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+            const SizedBox(height: 16),
+            if (widget.onBackTap != null || widget.showTabToggle)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (widget.onBackTap != null)
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                      color: AppColors.textMain,
+                      onPressed: () {
+                        FocusScope.of(context).unfocus();
+                        widget.onBackTap?.call();
+                      },
+                    )
+                  else
+                    const SizedBox(width: 48),
+                  if (widget.showTabToggle)
+                    Container(
+                      height: 44,
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: AppColors.fieldBackground,
+                        borderRadius: BorderRadius.circular(22),
                       ),
-                      const _TabButton(
-                        label: 'JOIN',
-                        selected: true,
-                        onTap: null,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _TabButton(
+                            label: 'LOGIN',
+                            selected: false,
+                            onTap:
+                                widget.onLoginTap ?? () => Navigator.pop(context),
+                          ),
+                          const _TabButton(
+                            label: 'JOIN',
+                            selected: true,
+                            onTap: null,
+                          ),
+                        ],
                       ),
-                    ],
+                    )
+                  else
+                    const SizedBox(width: 48),
+                  const SizedBox(width: 48), // To balance the back button on the left
+                ],
+              ),
+            const SizedBox(height: 36),
+            Center(
+              child: SizedBox(
+                width: 90,
+                height: 90,
+                child: ClipOval(
+                  child: SvgPicture.asset(
+                    'assets/images/lox_logo_auth.svg',
+                    width: 90,
+                    height: 90,
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),
-            const SizedBox(height: 36),
-            SvgPicture.asset(
-              'assets/images/lox_logo_auth.svg',
-              width: 90,
-              height: 90,
             ),
             const Text(
               'Create Account',
@@ -177,6 +224,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 8),
             _LockerTextField(
               controller: _nameController,
+              focusNode: _nameFocusNode,
+              textInputAction: TextInputAction.next,
+              onSubmitted: (_) => FocusScope.of(context).requestFocus(_emailFocusNode),
               hintText: 'John Doe',
               icon: Icons.person_outline_rounded,
               fieldBg: AppColors.fieldBackground,
@@ -187,6 +237,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 8),
             _LockerTextField(
               controller: _emailController,
+              focusNode: _emailFocusNode,
+              textInputAction: TextInputAction.next,
+              onSubmitted: (_) => FocusScope.of(context).requestFocus(_passwordFocusNode),
               hintText: 'you@example.com',
               icon: Icons.mail_outline_rounded,
               keyboardType: TextInputType.emailAddress,
@@ -198,9 +251,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 8),
             _LockerTextField(
               controller: _passwordController,
+              focusNode: _passwordFocusNode,
+              textInputAction: TextInputAction.next,
+              onSubmitted: (_) => FocusScope.of(context).requestFocus(_confirmPasswordFocusNode),
               hintText: '••••••••',
               icon: Icons.vpn_key_outlined,
               obscureText: true,
+              keyboardType: TextInputType.visiblePassword,
               fieldBg: AppColors.fieldBackground,
               hintColor: AppColors.textHint,
             ),
@@ -209,9 +266,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 8),
             _LockerTextField(
               controller: _confirmPasswordController,
+              focusNode: _confirmPasswordFocusNode,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) {
+                _confirmPasswordFocusNode.requestFocus();
+                _register();
+              },
               hintText: '••••••••',
               icon: Icons.vpn_key_outlined,
               obscureText: true,
+              keyboardType: TextInputType.visiblePassword,
               fieldBg: AppColors.fieldBackground,
               hintColor: AppColors.textHint,
             ),
@@ -252,7 +316,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Center(
               child: RichText(
                 textAlign: TextAlign.center,
-                text: const TextSpan(
+                text: TextSpan(
                   style: TextStyle(
                     fontSize: 10,
                     color: AppColors.textHint,
@@ -283,8 +347,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _FieldLabel extends StatelessWidget {
@@ -360,6 +425,10 @@ class _LockerTextField extends StatelessWidget {
     required this.hintColor,
     this.keyboardType,
     this.obscureText = false,
+    this.focusNode,
+    this.textInputAction,
+    this.onSubmitted,
+    this.autofillHints,
   });
 
   final TextEditingController controller;
@@ -369,6 +438,10 @@ class _LockerTextField extends StatelessWidget {
   final Color hintColor;
   final TextInputType? keyboardType;
   final bool obscureText;
+  final FocusNode? focusNode;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
+  final Iterable<String>? autofillHints;
 
   @override
   Widget build(BuildContext context) {
@@ -381,6 +454,10 @@ class _LockerTextField extends StatelessWidget {
         controller: controller,
         keyboardType: keyboardType,
         obscureText: obscureText,
+        focusNode: focusNode,
+        textInputAction: textInputAction,
+        onSubmitted: onSubmitted,
+        autofillHints: autofillHints,
         style: const TextStyle(
           fontSize: 16,
           color: AppColors.textField,

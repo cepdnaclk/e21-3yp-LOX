@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../../../data/local/local_store.dart';
@@ -10,7 +11,9 @@ import '../tabs/account/screens/account_screen.dart';
 import '../tabs/my_lockers/screens/requests_screen.dart';
 import '../tabs/explore/screens/station_detail_screen.dart';
 import '../tabs/explore/screens/explore_screen.dart';
-import '../../store/screens/store_screen.dart';
+import '../widgets/side_menu_drawer.dart';
+import 'settings_screen.dart';
+import '../../../core/theme/theme_style.dart';
 
 /// The primary shell screen for authenticated users.
 ///
@@ -30,6 +33,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   // Navigation State
   int _tabIndex = 0;
 
@@ -257,24 +262,39 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       );
     }
 
-    // Dynamic background image logic matching the Web Frontend style
-    final hasBackground = _user.homeBackgroundUrl.isNotEmpty;
-    final mainDecoration = hasBackground
-        ? BoxDecoration(
-            image: DecorationImage(
-              image: NetworkImage(_user.homeBackgroundUrl),
-              fit: BoxFit.cover,
-              colorFilter: ColorFilter.mode(
-                Colors.white.withOpacity(0.93),
-                BlendMode.lighten,
-              ),
-            ),
-          )
-        : const BoxDecoration(
-            color: Color(0xFFF2F1EF),
-          );
+    final mainDecoration = BoxDecoration(
+      color: Theme.of(context).scaffoldBackgroundColor,
+    );
+
+    final themeStyle = Theme.of(context).extension<AppThemeStyle>() ?? AppThemeStyle(
+      cardRadius: 20,
+      buttonRadius: 16,
+      fieldRadius: 14,
+      navBarBg: Theme.of(context).colorScheme.surface.withOpacity(0.92),
+      navBarBlur: 10,
+      navBarActiveColor: Theme.of(context).colorScheme.primary,
+    );
 
     return Scaffold(
+      key: _scaffoldKey,
+      extendBody: true, // Crucial: lets the body scroll view extend behind the bottom nav bar!
+      endDrawer: SideMenuDrawer(
+        user: _user,
+        client: widget.session.client,
+        onProfileUpdated: (updatedUser) {
+          setState(() {
+            _user = updatedUser;
+          });
+        },
+        onLogout: widget.onLogout,
+        onSettingsDismissed: () async {
+          final uiPrefs = await LocalStore.loadUiPrefs();
+          setState(() {
+            _savedLocation = uiPrefs.savedLocation;
+            _locationDraft = uiPrefs.savedLocation;
+          });
+        },
+      ),
       body: Container(
         decoration: mainDecoration,
         child: IndexedStack(
@@ -293,9 +313,20 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               onOpenStation: _openStation,
               onRefresh: _loadData,
               onGoToProfile: () {
-                setState(() {
-                  _tabIndex = 3; // Switches to Profile/Account tab
-                });
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => AccountScreen(
+                      user: _user,
+                      client: widget.session.client,
+                      onProfileUpdated: (updatedUser) {
+                        setState(() {
+                          _user = updatedUser;
+                        });
+                      },
+                      onLogout: widget.onLogout,
+                    ),
+                  ),
+                );
               },
             ),
             RequestsScreen(
@@ -307,46 +338,176 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               onRefresh: _loadData,
               onLockerAction: _refreshActiveLocker,
             ),
-            StoreScreen(
-              client: widget.session.client,
-              user: _user,
+          ],
+        ),
+      ),
+      bottomNavigationBar: Container(
+        height: 120,
+        color: Colors.transparent,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomCenter,
+          children: [
+            Positioned(
+              left: 24,
+              right: 24,
+              bottom: 24,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(40),
+                  boxShadow: themeStyle.cardShadow ?? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(40),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: themeStyle.navBarBlur, sigmaY: themeStyle.navBarBlur),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: themeStyle.navBarBg,
+                        borderRadius: BorderRadius.circular(40),
+                        border: themeStyle.navBarBorder ?? Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: SafeArea(
+                        top: false,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildNavItem(1, Icons.bookmark_outline, Icons.bookmark, 'BOOKINGS', themeStyle),
+                            const SizedBox(width: 96), // Spacer matching the larger floating explore button width
+                            _buildNavItem(2, Icons.menu, Icons.menu, 'MENU', themeStyle),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
-            AccountScreen(
-              user: _user,
-              client: widget.session.client,
-              onProfileUpdated: (updatedUser) {
-                setState(() {
-                  _user = updatedUser;
-                });
-              },
-              onLogout: widget.onLogout,
+            Positioned(
+              bottom: 11, // Perfectly aligns the larger EXPLORE text baseline with BOOKINGS and MENU labels
+              child: _buildExploreNavItem(0, Icons.explore_outlined, Icons.explore, 'EXPLORE', themeStyle),
             ),
           ],
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tabIndex,
-        onDestinationSelected: (i) => setState(() => _tabIndex = i),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore),
-            label: 'Explore',
+    );
+  }
+
+  Widget _buildExploreNavItem(int index, IconData outlineIcon, IconData solidIcon, String label, AppThemeStyle themeStyle) {
+    final isSelected = _tabIndex == index;
+    final theme = Theme.of(context);
+    
+    final bgColor = themeStyle.navBarBg;
+        
+    final iconColor = isSelected
+        ? themeStyle.navBarActiveColor 
+        : theme.colorScheme.onSurface.withOpacity(0.4);
+
+    final textColor = isSelected 
+        ? themeStyle.navBarActiveColor 
+        : theme.colorScheme.onSurface.withOpacity(0.4);
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        setState(() => _tabIndex = index);
+      },
+      child: Container(
+        width: 96,
+        height: 96,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: bgColor,
+          border: Border.all(
+            color: isSelected 
+                ? themeStyle.navBarActiveColor 
+                : themeStyle.navBarActiveColor.withOpacity(0.4),
+            width: 2.5,
           ),
-          NavigationDestination(
-            icon: Icon(Icons.bookmark_outline),
-            selectedIcon: Icon(Icons.bookmark),
-            label: 'Bookings',
+          boxShadow: themeStyle.cardShadow ?? [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(48),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: themeStyle.navBarBlur, sigmaY: themeStyle.navBarBlur),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isSelected ? solidIcon : outlineIcon,
+                    color: iconColor,
+                    size: 36, // Noticeably larger icon
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 11, // Larger label text
+                      fontWeight: FontWeight.w900, // Bolder
+                      letterSpacing: 0.9,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.storefront_outlined),
-            selectedIcon: Icon(Icons.storefront),
-            label: 'Store',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData outlineIcon, IconData solidIcon, String label, AppThemeStyle themeStyle) {
+    final isSelected = _tabIndex == index;
+    final theme = Theme.of(context);
+    final color = isSelected 
+        ? themeStyle.navBarActiveColor 
+        : theme.colorScheme.onSurface.withOpacity(0.4);
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        if (index == 2) {
+          _scaffoldKey.currentState?.openEndDrawer();
+        } else {
+          setState(() => _tabIndex = index);
+        }
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isSelected ? solidIcon : outlineIcon,
+            color: color,
+            size: 24,
           ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+            ),
           ),
         ],
       ),
