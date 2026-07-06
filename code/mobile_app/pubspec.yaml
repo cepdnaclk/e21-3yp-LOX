@@ -47,6 +47,7 @@ dependencies:
   local_auth: ^3.0.1
   device_info_plus: ^10.1.0
   app_links: ^6.4.0
+  google_fonts: ^8.1.0
 
 dev_dependencies:
   flutter_test:
@@ -74,6 +75,7 @@ flutter:
   assets:
     - assets/images/lox_logo.svg
     - assets/images/lox_logo_auth.svg
+    - assets/images/Locker-image-01.png
 
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
