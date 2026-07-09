@@ -501,6 +501,85 @@ function SubAdminAnalytics({ requests, lockers, stations, queueEntries }: { requ
   );
 }
 
+function MaintenancePieChart({ lockers, stations }: { lockers: any[], stations: any[] }) {
+  const [stationFilter, setStationFilter] = useState<string>("all");
+
+  const filteredLockers = stationFilter === "all"
+    ? lockers
+    : lockers.filter(l => l.stationId?._id === stationFilter || l.stationId === stationFilter);
+
+  const activeCount = filteredLockers.filter(l => !l.isMaintenance).length;
+  const maintenanceCount = filteredLockers.filter(l => l.isMaintenance).length;
+  const maintenancePct = filteredLockers.length > 0
+    ? Math.round((maintenanceCount / filteredLockers.length) * 100)
+    : 0;
+
+  const selectedStationName = stationFilter === "all"
+    ? null
+    : stations.find(s => s._id === stationFilter)?.name || stationFilter;
+
+  return (
+    <div className="card-soft p-6">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-1">
+        <div>
+          <h2 className="font-semibold text-lg">System Health: Maintenance Load</h2>
+          <p className="text-sm text-muted-foreground">Percentage of lockers currently offline for maintenance.</p>
+          {selectedStationName && (
+            <span className="inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning">
+              {selectedStationName}
+            </span>
+          )}
+        </div>
+        <Select value={stationFilter} onValueChange={setStationFilter}>
+          <SelectTrigger className="w-[160px] bg-card border-border flex-shrink-0">
+            <SelectValue placeholder="All Stations" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Stations</SelectItem>
+            {stations.map(s => (
+              <SelectItem key={s._id} value={s._id}>{s.name || s.code}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="h-64 mt-2 flex items-center justify-center relative">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={[
+                { name: 'Active', value: activeCount },
+                { name: 'Maintenance', value: maintenanceCount }
+              ]}
+              cx="50%" cy="50%" innerRadius={70} outerRadius={100}
+              dataKey="value"
+              stroke="none"
+            >
+              <Cell fill="#10B981" />
+              <Cell fill="#F43F5E" />
+            </Pie>
+            <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #E2E8F0" }} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-3xl font-bold">{maintenancePct}%</span>
+          <span className="text-sm text-muted-foreground">Maintenance</span>
+          <span className="text-xs text-muted-foreground mt-1">{filteredLockers.length} lockers</span>
+        </div>
+      </div>
+      <div className="flex justify-center gap-6 mt-2">
+        <div className="flex items-center gap-1.5">
+          <span className="h-3 w-3 rounded-full bg-[#10B981] inline-block" />
+          <span className="text-sm text-muted-foreground">Active ({activeCount})</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-3 w-3 rounded-full bg-[#F43F5E] inline-block" />
+          <span className="text-sm text-muted-foreground">Maintenance ({maintenanceCount})</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Super Admin View
 function SuperAdminAnalytics({ requests, lockers, stations, orders, queueEntries }: { requests: any[], lockers: any[], stations: any[], orders: any[], queueEntries: any[] }) {
   const totalRevenue = orders.filter(o => o.status === 'PAID').reduce((acc, curr) => acc + (curr.amount || 0), 0);
@@ -550,33 +629,7 @@ function SuperAdminAnalytics({ requests, lockers, stations, orders, queueEntries
           </div>
         </div>
 
-        <div className="card-soft p-6">
-          <h2 className="font-semibold text-lg">System Health: Maintenance Load</h2>
-          <p className="text-sm text-muted-foreground">Percentage of lockers currently offline for maintenance.</p>
-          <div className="h-72 mt-6 flex items-center justify-center relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: 'Active', value: lockers.length - lockers.filter(l => l.isMaintenance).length },
-                    { name: 'Maintenance', value: lockers.filter(l => l.isMaintenance).length }
-                  ]}
-                  cx="50%" cy="50%" innerRadius={80} outerRadius={110}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  <Cell fill="#10B981" />
-                  <Cell fill="#F43F5E" />
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-3xl font-bold">{maintenancePercentage}%</span>
-              <span className="text-sm text-muted-foreground">Maintenance</span>
-            </div>
-          </div>
-        </div>
+        <MaintenancePieChart lockers={lockers} stations={stations} />
 
         <SuperAdminUsageTrendsChart requests={requests} stations={stations} />
         <SuperAdminQueueTrendsChart queueEntries={queueEntries} stations={stations} />
