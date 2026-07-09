@@ -28,9 +28,10 @@ function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [token, setToken] = useState("");
   
-  const [lockers, setLockers] = useState<any[]>([]); // ST001 general lockers
+  const [lockers, setLockers] = useState<any[]>([]); // lockers for selected station
   const [stationsList, setStationsList] = useState<any[]>([]);
-  const [stationId, setStationId] = useState("");
+  const [stationId, setStationId] = useState(""); // for request form (USER role)
+  const [selectedGridStation, setSelectedGridStation] = useState<string>(""); // for locker grid filter (SUPER_ADMIN)
   
   // User specific state
   const [myRequests, setMyRequests] = useState<any[]>([]);
@@ -75,14 +76,31 @@ function Dashboard() {
       setStationsList(stList);
       if (stList.length > 0 && !stationId) setStationId(stList[0]._id);
 
-      // This depends on stations data, so it runs after
-      const st001 = stList.find((s: any) => s.code === 'ST001');
-      const fetchLockersId = st001 ? st001._id : (stList[0]?._id || '');
-
-      if (fetchLockersId) {
-        const genLockData = await apiGet(`/lockers?stationId=${fetchLockersId}`, { skipCache });
-        setLockers(genLockData.lockers || []);
+      // For Super Admin: don't auto-load lockers here; the grid filter drives it
+      if (u.role === 'SUPER_ADMIN') {
+        // selectedGridStation will trigger its own effect
+        if (stList.length > 0) {
+          setSelectedGridStation(prev => prev || stList[0]._id);
+        }
+      } else {
+        // Sub Admin / User: load ST001 or first station lockers
+        const st001 = stList.find((s: any) => s.code === 'ST001');
+        const fetchLockersId = st001 ? st001._id : (stList[0]?._id || '');
+        if (fetchLockersId) {
+          const genLockData = await apiGet(`/lockers?stationId=${fetchLockersId}`, { skipCache });
+          setLockers(genLockData.lockers || []);
+        }
       }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchLockersForStation = async (sid: string, skipCache = false) => {
+    if (!sid) return;
+    try {
+      const data = await apiGet(`/lockers?stationId=${sid}`, { skipCache });
+      setLockers(data.lockers || []);
     } catch (e) {
       console.error(e);
     }
@@ -105,6 +123,20 @@ function Dashboard() {
     }, 5000);
     return () => clearInterval(intervalId);
   }, [navigate]);
+
+  // When Super Admin changes the grid station, reload lockers
+  useEffect(() => {
+    if (selectedGridStation) {
+      fetchLockersForStation(selectedGridStation);
+    }
+  }, [selectedGridStation]);
+
+  // Live refresh lockers for the selected grid station (Super Admin)
+  useEffect(() => {
+    if (!user || user.role !== 'SUPER_ADMIN' || !selectedGridStation) return;
+    const id = setInterval(() => fetchLockersForStation(selectedGridStation, true), 5000);
+    return () => clearInterval(id);
+  }, [user, selectedGridStation]);
 
   const submitRequest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -248,17 +280,43 @@ function Dashboard() {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Locker grid */}
         <div className="lg:col-span-3 card-soft p-6">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
             <div>
               <h2 className="text-lg font-semibold">Locker Grid</h2>
+              {user.role === 'SUPER_ADMIN' && selectedGridStation && (() => {
+                const st = stationsList.find(s => s._id === selectedGridStation);
+                return st ? (
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Showing <span className="font-semibold text-foreground">{st.name || st.code}</span> — {lockers.length} locker{lockers.length !== 1 ? 's' : ''}
+                  </p>
+                ) : null;
+              })()}
             </div>
-            <div className="flex flex-wrap gap-2">
-              {(Object.keys(statusStyles) as LockerStatus[]).map((k) => (
-                <span key={k} className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium", statusStyles[k].chip)}>
-                  <span className={cn("h-1.5 w-1.5 rounded-full", statusStyles[k].dot)} />
-                  {statusStyles[k].label}
-                </span>
-              ))}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Station filter — Super Admin only */}
+              {user.role === 'SUPER_ADMIN' && (
+                <Select value={selectedGridStation} onValueChange={setSelectedGridStation}>
+                  <SelectTrigger className="h-9 w-[190px] rounded-xl bg-card border-border">
+                    <SelectValue placeholder="Select station" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stationsList.map(s => (
+                      <SelectItem key={s._id} value={s._id}>
+                        {s.name || s.code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {/* Status legend */}
+              <div className="flex flex-wrap gap-2">
+                {(Object.keys(statusStyles) as LockerStatus[]).map((k) => (
+                  <span key={k} className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium", statusStyles[k].chip)}>
+                    <span className={cn("h-1.5 w-1.5 rounded-full", statusStyles[k].dot)} />
+                    {statusStyles[k].label}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
 
