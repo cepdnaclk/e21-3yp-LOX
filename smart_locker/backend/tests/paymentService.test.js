@@ -35,28 +35,39 @@ describe('paymentService - createOverdueCheckoutSession', () => {
   });
 
   test('should throw 403 if user role is not USER', async () => {
+    console.log('\n--- Member 4 Test Case 1: Deny Non-User Role ---');
     const user = { role: 'SUPER_ADMIN', _id: 'admin123' };
+    console.log('Testing: createOverdueCheckoutSession for user role: "SUPER_ADMIN"');
+    console.log('Mocks Configured: User has non-USER role.');
+
     await expect(createOverdueCheckoutSession(user, 'locker123', {})).rejects.toThrow('Only regular users can pay overdue locker fees');
     try {
       await createOverdueCheckoutSession(user, 'locker123', {});
     } catch (error) {
       expect(error.statusCode).toBe(403);
+      console.log('Result: Correctly threw 403 Forbidden. PASSED.');
     }
   });
 
   test('should throw 404 if locker is not found', async () => {
+    console.log('\n--- Member 4 Test Case 2: Locker Not Found ---');
     Locker.findById.mockResolvedValue(null);
 
     const user = { role: 'USER', _id: 'user123' };
+    console.log('Testing: createOverdueCheckoutSession for non-existent lockerId: "locker123"');
+    console.log('Mocks Configured: Locker.findById returns null.');
+
     await expect(createOverdueCheckoutSession(user, 'locker123', {})).rejects.toThrow('Locker not found');
     try {
       await createOverdueCheckoutSession(user, 'locker123', {});
     } catch (error) {
       expect(error.statusCode).toBe(404);
+      console.log('Result: Correctly threw 404 Locker not found. PASSED.');
     }
   });
 
   test('should throw 403 if user is not the current locker user', async () => {
+    console.log('\n--- Member 4 Test Case 3: Deny Payment for Another User\'s Locker ---');
     const mockLocker = {
       _id: 'locker123',
       currentUserId: 'anotherUser'
@@ -64,15 +75,20 @@ describe('paymentService - createOverdueCheckoutSession', () => {
     Locker.findById.mockResolvedValue(mockLocker);
 
     const user = { role: 'USER', _id: 'user123' };
+    console.log('Testing: createOverdueCheckoutSession for locker held by "anotherUser"');
+    console.log('Mocks Configured: Locker currentUserId does not match user._id.');
+
     await expect(createOverdueCheckoutSession(user, 'locker123', {})).rejects.toThrow('You are not the current user of this locker');
     try {
       await createOverdueCheckoutSession(user, 'locker123', {});
     } catch (error) {
       expect(error.statusCode).toBe(403);
+      console.log('Result: Correctly threw 403 Forbidden. PASSED.');
     }
   });
 
   test('should throw 400 if locker is not currently overdue', async () => {
+    console.log('\n--- Member 4 Test Case 4: Reject If Locker Is Not Overdue ---');
     const mockLocker = {
       _id: 'locker123',
       currentUserId: 'user123',
@@ -88,15 +104,20 @@ describe('paymentService - createOverdueCheckoutSession', () => {
     });
 
     const user = { role: 'USER', _id: 'user123' };
+    console.log('Testing: createOverdueCheckoutSession when locker is in "FREE" status');
+    console.log('Mocks Configured: getReservationPhase returns phase = "FREE".');
+
     await expect(createOverdueCheckoutSession(user, 'locker123', {})).rejects.toThrow('This locker is not currently overdue');
     try {
       await createOverdueCheckoutSession(user, 'locker123', {});
     } catch (error) {
       expect(error.statusCode).toBe(400);
+      console.log('Result: Correctly threw 400 Bad Request. PASSED.');
     }
   });
 
   test('should successfully create checkout session when locker is overdue', async () => {
+    console.log('\n--- Member 4 Test Case 5: Successfully Create Stripe Overdue Checkout Session ---');
     const mockLocker = {
       _id: 'locker123',
       currentUserId: 'user123',
@@ -134,6 +155,9 @@ describe('paymentService - createOverdueCheckoutSession', () => {
       get: jest.fn().mockReturnValue('localhost:3001'),
       protocol: 'http'
     };
+
+    console.log('Testing: createOverdueCheckoutSession for overdue locker "L01" at "West Station"');
+    console.log('Mocks Configured: Phase = OVERDUE, ChargeAmount = $5.00, Stripe resolves to session "sess_123".');
 
     const result = await createOverdueCheckoutSession(user, 'locker123', req);
 
@@ -175,5 +199,6 @@ describe('paymentService - createOverdueCheckoutSession', () => {
       chargeAmount: 5.0,
       overdueMinutes: 25
     });
+    console.log('Result: Checkout session created, Order records saved, redirect URL returned. PASSED.');
   });
 });

@@ -26,6 +26,7 @@ describe('requestService - createRequest', () => {
   });
 
   test('should successfully create a request when no active requests or lockers exist', async () => {
+    console.log('\n--- Member 2 Test Case 1: Successfully Create Booking Request ---');
     AccessRequest.findOne
       .mockResolvedValueOnce(null) // Guard 1: no pending/queued
       .mockResolvedValueOnce(null); // Guard 2: no approved
@@ -38,6 +39,9 @@ describe('requestService - createRequest', () => {
       status: RequestStatuses.PENDING
     };
     AccessRequest.create.mockResolvedValue(mockRequest);
+
+    console.log('Testing: createRequest for user: "user123" at station: "station456"');
+    console.log('Mocks Configured: No pending/queued requests, no approved requests found.');
 
     const result = await createRequest(mockUser, payload);
 
@@ -59,10 +63,15 @@ describe('requestService - createRequest', () => {
       status: RequestStatuses.PENDING
     });
     expect(result).toEqual(mockRequest);
+    console.log('Result: New AccessRequest created successfully in PENDING status. PASSED.');
   });
 
   test('should throw 409 error when user already has a pending or queued request', async () => {
+    console.log('\n--- Member 2 Test Case 2: Reject Due to Existing Active Request ---');
     AccessRequest.findOne.mockResolvedValueOnce({ _id: 'existingReq', status: RequestStatuses.PENDING });
+
+    console.log('Testing: createRequest when user already has a pending request');
+    console.log('Mocks Configured: AccessRequest.findOne returns active pending request.');
 
     await expect(createRequest(mockUser, payload)).rejects.toThrow('You already have an active request for this station.');
 
@@ -70,10 +79,12 @@ describe('requestService - createRequest', () => {
       await createRequest(mockUser, payload);
     } catch (error) {
       expect(error.statusCode).toBe(409);
+      console.log('Result: Correctly threw 409 Conflict - Active request exists. PASSED.');
     }
   });
 
   test('should throw 409 error when user has an approved request with a locker currently booked', async () => {
+    console.log('\n--- Member 2 Test Case 3: Reject Due to Already Having an Active Locker ---');
     AccessRequest.findOne
       .mockResolvedValueOnce(null) // Guard 1: passes
       .mockResolvedValueOnce({ _id: 'approvedReq', status: RequestStatuses.APPROVED, lockerId: 'locker123' }); // Guard 2: approved request exists
@@ -84,16 +95,21 @@ describe('requestService - createRequest', () => {
       currentUserId: mockUser._id
     });
 
+    console.log('Testing: createRequest when user already has an approved request holding a locker');
+    console.log('Mocks Configured: Approved request exists, Locker isBooked = true and owned by user.');
+
     await expect(createRequest(mockUser, payload)).rejects.toThrow('You already have an active locker at this station.');
 
     try {
       await createRequest(mockUser, payload);
     } catch (error) {
       expect(error.statusCode).toBe(409);
+      console.log('Result: Correctly threw 409 Conflict - Locker already booked to user. PASSED.');
     }
   });
 
   test('should succeed in creating request when an approved request exists but locker is already released', async () => {
+    console.log('\n--- Member 2 Test Case 4: Succeed If Existing Locker Has Been Released ---');
     AccessRequest.findOne
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ _id: 'approvedReq', status: RequestStatuses.APPROVED, lockerId: 'locker123' });
@@ -113,8 +129,12 @@ describe('requestService - createRequest', () => {
     };
     AccessRequest.create.mockResolvedValue(mockRequest);
 
+    console.log('Testing: createRequest when user previously had a locker, but it is now released');
+    console.log('Mocks Configured: Approved request exists, but Locker isBooked = false.');
+
     const result = await createRequest(mockUser, payload);
     expect(result).toEqual(mockRequest);
     expect(AccessRequest.create).toHaveBeenCalled();
+    console.log('Result: Request successfully created because previous locker session is closed. PASSED.');
   });
 });

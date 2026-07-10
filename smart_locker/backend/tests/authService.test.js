@@ -18,6 +18,7 @@ describe('authService - login', () => {
   });
 
   test('should login user successfully with valid credentials', async () => {
+    console.log('\n--- Member 1 Test Case 1: Successful Login ---');
     const mockUser = {
       _id: 'user123',
       name: 'John Doe',
@@ -35,6 +36,9 @@ describe('authService - login', () => {
     User.findOne.mockResolvedValue(mockUser);
     bcrypt.compare.mockResolvedValue(true);
     jwt.sign.mockReturnValue('mocktoken');
+
+    console.log('Testing login with input email: "JOHN@example.com", password: "password123"');
+    console.log('Mocks Configured: User found in DB, Password compare matches.');
 
     const result = await login({ email: 'JOHN@example.com', password: 'password123' });
 
@@ -56,10 +60,15 @@ describe('authService - login', () => {
         stationIds: []
       }
     });
+    console.log('Result: Login succeeded. JWT token generated. User DTO returned. PASSED.');
   });
 
   test('should throw 401 error if user is not found', async () => {
+    console.log('\n--- Member 1 Test Case 2: User Not Found ---');
     User.findOne.mockResolvedValue(null);
+
+    console.log('Testing login with non-existent email: "nonexistent@example.com"');
+    console.log('Mocks Configured: User.findOne returns null.');
 
     await expect(login({ email: 'nonexistent@example.com', password: 'password123' })).rejects.toThrow('Invalid credentials');
     
@@ -67,10 +76,12 @@ describe('authService - login', () => {
       await login({ email: 'nonexistent@example.com', password: 'password123' });
     } catch (error) {
       expect(error.statusCode).toBe(401);
+      console.log('Result: Correctly threw 401 Invalid credentials. PASSED.');
     }
   });
 
   test('should throw 401 error if password is incorrect', async () => {
+    console.log('\n--- Member 1 Test Case 3: Incorrect Password ---');
     const mockUser = {
       _id: 'user123',
       email: 'john@example.com',
@@ -80,12 +91,16 @@ describe('authService - login', () => {
     User.findOne.mockResolvedValue(mockUser);
     bcrypt.compare.mockResolvedValue(false);
 
+    console.log('Testing login with correct email but wrong password: "wrongpassword"');
+    console.log('Mocks Configured: User found in DB, Password compare returns false.');
+
     await expect(login({ email: 'john@example.com', password: 'wrongpassword' })).rejects.toThrow('Invalid credentials');
     
     try {
       await login({ email: 'john@example.com', password: 'wrongpassword' });
     } catch (error) {
       expect(error.statusCode).toBe(401);
+      console.log('Result: Correctly threw 401 Invalid credentials. PASSED.');
     }
   });
 });
