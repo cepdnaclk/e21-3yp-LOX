@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { motion } from "framer-motion";
-import { Battery, BatteryLow, DoorOpen, DoorClosed, LockKeyhole, Wrench, WifiOff, CheckCircle2, Unlock, LogOut } from "lucide-react";
-import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Battery, BatteryLow, DoorOpen, DoorClosed, LockKeyhole, Wrench, WifiOff, CheckCircle2, Unlock, LogOut, ShieldAlert, ShieldOff, Vibrate, BellRing, X, AlertTriangle, Clock } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,12 +23,253 @@ const statusStyles: Record<LockerStatus, { dot: string; chip: string; ring: stri
   offline:     { dot: "bg-muted-foreground", chip: "bg-muted text-muted-foreground", ring: "ring-border",         label: "Offline",     icon: WifiOff },
 };
 
+// ─── Security Alert Types ────────────────────────────────────────────────────
+const ALERT_EVENT_TYPES = ['SECURITY_ALERT', 'UNEXPECTED_DOOR_OPEN', 'TAMPER_DETECTED', 'VIBRATION_ALERT'];
+
+interface SecurityEvent {
+  _id: string;
+  lockerId: string | null;      // raw ObjectId string from backend
+  stationId: string | null;     // raw ObjectId string from backend
+  eventType: string;
+  message: string;
+  metadata?: Record<string, any>;
+  createdAt: string;
+}
+
+const alertMeta: Record<string, { label: string; icon: any; border: string; bg: string; badge: string; iconColor: string }> = {
+  SECURITY_ALERT:      { label: 'Security Alert',        icon: ShieldAlert,   border: 'border-l-red-500',    bg: 'bg-red-500/5',    badge: 'bg-red-500/15 text-red-400',    iconColor: 'text-red-400' },
+  UNEXPECTED_DOOR_OPEN:{ label: 'Unexpected Door Open',  icon: DoorOpen,      border: 'border-l-orange-500', bg: 'bg-orange-500/5', badge: 'bg-orange-500/15 text-orange-400', iconColor: 'text-orange-400' },
+  TAMPER_DETECTED:     { label: 'Tamper Detected',       icon: ShieldOff,     border: 'border-l-rose-500',   bg: 'bg-rose-500/5',   badge: 'bg-rose-500/15 text-rose-400',   iconColor: 'text-rose-400' },
+  VIBRATION_ALERT:     { label: 'Vibration Detected',    icon: Vibrate,       border: 'border-l-amber-500',  bg: 'bg-amber-500/5',  badge: 'bg-amber-500/15 text-amber-400', iconColor: 'text-amber-400' },
+  DEFAULT:             { label: 'Security Event',         icon: AlertTriangle, border: 'border-l-yellow-500', bg: 'bg-yellow-500/5', badge: 'bg-yellow-500/15 text-yellow-400', iconColor: 'text-yellow-400' },
+};
+
+function getAlertMeta(eventType: string) {
+  return alertMeta[eventType] ?? alertMeta.DEFAULT;
+}
+
+function formatAlertDate(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+function formatAlertTime(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+// ─── Alert Card Component ────────────────────────────────────────────────────
+function SecurityAlertCard({
+  event,
+  isNew,
+  onIgnore,
+  onDismiss,
+  isSubAdmin,
+  lockerMap,
+  stationMap,
+}: {
+  event: SecurityEvent;
+  isNew: boolean;
+  onIgnore: (lockerId: string) => void;
+  onDismiss: (id: string) => void;
+  isSubAdmin: boolean;
+  lockerMap: Record<string, string>;   // lockerId → locker code
+  stationMap: Record<string, string>;  // stationId → station name/code
+}) {
+  const meta = getAlertMeta(event.eventType);
+  const Icon = meta.icon;
+  // Resolve from frontend lookup maps (no backend populate needed)
+  const lockerCode = (event.lockerId && lockerMap[event.lockerId]) ?? event.lockerId ?? 'Unknown Locker';
+  const stationName = (event.stationId && stationMap[event.stationId]) ?? event.stationId ?? 'Unknown Station';
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: -24, scale: 0.97 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 24, scale: 0.96, transition: { duration: 0.2 } }}
+      transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+      className={cn(
+        'relative flex gap-4 p-4 rounded-2xl border border-border border-l-4 shadow-sm',
+        'hover:shadow-md transition-shadow duration-200 group',
+        meta.border,
+        meta.bg
+      )}
+    >
+      {/* Pulse indicator for new alerts */}
+      {isNew && (
+        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+        </span>
+      )}
+
+      {/* Icon */}
+      <div className={cn('flex-shrink-0 mt-0.5', meta.iconColor)}>
+        <Icon className="w-5 h-5" />
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-2 mb-1">
+          <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-full', meta.badge)}>
+            {meta.label}
+          </span>
+          <span className="text-xs font-bold text-foreground bg-muted px-2 py-0.5 rounded-full">
+            🔒 {lockerCode}
+          </span>
+          <span className="text-xs text-muted-foreground">{stationName}</span>
+        </div>
+
+        <p className="text-sm font-medium text-foreground leading-snug">{event.message || 'Security event detected.'}</p>
+
+        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            {formatAlertDate(event.createdAt)}
+          </span>
+          <span>·</span>
+          <span>{formatAlertTime(event.createdAt)}</span>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex flex-col gap-2 flex-shrink-0 justify-center">
+        {isSubAdmin && event.lockerId && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs px-3 border-green-500/30 text-green-500 hover:bg-green-500/10 hover:text-green-400 transition-colors"
+            onClick={() => onIgnore(event.lockerId!)}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+            Ignore Alert
+          </Button>
+        )}
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 text-xs px-3 text-muted-foreground hover:text-foreground"
+          onClick={() => onDismiss(event._id)}
+        >
+          <X className="w-3.5 h-3.5 mr-1" />
+          Dismiss
+        </Button>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Security Alerts Panel ────────────────────────────────────────────────────
+function SecurityAlertsPanel({
+  alerts,
+  newAlertIds,
+  onIgnore,
+  onDismiss,
+  isSubAdmin,
+  lockerMap,
+  stationMap,
+}: {
+  alerts: SecurityEvent[];
+  newAlertIds: Set<string>;
+  onIgnore: (lockerId: string) => void;
+  onDismiss: (id: string) => void;
+  isSubAdmin: boolean;
+  lockerMap: Record<string, string>;
+  stationMap: Record<string, string>;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const hasAlerts = alerts.length > 0;
+
+  return (
+    <div
+      className={cn(
+        'card-soft overflow-hidden transition-all duration-300',
+        hasAlerts && 'border border-red-500/25'
+      )}
+      style={hasAlerts ? { boxShadow: '0 0 0 1px rgba(239,68,68,0.10), 0 4px 24px rgba(239,68,68,0.08)' } : undefined}
+    >
+      {/* ── Header ── */}
+      <div
+        className={cn(
+          'flex items-center gap-3 px-6 py-4',
+          hasAlerts && 'cursor-pointer hover:bg-red-500/5 transition-colors border-b border-red-500/10 bg-red-500/5'
+        )}
+        onClick={hasAlerts ? () => setCollapsed(c => !c) : undefined}
+      >
+        <span className="flex items-center gap-2 flex-1">
+          {hasAlerts ? (
+            /* Live pulsing dot when alerts are active */
+            <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+            </span>
+          ) : (
+            /* Static green dot when all clear */
+            <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+            </span>
+          )}
+          <BellRing className={cn('w-4 h-4', hasAlerts ? 'text-red-400' : 'text-muted-foreground')} />
+          <span className="font-semibold text-lg">Security Alert Notifications</span>
+          {hasAlerts && (
+            <span className="ml-1 text-xs font-bold bg-red-500 text-white px-2 py-0.5 rounded-full">
+              {alerts.length}
+            </span>
+          )}
+        </span>
+        {hasAlerts && (
+          <span className="text-xs text-muted-foreground select-none">{collapsed ? 'Show' : 'Hide'}</span>
+        )}
+      </div>
+
+      {/* ── Body ── */}
+      {!hasAlerts ? (
+        /* All-clear state — always visible */
+        <div className="px-6 py-4">
+          <p className="text-sm text-muted-foreground">No active security alerts.</p>
+        </div>
+      ) : (
+        /* Alert cards — collapsible */
+        <AnimatePresence initial={false}>
+          {!collapsed && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="overflow-hidden"
+            >
+              <div className="p-4 space-y-3">
+                <AnimatePresence mode="popLayout">
+                  {alerts.map(event => (
+                    <SecurityAlertCard
+                      key={event._id}
+                      event={event}
+                      isNew={newAlertIds.has(event._id)}
+                      onIgnore={onIgnore}
+                      onDismiss={onDismiss}
+                      isSubAdmin={isSubAdmin}
+                      lockerMap={lockerMap}
+                      stationMap={stationMap}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
+    </div>
+  );
+}
+
 function Dashboard() {
   const [purpose, setPurpose] = useState("");
   const [user, setUser] = useState<any>(null);
   const [token, setToken] = useState("");
   
   const [lockers, setLockers] = useState<any[]>([]); // lockers for selected station
+  const [allLockers, setAllLockers] = useState<any[]>([]); // full locker list for ID→code lookup
   const [stationsList, setStationsList] = useState<any[]>([]);
   const [stationId, setStationId] = useState(""); // for request form (USER role)
   const [selectedGridStation, setSelectedGridStation] = useState<string>(""); // for locker grid filter (SUPER_ADMIN)
@@ -39,6 +280,12 @@ function Dashboard() {
   
   // Sub-admin specific state
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+
+  // Security alert notifications
+  const [securityAlerts, setSecurityAlerts] = useState<SecurityEvent[]>([]);
+  const [newAlertIds, setNewAlertIds] = useState<Set<string>>(new Set());
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const prevAlertIdsRef = useRef<Set<string>>(new Set());
 
   const navigate = useNavigate();
 
@@ -96,6 +343,33 @@ function Dashboard() {
     }
   };
 
+  const fetchSecurityAlerts = async (skipCache = false) => {
+    try {
+      // Also keep allLockers up-to-date for the ID→code lookup map
+      const [data, lockersData] = await Promise.all([
+        apiGet<{ events: SecurityEvent[] }>('/events?limit=50', { skipCache }),
+        apiGet<{ lockers: any[] }>('/lockers', { skipCache }),
+      ]);
+      setAllLockers(lockersData.lockers || []);
+
+      const allEvents: SecurityEvent[] = data.events || [];
+      const alertEvents = allEvents.filter(e => ALERT_EVENT_TYPES.includes(e.eventType));
+      const incoming = new Set(alertEvents.map(e => e._id));
+      const fresh: Set<string> = new Set();
+      for (const id of incoming) {
+        if (!prevAlertIdsRef.current.has(id)) fresh.add(id);
+      }
+      prevAlertIdsRef.current = incoming;
+      if (fresh.size > 0) {
+        setNewAlertIds(fresh);
+        setTimeout(() => setNewAlertIds(new Set()), 6000);
+      }
+      setSecurityAlerts(alertEvents.filter(e => !dismissedIds.has(e._id)));
+    } catch (e) {
+      console.error('Failed to fetch security alerts', e);
+    }
+  };
+
   const fetchLockersForStation = async (sid: string, skipCache = false) => {
     if (!sid) return;
     try {
@@ -118,10 +392,13 @@ function Dashboard() {
     setToken(t);
     fetchAll(t, u);
 
+    fetchSecurityAlerts();
+
     const intervalId = setInterval(() => {
       fetchAll(t, u, true);
     }, 5000);
-    return () => clearInterval(intervalId);
+    const alertIntervalId = setInterval(() => fetchSecurityAlerts(true), 7000);
+    return () => { clearInterval(intervalId); clearInterval(alertIntervalId); };
   }, [navigate]);
 
   // When Super Admin changes the grid station, reload lockers
@@ -183,6 +460,23 @@ function Dashboard() {
     }
   };
 
+  const ignoreAlertAndDismiss = async (lockerId: string, eventId: string) => {
+    try {
+      await apiMutate(`/lockers/${lockerId}/security-ignore`, 'POST', undefined, ['/lockers']);
+      toast.success('Security alert ignored');
+      setDismissedIds(prev => new Set([...prev, eventId]));
+      setSecurityAlerts(prev => prev.filter(e => e._id !== eventId));
+      fetchAll(token, user, true);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const dismissAlert = (eventId: string) => {
+    setDismissedIds(prev => new Set([...prev, eventId]));
+    setSecurityAlerts(prev => prev.filter(e => e._id !== eventId));
+  };
+
   const commandLocker = async (id: string, action: string) => {
     try {
       await apiMutate(`/lockers/${id}/${action}`, 'POST', undefined, ['/lockers']);
@@ -204,11 +498,31 @@ function Dashboard() {
   const isUser = user.role === 'USER';
   const isSubAdmin = user.role === 'SUB_ADMIN' || user.role === 'SUPER_ADMIN';
 
+  // Build lookup maps entirely on the frontend — no backend populate needed
+  const lockerMap: Record<string, string> = {};
+  for (const l of allLockers) { lockerMap[l._id] = l.code; }
+
+  const stationMap: Record<string, string> = {};
+  for (const s of stationsList) { stationMap[s._id] = s.name || s.code; }
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight mt-1">Hi {user.name}:</h1>
       </div>
+
+      {/* ── Security Alert Notifications (sub-admin & super-admin) ── */}
+      {isSubAdmin && (
+        <SecurityAlertsPanel
+          alerts={securityAlerts}
+          newAlertIds={newAlertIds}
+          onIgnore={(lockerId) => ignoreAlertAndDismiss(lockerId, securityAlerts.find(e => e.lockerId === lockerId)?._id ?? '')}
+          onDismiss={dismissAlert}
+          isSubAdmin={isSubAdmin}
+          lockerMap={lockerMap}
+          stationMap={stationMap}
+        />
+      )}
 
       {isUser && myRequests.filter(r => r.status === 'PENDING' || r.status === 'QUEUED').map(req => (
         <div key={req._id} className="card-soft p-6 border border-warning/30 bg-warning/5">
