@@ -1,6 +1,6 @@
 const asyncHandler = require('../utils/asyncHandler');
 const { success } = require('../presenters/apiPresenter');
-const { getStationsForUser, createStation } = require('../services/stationService');
+const { getStationsForUser, createStation, updateOverdueSettings } = require('../services/stationService');
 const { updateSchedule, commandAll } = require('../services/stationActionService');
 
 const listStations = asyncHandler(async (req, res) => {
@@ -33,10 +33,16 @@ const lockAllHandler = asyncHandler(async (req, res) => {
   return success(res, { message: 'All lockers locked', affectedLockers: count });
 });
 
+const updateOverdueSettingsHandler = asyncHandler(async (req, res) => {
+  const station = await updateOverdueSettings(req.user, req.params.stationId, req.body);
+  return success(res, { station });
+});
+
 module.exports = {
   listStations,
   createStationHandler,
   updateScheduleHandler,
   emergencyUnlockHandler,
-  lockAllHandler
+  lockAllHandler,
+  updateOverdueSettingsHandler
 };

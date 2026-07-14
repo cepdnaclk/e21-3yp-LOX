@@ -41,14 +41,14 @@ function StorePage() {
     const u = JSON.parse(uStr);
     setUser(u);
 
-    const loadStore = async () => {
+    const loadStore = async (skipCache: boolean = false) => {
       try {
         const [pData, oData] = await Promise.all([
-          apiGet('/products').catch(err => {
+          apiGet('/products', { skipCache }).catch(err => {
             console.error("Products error:", err);
             return { products: [] };
           }),
-          apiGet('/orders').catch(err => {
+          apiGet('/orders', { skipCache }).catch(err => {
             console.error("Orders error:", err);
             return { orders: [] };
           })

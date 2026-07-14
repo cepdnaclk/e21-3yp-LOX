@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppQueueRouteImport } from './routes/_app.queue'
+import { Route as AppOverdueRouteImport } from './routes/_app.overdue'
 import { Route as AppHelpRouteImport } from './routes/_app.help'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
@@ -43,6 +44,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
 const AppQueueRoute = AppQueueRouteImport.update({
   id: '/queue',
   path: '/queue',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOverdueRoute = AppOverdueRouteImport.update({
+  id: '/overdue',
+  path: '/overdue',
   getParentRoute: () => AppRoute,
 } as any)
 const AppHelpRoute = AppHelpRouteImport.update({
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/analytics': typeof AppAnalyticsRoute
   '/dashboard': typeof AppDashboardRoute
   '/help': typeof AppHelpRoute
+  '/overdue': typeof AppOverdueRoute
   '/queue': typeof AppQueueRoute
   '/settings': typeof AppSettingsRoute
   '/store/$id': typeof AppStoreIdRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/analytics': typeof AppAnalyticsRoute
   '/dashboard': typeof AppDashboardRoute
   '/help': typeof AppHelpRoute
+  '/overdue': typeof AppOverdueRoute
   '/queue': typeof AppQueueRoute
   '/settings': typeof AppSettingsRoute
   '/store/$id': typeof AppStoreIdRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/_app/analytics': typeof AppAnalyticsRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/help': typeof AppHelpRoute
+  '/_app/overdue': typeof AppOverdueRoute
   '/_app/queue': typeof AppQueueRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/store/$id': typeof AppStoreIdRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/dashboard'
     | '/help'
+    | '/overdue'
     | '/queue'
     | '/settings'
     | '/store/$id'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/dashboard'
     | '/help'
+    | '/overdue'
     | '/queue'
     | '/settings'
     | '/store/$id'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '/_app/analytics'
     | '/_app/dashboard'
     | '/_app/help'
+    | '/_app/overdue'
     | '/_app/queue'
     | '/_app/settings'
     | '/_app/store/$id'
@@ -195,6 +207,13 @@ declare module '@tanstack/react-router' {
       path: '/queue'
       fullPath: '/queue'
       preLoaderRoute: typeof AppQueueRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/overdue': {
+      id: '/_app/overdue'
+      path: '/overdue'
+      fullPath: '/overdue'
+      preLoaderRoute: typeof AppOverdueRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/help': {
@@ -247,6 +266,7 @@ interface AppRouteChildren {
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppHelpRoute: typeof AppHelpRoute
+  AppOverdueRoute: typeof AppOverdueRoute
   AppQueueRoute: typeof AppQueueRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppStoreIdRoute: typeof AppStoreIdRoute
@@ -258,6 +278,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppHelpRoute: AppHelpRoute,
+  AppOverdueRoute: AppOverdueRoute,
   AppQueueRoute: AppQueueRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppStoreIdRoute: AppStoreIdRoute,
