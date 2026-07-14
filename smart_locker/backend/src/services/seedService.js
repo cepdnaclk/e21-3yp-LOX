@@ -38,21 +38,46 @@ async function upsertUser({ name, email, password, role, stationIds }) {
     });
   }
 
+  // Remove L3 and L4 if they exist in the database
+  await Locker.deleteMany({ code: { $in: ['L3', 'L4'] } });
+
+  // Seed L1
   let locker = await Locker.findOne({ code: 'L1' });
   if (!locker) {
     locker = await Locker.create({
       stationId: station._id,
       code: 'L1',
-      controlTopic: env.defaultControlTopic,
-      stateTopic: env.defaultStateTopic,
-      doorTopic: env.defaultDoorTopic
+      controlTopic: env.defaultControlTopic || 'locker/L1/control',
+      stateTopic: env.defaultStateTopic || 'locker/L1/state',
+      doorTopic: env.defaultDoorTopic || 'locker/L1/door',
+      securityTopic: 'locker/L1/security'
     });
-  } else if (!locker.doorTopic) {
-    locker.doorTopic = env.defaultDoorTopic;
-    await locker.save();
+  } else {
+    let modified = false;
+    if (!locker.doorTopic) { locker.doorTopic = env.defaultDoorTopic || 'locker/L1/door'; modified = true; }
+    if (!locker.securityTopic) { locker.securityTopic = 'locker/L1/security'; modified = true; }
+    if (modified) await locker.save();
   }
-
   await subscribeLockerState(locker);
+
+  // Seed L2
+  let locker2 = await Locker.findOne({ code: 'L2' });
+  if (!locker2) {
+    locker2 = await Locker.create({
+      stationId: station._id,
+      code: 'L2',
+      controlTopic: 'locker/L2/control',
+      stateTopic: 'locker/L2/state',
+      doorTopic: 'locker/L2/door',
+      securityTopic: 'locker/L2/security'
+    });
+  } else {
+    let modified = false;
+    if (!locker2.doorTopic) { locker2.doorTopic = 'locker/L2/door'; modified = true; }
+    if (!locker2.securityTopic) { locker2.securityTopic = 'locker/L2/security'; modified = true; }
+    if (modified) await locker2.save();
+  }
+  await subscribeLockerState(locker2);
 
   if (!env.seedSampleData) {
     return;
