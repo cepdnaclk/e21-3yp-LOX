@@ -203,11 +203,19 @@ function StatCard({ icon: Icon, label, value, sub, iconCls }: { icon: any; label
   );
 }
 
-function RevenueSummary({ activeRows }: { activeRows: LockerUsage[] }) {
+function RevenueSummary({ activeRows, completedRows }: { activeRows: LockerUsage[]; completedRows: any[] }) {
   const [period, setPeriod] = useState<Period>("month");
-  const inPeriod = activeRows.filter(r => r.isOverdue && r.approvedAt && isInPeriod(r.approvedAt, period));
-  const total = inPeriod.reduce((s, r) => s + r.charge, 0);
-  const avg = inPeriod.length ? Math.round(total / inPeriod.length) : 0;
+  
+  const inPeriodActive = activeRows.filter(r => r.isOverdue && r.approvedAt && isInPeriod(r.approvedAt, period));
+  const activeAccrued = inPeriodActive.reduce((s, r) => s + r.charge, 0);
+
+  const inPeriodPaid = completedRows.filter(r => r.pmtStatus === "PAID" && r.closedAt && isInPeriod(r.closedAt, period));
+  const paidCollected = inPeriodPaid.reduce((s, r) => s + r.charge, 0);
+
+  const total = activeAccrued + paidCollected;
+  const sessions = inPeriodActive.length + inPeriodPaid.length;
+  const avg = sessions ? Math.round(total / sessions) : 0;
+
   return (
     <div className="card-soft p-6">
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
@@ -215,7 +223,7 @@ function RevenueSummary({ activeRows }: { activeRows: LockerUsage[] }) {
           <div className="h-10 w-10 rounded-xl bg-emerald-500/10 grid place-items-center"><TrendingUp className="w-5 h-5 text-emerald-500" /></div>
           <div>
             <h2 className="text-base font-semibold">Overdue Revenue Summary</h2>
-            <p className="text-xs text-muted-foreground">Accrued charges from overdue sessions</p>
+            <p className="text-xs text-muted-foreground">Collected and accrued charges</p>
           </div>
         </div>
         <Select value={period} onValueChange={v => setPeriod(v as Period)}>
@@ -229,19 +237,19 @@ function RevenueSummary({ activeRows }: { activeRows: LockerUsage[] }) {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/15 text-center">
-          <p className="text-xs text-muted-foreground mb-1">Total Accrued</p>
-          <p className="text-3xl font-extrabold text-emerald-500">LKR {total.toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground mb-1">Actually Collected</p>
+          <p className="text-3xl font-extrabold text-emerald-500">LKR {Math.round(paidCollected).toLocaleString()}</p>
           <p className="text-xs text-muted-foreground mt-1">{period === "week" ? "last 7 days" : period === "month" ? "this month" : "this year"}</p>
         </div>
         <div className="p-4 rounded-2xl bg-orange-500/5 border border-orange-500/15 text-center">
-          <p className="text-xs text-muted-foreground mb-1">Overdue Sessions</p>
-          <p className="text-3xl font-extrabold text-orange-500">{inPeriod.length}</p>
-          <p className="text-xs text-muted-foreground mt-1">active overdue lockers</p>
+          <p className="text-xs text-muted-foreground mb-1">Currently Accrued</p>
+          <p className="text-3xl font-extrabold text-orange-500">LKR {Math.round(activeAccrued).toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground mt-1">unpaid from {inPeriodActive.length} active lockers</p>
         </div>
         <div className="p-4 rounded-2xl bg-primary/5 border border-primary/15 text-center">
-          <p className="text-xs text-muted-foreground mb-1">Avg. Charge</p>
-          <p className="text-3xl font-extrabold text-primary">LKR {avg.toLocaleString()}</p>
-          <p className="text-xs text-muted-foreground mt-1">per overdue session</p>
+          <p className="text-xs text-muted-foreground mb-1">Combined Total</p>
+          <p className="text-3xl font-extrabold text-primary">LKR {Math.round(total).toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground mt-1">{sessions} total overdue sessions</p>
         </div>
       </div>
     </div>
@@ -382,45 +390,11 @@ function ActiveOverdueSection({ rows, freeDuration, onRefresh }: { rows: LockerU
   );
 }
 
-function CompletedPaymentsSection({ requests, settingsMap, activeSettings }: { requests: any[]; settingsMap: Record<string, OverdueSettings>; activeSettings: OverdueSettings }) {
-  const completed = requests
-    .filter(r => ["RELEASED", "CANCELLED", "REJECTED"].includes(r.status))
-    .map(req => {
-      const stId = req.stationId?._id || req.stationId;
-      const stSettings = settingsMap[stId] ?? activeSettings;
-      
-      const closedAt = req.rejectedAt || req.updatedAt || new Date();
-      let used = 0;
-      let ov = 0;
-      let charge = 0;
-
-      if (req.approvedAt) {
-        used = Math.max(0, (new Date(closedAt).getTime() - new Date(req.approvedAt).getTime()) / 60_000);
-        ov = Math.max(0, used - stSettings.freeDurationMinutes);
-        charge = calcCharge(ov, stSettings.overdueRatePerHour);
-      }
-
-      let pmtStatus = "N/A";
-      if (charge > 0) {
-        pmtStatus = req.status === "RELEASED" ? "PAID" : "UNPAID";
-      }
-
-      return {
-        ...req,
-        closedAt,
-        usedMinutes: used,
-        overdueMinutes: ov,
-        charge,
-        pmtStatus,
-        stSettings
-      };
-    })
-    .sort((a, b) => new Date(b.closedAt).getTime() - new Date(a.closedAt).getTime()); // newest first
-
+function CompletedPaymentsSection({ completedRows }: { completedRows: any[] }) {
   const [page, setPage] = useState(1);
   const PAGE = 8;
-  const total = completed.length, pages = Math.max(1, Math.ceil(total / PAGE));
-  const paged = completed.slice((page - 1) * PAGE, page * PAGE);
+  const total = completedRows.length, pages = Math.max(1, Math.ceil(total / PAGE));
+  const paged = completedRows.slice((page - 1) * PAGE, page * PAGE);
 
   const getPmtBadge = (status: string, reqStatus: string) => {
     if (status === "PAID") return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-500">PAID</span>;
@@ -582,6 +556,26 @@ function OverduePage() {
   const overdueCount = activeRows.filter(r => r.isOverdue).length;
   const totalCharge = activeRows.reduce((s, r) => s + r.charge, 0);
 
+  const completedRows = allRequests
+    .filter(r => ["RELEASED", "CANCELLED", "REJECTED"].includes(r.status))
+    .map(req => {
+      const stId = req.stationId?._id || req.stationId;
+      const stSettings = settingsMap[stId] ?? activeSettings;
+      const closedAt = req.rejectedAt || req.updatedAt || new Date();
+      let used = 0, ov = 0, charge = 0;
+      if (req.approvedAt) {
+        used = Math.max(0, (new Date(closedAt).getTime() - new Date(req.approvedAt).getTime()) / 60_000);
+        ov = Math.max(0, used - stSettings.freeDurationMinutes);
+        charge = calcCharge(ov, stSettings.overdueRatePerHour);
+      }
+      let pmtStatus = "N/A";
+      if (charge > 0) {
+        pmtStatus = req.status === "RELEASED" ? "PAID" : "UNPAID";
+      }
+      return { ...req, closedAt, usedMinutes: used, overdueMinutes: ov, charge, pmtStatus, stSettings };
+    })
+    .sort((a, b) => new Date(b.closedAt).getTime() - new Date(a.closedAt).getTime());
+
   if (!user) return null;
 
   return (
@@ -622,7 +616,7 @@ function OverduePage() {
         <div className="card-soft p-6 text-center text-muted-foreground text-sm">No station found — settings unavailable.</div>
       )}
 
-      <RevenueSummary activeRows={activeRows} />
+      <RevenueSummary activeRows={activeRows} completedRows={completedRows} />
 
       {loading ? (
         <div className="card-soft p-20 text-center text-muted-foreground">
@@ -633,7 +627,7 @@ function OverduePage() {
         <ActiveOverdueSection rows={activeRows} freeDuration={freeDurationMinutes} onRefresh={() => fetchRequests(true)} />
       )}
 
-      <CompletedPaymentsSection requests={allRequests} settingsMap={settingsMap} activeSettings={activeSettings} />
+      <CompletedPaymentsSection completedRows={completedRows} />
     </div>
   );
 }
