@@ -67,7 +67,7 @@ class ApiClient {
       }
     } on SocketException {
       throw ApiError(
-        'Cannot reach backend at $baseUrl. Check API base URL and network access.',
+        'Check your network connection.',
       );
     }
 
@@ -325,7 +325,7 @@ class ApiClient {
       response = await request.send();
     } on SocketException {
       throw ApiError(
-        'Cannot reach backend at $baseUrl. Check API base URL and network access.',
+        'Check your network connection.',
       );
     }
 

@@ -13,6 +13,9 @@ class AppThemeStyle extends ThemeExtension<AppThemeStyle> {
   final Color navBarActiveColor;
   final Color? glowColor;
   final Color? cardBg;
+  final Color statusGreen;
+  final Color statusYellow;
+  final Color statusRed;
 
   AppThemeStyle({
     required this.cardRadius,
@@ -26,6 +29,9 @@ class AppThemeStyle extends ThemeExtension<AppThemeStyle> {
     required this.navBarActiveColor,
     this.glowColor,
     this.cardBg,
+    required this.statusGreen,
+    required this.statusYellow,
+    required this.statusRed,
   });
 
   @override
@@ -41,6 +47,9 @@ class AppThemeStyle extends ThemeExtension<AppThemeStyle> {
     Color? navBarActiveColor,
     Color? glowColor,
     Color? cardBg,
+    Color? statusGreen,
+    Color? statusYellow,
+    Color? statusRed,
   }) {
     return AppThemeStyle(
       cardRadius: cardRadius ?? this.cardRadius,
@@ -54,6 +63,9 @@ class AppThemeStyle extends ThemeExtension<AppThemeStyle> {
       navBarActiveColor: navBarActiveColor ?? this.navBarActiveColor,
       glowColor: glowColor ?? this.glowColor,
       cardBg: cardBg ?? this.cardBg,
+      statusGreen: statusGreen ?? this.statusGreen,
+      statusYellow: statusYellow ?? this.statusYellow,
+      statusRed: statusRed ?? this.statusRed,
     );
   }
 
@@ -74,6 +86,9 @@ class AppThemeStyle extends ThemeExtension<AppThemeStyle> {
       navBarActiveColor: Color.lerp(navBarActiveColor, other.navBarActiveColor, t) ?? navBarActiveColor,
       glowColor: Color.lerp(glowColor, other.glowColor, t),
       cardBg: Color.lerp(cardBg, other.cardBg, t),
+      statusGreen: Color.lerp(statusGreen, other.statusGreen, t) ?? statusGreen,
+      statusYellow: Color.lerp(statusYellow, other.statusYellow, t) ?? statusYellow,
+      statusRed: Color.lerp(statusRed, other.statusRed, t) ?? statusRed,
     );
   }
 

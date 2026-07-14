@@ -81,20 +81,20 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
     
     switch (preset) {
       case AppThemePreset.ocean:
-        primary = const Color(0xFF0F52BA);
+        primary = const Color(0xFF1E40AF);
         primaryDark = const Color(0xFF1D4ED8);
         break;
       case AppThemePreset.sunset:
-        primary = const Color(0xFFD97706);
-        primaryDark = const Color(0xFFB45309);
+        primary = const Color(0xFFEA580C);
+        primaryDark = const Color(0xFFD97706);
         break;
       case AppThemePreset.forest:
-        primary = const Color(0xFF15803D);
-        primaryDark = const Color(0xFF166534);
+        primary = const Color(0xFF047857);
+        primaryDark = const Color(0xFF065F46);
         break;
       case AppThemePreset.slate:
-        primary = const Color(0xFF0DFFC2);
-        primaryDark = const Color(0xFF0A9D78);
+        primary = const Color(0xFF475569);
+        primaryDark = const Color(0xFF334155);
         break;
       case AppThemePreset.olive:
       default:
@@ -111,8 +111,7 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
     Color seedColor;
     Color scaffoldBg;
     
-    // Force slate gray (cyberpunk theme) to always be dark mode!
-    final actualBrightness = preset == AppThemePreset.slate ? Brightness.dark : brightness;
+    final actualBrightness = brightness;
     final isLight = actualBrightness == Brightness.light;
 
     double cardRadius;
@@ -134,107 +133,16 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
     final textTheme = GoogleFonts.outfitTextTheme(baseTextTheme);
 
     switch (preset) {
-      case AppThemePreset.ocean:
-        seedColor = const Color(0xFF0F52BA);
-        scaffoldBg = isLight ? const Color(0xFFF0F4F8) : const Color(0xFF0F172A);
-        cardRadius = 24.0;
-        buttonRadius = 99.0;
-        fieldRadius = 20.0;
-        cardBorder = Border.all(
-          color: seedColor.withOpacity(isLight ? 0.15 : 0.25),
-          width: 1.5,
-        );
-        cardShadow = [
-          BoxShadow(
-            color: seedColor.withOpacity(isLight ? 0.05 : 0.12),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          )
-        ];
-        navBarBg = (isLight ? const Color(0xFFF0F4F8) : const Color(0xFF0F172A)).withOpacity(0.7);
-        navBarBorder = Border.all(
-          color: seedColor.withOpacity(isLight ? 0.2 : 0.3),
-          width: 1,
-        );
-        navBarBlur = 14.0;
-        navBarActiveColor = seedColor;
-        glowColor = seedColor;
-        cardBg = isLight ? Colors.white : const Color(0xFF1E293B);
-        break;
-
-      case AppThemePreset.sunset:
-        seedColor = const Color(0xFFD97706);
-        scaffoldBg = isLight ? const Color(0xFFFFF7ED) : const Color(0xFF1C1917);
-        cardRadius = 16.0;
-        buttonRadius = 12.0;
-        fieldRadius = 12.0;
-        cardShadow = [
-          BoxShadow(
-            color: const Color(0xFFD97706).withOpacity(isLight ? 0.05 : 0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          )
-        ];
-        navBarBg = (isLight ? const Color(0xFFFFF7ED) : const Color(0xFF1C1917)).withOpacity(0.75);
-        navBarBlur = 8.0;
-        navBarActiveColor = seedColor;
-        cardBg = isLight ? Colors.white : const Color(0xFF272522);
-        break;
-
-      case AppThemePreset.forest:
-        seedColor = const Color(0xFF15803D);
-        scaffoldBg = isLight ? const Color(0xFFF0FDF4) : const Color(0xFF052E16);
-        cardRadius = 22.0;
-        buttonRadius = 24.0;
-        fieldRadius = 16.0;
-        cardShadow = [
-          BoxShadow(
-            color: Colors.black.withOpacity(isLight ? 0.03 : 0.1),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          )
-        ];
-        navBarBg = (isLight ? const Color(0xFFF0FDF4) : const Color(0xFF052E16)).withOpacity(0.75);
-        navBarBlur = 12.0;
-        navBarActiveColor = seedColor;
-        cardBg = isLight ? Colors.white : const Color(0xFF063F1D);
-        break;
-
-      case AppThemePreset.slate: // Cyberpunk Neon Teal Theme!
-        seedColor = const Color(0xFF0DFFC2);
-        scaffoldBg = const Color(0xFF090D16);
-        cardRadius = 8.0;
-        buttonRadius = 6.0;
-        fieldRadius = 6.0;
-        cardBg = const Color(0xFF111827);
-        cardBorder = Border.all(
-          color: const Color(0xFF0DFFC2).withOpacity(0.4),
-          width: 1.2,
-        );
-        cardShadow = [
-          BoxShadow(
-            color: const Color(0xFF0DFFC2).withOpacity(0.15),
-            blurRadius: 12,
-            offset: Offset.zero,
-          )
-        ];
-        navBarBg = const Color(0xFF090D16).withOpacity(0.75);
-        navBarBorder = Border.all(
-          color: const Color(0xFF0DFFC2).withOpacity(0.5),
-          width: 1.2,
-        );
-        navBarBlur = 16.0;
-        navBarActiveColor = const Color(0xFF0DFFC2);
-        glowColor = const Color(0xFF0DFFC2);
-        break;
-
-      case AppThemePreset.olive:
-      default:
-        seedColor = const Color(0xFF5C5F3E);
-        scaffoldBg = isLight ? const Color(0xFFF2F1EF) : const Color(0xFF1C1C1A);
+      case AppThemePreset.ocean: // Royal Ocean Blue
+        seedColor = const Color(0xFF1E40AF);
+        scaffoldBg = isLight ? const Color(0xFFF3F4F6) : const Color(0xFF1B2230);
         cardRadius = 20.0;
         buttonRadius = 16.0;
         fieldRadius = 14.0;
+        cardBorder = Border.all(
+          color: seedColor.withOpacity(isLight ? 0.18 : 0.35),
+          width: 1.2,
+        );
         cardShadow = [
           BoxShadow(
             color: Colors.black.withOpacity(isLight ? 0.04 : 0.15),
@@ -242,12 +150,171 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
             offset: const Offset(0, 6),
           )
         ];
-        navBarBg = (isLight ? const Color(0xFFF2F1EF) : const Color(0xFF1C1C1A)).withOpacity(0.85);
+        navBarBg = scaffoldBg.withOpacity(0.9);
+        navBarBorder = Border.all(
+          color: seedColor.withOpacity(isLight ? 0.22 : 0.40),
+          width: 1.2,
+        );
         navBarBlur = 10.0;
         navBarActiveColor = seedColor;
-        cardBg = isLight ? Colors.white : const Color(0xFF262624);
+        glowColor = seedColor;
+        cardBg = isLight ? Colors.white : const Color(0xFF273142);
+        break;
+
+      case AppThemePreset.sunset: // Coral Sunset
+        seedColor = const Color(0xFFEA580C);
+        scaffoldBg = isLight ? const Color(0xFFFFF7ED) : const Color(0xFF26201B);
+        cardRadius = 16.0;
+        buttonRadius = 12.0;
+        fieldRadius = 12.0;
+        cardBorder = Border.all(
+          color: seedColor.withOpacity(isLight ? 0.18 : 0.35),
+          width: 1.2,
+        );
+        cardShadow = [
+          BoxShadow(
+            color: Colors.black.withOpacity(isLight ? 0.04 : 0.15),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          )
+        ];
+        navBarBg = scaffoldBg.withOpacity(0.9);
+        navBarBorder = Border.all(
+          color: seedColor.withOpacity(isLight ? 0.22 : 0.40),
+          width: 1.2,
+        );
+        navBarBlur = 10.0;
+        navBarActiveColor = seedColor;
+        glowColor = seedColor;
+        cardBg = isLight ? Colors.white : const Color(0xFF362E28);
+        break;
+
+      case AppThemePreset.forest: // Emerald Forest
+        seedColor = const Color(0xFF047857);
+        scaffoldBg = isLight ? const Color(0xFFF0FDF4) : const Color(0xFF15221E);
+        cardRadius = 20.0;
+        buttonRadius = 16.0;
+        fieldRadius = 14.0;
+        cardBorder = Border.all(
+          color: seedColor.withOpacity(isLight ? 0.18 : 0.35),
+          width: 1.2,
+        );
+        cardShadow = [
+          BoxShadow(
+            color: Colors.black.withOpacity(isLight ? 0.04 : 0.15),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          )
+        ];
+        navBarBg = scaffoldBg.withOpacity(0.9);
+        navBarBorder = Border.all(
+          color: seedColor.withOpacity(isLight ? 0.22 : 0.40),
+          width: 1.2,
+        );
+        navBarBlur = 10.0;
+        navBarActiveColor = seedColor;
+        glowColor = seedColor;
+        cardBg = isLight ? Colors.white : const Color(0xFF20322D);
+        break;
+
+      case AppThemePreset.slate: // Minimalist Charcoal Slate
+        seedColor = const Color(0xFF475569);
+        scaffoldBg = isLight ? const Color(0xFFF8FAFC) : const Color(0xFF202630);
+        cardRadius = 16.0;
+        buttonRadius = 12.0;
+        fieldRadius = 12.0;
+        cardBorder = Border.all(
+          color: seedColor.withOpacity(isLight ? 0.18 : 0.35),
+          width: 1.2,
+        );
+        cardShadow = [
+          BoxShadow(
+            color: Colors.black.withOpacity(isLight ? 0.04 : 0.15),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          )
+        ];
+        navBarBg = scaffoldBg.withOpacity(0.9);
+        navBarBorder = Border.all(
+          color: seedColor.withOpacity(isLight ? 0.22 : 0.40),
+          width: 1.2,
+        );
+        navBarBlur = 10.0;
+        navBarActiveColor = seedColor;
+        glowColor = seedColor;
+        cardBg = isLight ? Colors.white : const Color(0xFF2C3442);
+        break;
+
+      case AppThemePreset.olive:
+      default:
+        seedColor = const Color(0xFF5C5F3E);
+        scaffoldBg = isLight ? const Color(0xFFF2F1EF) : const Color(0xFF23251E);
+        cardRadius = 20.0;
+        buttonRadius = 16.0;
+        fieldRadius = 14.0;
+        cardBorder = Border.all(
+          color: seedColor.withOpacity(isLight ? 0.18 : 0.35),
+          width: 1.2,
+        );
+        cardShadow = [
+          BoxShadow(
+            color: Colors.black.withOpacity(isLight ? 0.04 : 0.15),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          )
+        ];
+        navBarBg = scaffoldBg.withOpacity(0.9);
+        navBarBorder = Border.all(
+          color: seedColor.withOpacity(isLight ? 0.22 : 0.40),
+          width: 1.2,
+        );
+        navBarBlur = 10.0;
+        navBarActiveColor = seedColor;
+        glowColor = seedColor;
+        cardBg = isLight ? Colors.white : const Color(0xFF31332B);
         break;
     }
+
+    final Color statusGreen;
+    final Color statusYellow;
+    final Color statusRed;
+
+    switch (preset) {
+      case AppThemePreset.ocean:
+        statusGreen = isLight ? const Color(0xFF0D9488) : const Color(0xFF2DD4BF);
+        statusYellow = isLight ? const Color(0xFFD97706) : const Color(0xFFFBBF24);
+        statusRed = isLight ? const Color(0xFFE11D48) : const Color(0xFFFB7185);
+        break;
+      case AppThemePreset.sunset:
+        statusGreen = isLight ? const Color(0xFF16A34A) : const Color(0xFF4ADE80);
+        statusYellow = isLight ? const Color(0xFFCA8A04) : const Color(0xFFFDE047);
+        statusRed = isLight ? const Color(0xFFDC2626) : const Color(0xFFF87171);
+        break;
+      case AppThemePreset.forest:
+        statusGreen = isLight ? const Color(0xFF059669) : const Color(0xFF34D399);
+        statusYellow = isLight ? const Color(0xFFD97706) : const Color(0xFFFBBF24);
+        statusRed = isLight ? const Color(0xFFDC2626) : const Color(0xFFF87171);
+        break;
+      case AppThemePreset.slate:
+        statusGreen = isLight ? const Color(0xFF0F766E) : const Color(0xFF14B8A6);
+        statusYellow = isLight ? const Color(0xFFB45309) : const Color(0xFFF59E0B);
+        statusRed = isLight ? const Color(0xFFBE123C) : const Color(0xFFF43F5E);
+        break;
+      case AppThemePreset.olive:
+      default:
+        statusGreen = isLight ? const Color(0xFF4D7C0F) : const Color(0xFF84CC16);
+        statusYellow = isLight ? const Color(0xFFCA8A04) : const Color(0xFFEAB308);
+        statusRed = isLight ? const Color(0xFFB91C1C) : const Color(0xFFEF4444);
+        break;
+    }
+
+    final actualCardBg = cardBg ?? (isLight ? Colors.white : const Color(0xFF1A1A1A));
+    final containerHigh = isLight 
+        ? const Color(0xFFE5E7EB) 
+        : (cardBg != null ? Color.lerp(cardBg, Colors.white, 0.08)! : const Color(0xFF2A2A2A));
+    final containerHighest = isLight 
+        ? const Color(0xFFD1D5DB) 
+        : (cardBg != null ? Color.lerp(cardBg, Colors.white, 0.15)! : const Color(0xFF333333));
 
     return ThemeData(
       brightness: actualBrightness,
@@ -255,7 +322,18 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
         seedColor: seedColor,
         brightness: actualBrightness,
         primary: seedColor,
-        surface: cardBg ?? (isLight ? Colors.white : const Color(0xFF1A1A1A)),
+        surface: actualCardBg,
+      ).copyWith(
+        surface: actualCardBg,
+        surfaceContainerLowest: isLight ? Colors.white : actualCardBg,
+        surfaceContainerLow: isLight ? const Color(0xFFF9FAFB) : scaffoldBg,
+        surfaceContainer: isLight ? const Color(0xFFF3F4F6) : actualCardBg,
+        surfaceContainerHigh: containerHigh,
+        surfaceContainerHighest: containerHighest,
+        onSurfaceVariant: isLight ? const Color(0xFF374151) : const Color(0xFFD1D5DB),
+        onSurface: isLight ? const Color(0xFF111827) : const Color(0xFFF9FAFB),
+        outline: isLight ? seedColor.withOpacity(0.4) : seedColor.withOpacity(0.6),
+        outlineVariant: isLight ? Colors.black.withOpacity(0.12) : Colors.white.withOpacity(0.18),
       ),
       scaffoldBackgroundColor: scaffoldBg,
       useMaterial3: true,
@@ -282,6 +360,9 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
           navBarActiveColor: navBarActiveColor,
           glowColor: glowColor,
           cardBg: cardBg,
+          statusGreen: statusGreen,
+          statusYellow: statusYellow,
+          statusRed: statusRed,
         ),
       ],
       appBarTheme: const AppBarTheme(

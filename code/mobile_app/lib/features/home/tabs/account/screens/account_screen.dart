@@ -28,6 +28,7 @@ class _AccountScreenState extends State<AccountScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final themeStyle = theme.extension<AppThemeStyle>() ?? AppThemeStyle(
       cardRadius: 20,
       buttonRadius: 16,
@@ -35,6 +36,9 @@ class _AccountScreenState extends State<AccountScreen> {
       navBarBg: theme.colorScheme.surface,
       navBarBlur: 10,
       navBarActiveColor: theme.colorScheme.primary,
+      statusGreen: isDark ? const Color(0xFF84CC16) : const Color(0xFF4D7C0F),
+      statusYellow: isDark ? const Color(0xFFEAB308) : const Color(0xFFCA8A04),
+      statusRed: isDark ? const Color(0xFFEF4444) : const Color(0xFFB91C1C),
     );
 
     final hasBackground = widget.user.homeBackgroundUrl.isNotEmpty;

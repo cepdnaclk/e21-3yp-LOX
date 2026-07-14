@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../data/models/locker.dart';
-import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/theme_style.dart';
 
 class LockerChip extends StatelessWidget {
   const LockerChip({super.key, required this.locker});
@@ -9,17 +9,42 @@ class LockerChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final alert = locker.securityAlertActive;
-    final isLocked = locker.lockState == 'LOCKED';
-    final isClosed = locker.doorState == 'CLOSED';
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final themeStyle = theme.extension<AppThemeStyle>() ?? AppThemeStyle(
+      cardRadius: 26,
+      buttonRadius: 16,
+      fieldRadius: 14,
+      navBarBg: theme.colorScheme.surface,
+      navBarBlur: 10,
+      navBarActiveColor: theme.colorScheme.primary,
+      statusGreen: isDark ? const Color(0xFF84CC16) : const Color(0xFF4D7C0F),
+      statusYellow: isDark ? const Color(0xFFEAB308) : const Color(0xFFCA8A04),
+      statusRed: isDark ? const Color(0xFFEF4444) : const Color(0xFFB91C1C),
+    );
 
-    Color cardBg = locker.isBooked ? const Color(0xFFF3E9E8) : const Color(0xFFE4ECE5);
-    Color borderCol = locker.isBooked ? const Color(0xFFE6C8C6) : const Color(0xFFC3D8C6);
+    final alert = locker.securityAlertActive;
+
+    final Color statusColor;
+    final Color cardBg;
+    final Color borderCol;
 
     if (alert) {
-      cardBg = const Color(0xFFFDE8E8);
-      borderCol = const Color(0xFFF8B4B4);
+      statusColor = themeStyle.statusRed;
+      cardBg = themeStyle.statusRed.withOpacity(isDark ? 0.15 : 0.08);
+      borderCol = themeStyle.statusRed.withOpacity(isDark ? 0.35 : 0.2);
+    } else if (locker.isBooked) {
+      statusColor = themeStyle.statusRed;
+      cardBg = themeStyle.statusRed.withOpacity(isDark ? 0.15 : 0.08);
+      borderCol = themeStyle.statusRed.withOpacity(isDark ? 0.35 : 0.2);
+    } else {
+      statusColor = themeStyle.statusGreen;
+      cardBg = themeStyle.statusGreen.withOpacity(isDark ? 0.15 : 0.08);
+      borderCol = themeStyle.statusGreen.withOpacity(isDark ? 0.35 : 0.2);
     }
+
+    final txtColor = theme.colorScheme.onSurface;
 
     return Container(
       decoration: BoxDecoration(
@@ -35,15 +60,15 @@ class LockerChip extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               if (alert)
-                const Icon(Icons.warning_amber_rounded, color: Color(0xFFC81E1E), size: 18)
+                Icon(Icons.warning_amber_rounded, color: statusColor, size: 18)
               else
                 const SizedBox(width: 18),
               Text(
                 locker.code,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.textMain,
+                  color: txtColor,
                 ),
               ),
               const SizedBox(width: 18),
@@ -56,27 +81,8 @@ class LockerChip extends StatelessWidget {
               fontWeight: FontWeight.w800,
               fontSize: 10,
               letterSpacing: 1.2,
-              color: locker.isBooked ? const Color(0xFFB85C58) : AppColors.olive,
+              color: statusColor,
             ),
-          ),
-          const SizedBox(height: 8),
-
-          // Detailed Lock and Door State Icons Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                isLocked ? Icons.lock_outline : Icons.lock_open,
-                size: 16,
-                color: isLocked ? AppColors.textLabel : const Color(0xFFD97706),
-              ),
-              const SizedBox(width: 12),
-              Icon(
-                isClosed ? Icons.sensor_door_outlined : Icons.sensor_door,
-                size: 16,
-                color: isClosed ? AppColors.textLabel : const Color(0xFFC95454),
-              ),
-            ],
           ),
         ],
       ),

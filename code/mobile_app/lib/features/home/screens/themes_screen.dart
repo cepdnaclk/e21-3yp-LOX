@@ -31,7 +31,7 @@ class ThemesScreen extends StatelessWidget {
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
-              side: BorderSide(color: theme.colorScheme.outlineVariant.withOpacity(0.5)),
+              side: BorderSide(color: theme.colorScheme.outlineVariant),
             ),
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -44,7 +44,7 @@ class ThemesScreen extends StatelessWidget {
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.4,
-                      color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const Divider(height: 24),
@@ -92,7 +92,7 @@ class ThemesScreen extends StatelessWidget {
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
-              side: BorderSide(color: theme.colorScheme.outlineVariant.withOpacity(0.5)),
+              side: BorderSide(color: theme.colorScheme.outlineVariant),
             ),
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -105,7 +105,7 @@ class ThemesScreen extends StatelessWidget {
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.4,
-                      color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const Divider(height: 24),
@@ -117,7 +117,7 @@ class ThemesScreen extends StatelessWidget {
                           _buildPresetTile(
                             context,
                             title: 'Olive Green',
-                            description: 'Classic military styling (Default)',
+                            description: 'Soothing natural olive (Default)',
                             preset: AppThemePreset.olive,
                             currentPreset: currentPreset,
                             primaryColor: const Color(0xFF5C5F3E),
@@ -127,41 +127,41 @@ class ThemesScreen extends StatelessWidget {
                           _buildPresetTile(
                             context,
                             title: 'Ocean Blue',
-                            description: 'Deep sapphire navy style',
+                            description: 'Calming Nordic steel blue',
                             preset: AppThemePreset.ocean,
                             currentPreset: currentPreset,
-                            primaryColor: const Color(0xFF0F52BA),
+                            primaryColor: const Color(0xFF1E40AF),
                             secondaryColor: const Color(0xFF3B82F6),
                           ),
                           const Divider(height: 12),
                           _buildPresetTile(
                             context,
                             title: 'Sunset Orange',
-                            description: 'Vibrant amber and orange tones',
+                            description: 'Warm earthy terracotta rust',
                             preset: AppThemePreset.sunset,
                             currentPreset: currentPreset,
-                            primaryColor: const Color(0xFFD97706),
-                            secondaryColor: const Color(0xFFF59E0B),
+                            primaryColor: const Color(0xFFEA580C),
+                            secondaryColor: const Color(0xFFF97316),
                           ),
                           const Divider(height: 12),
                           _buildPresetTile(
                             context,
                             title: 'Forest Green',
-                            description: 'Lush natural green themes',
+                            description: 'Eucalyptus and organic sage',
                             preset: AppThemePreset.forest,
                             currentPreset: currentPreset,
-                            primaryColor: const Color(0xFF15803D),
+                            primaryColor: const Color(0xFF047857),
                             secondaryColor: const Color(0xFF10B981),
                           ),
                           const Divider(height: 12),
                           _buildPresetTile(
                             context,
                             title: 'Slate Gray',
-                            description: 'Minimalistic charcoal color schemes',
+                            description: 'Premium minimalist cool charcoal',
                             preset: AppThemePreset.slate,
                             currentPreset: currentPreset,
                             primaryColor: const Color(0xFF475569),
-                            secondaryColor: const Color(0xFF6B7280),
+                            secondaryColor: const Color(0xFF64748B),
                           ),
                         ],
                       );
@@ -196,7 +196,7 @@ class ThemesScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         child: Row(
           children: [
-            Icon(icon, color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface.withOpacity(0.5)),
+            Icon(icon, color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
@@ -211,7 +211,7 @@ class ThemesScreen extends StatelessWidget {
             if (isSelected)
               Icon(Icons.check_circle, color: theme.colorScheme.primary)
             else
-              Icon(Icons.circle_outlined, color: theme.colorScheme.onSurface.withOpacity(0.2)),
+              Icon(Icons.circle_outlined, color: theme.colorScheme.outline),
           ],
         ),
       ),
@@ -274,7 +274,7 @@ class ThemesScreen extends StatelessWidget {
                     description,
                     style: TextStyle(
                       fontSize: 11,
-                      color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -283,7 +283,7 @@ class ThemesScreen extends StatelessWidget {
             if (isSelected)
               Icon(Icons.check_circle, color: theme.colorScheme.primary)
             else
-              Icon(Icons.circle_outlined, color: theme.colorScheme.onSurface.withOpacity(0.2)),
+              Icon(Icons.circle_outlined, color: theme.colorScheme.outline),
           ],
         ),
       ),

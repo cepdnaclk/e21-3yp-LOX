@@ -266,6 +266,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       color: Theme.of(context).scaffoldBackgroundColor,
     );
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final themeStyle = Theme.of(context).extension<AppThemeStyle>() ?? AppThemeStyle(
       cardRadius: 20,
       buttonRadius: 16,
@@ -273,6 +274,9 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       navBarBg: Theme.of(context).colorScheme.surface.withOpacity(0.92),
       navBarBlur: 10,
       navBarActiveColor: Theme.of(context).colorScheme.primary,
+      statusGreen: isDark ? const Color(0xFF84CC16) : const Color(0xFF4D7C0F),
+      statusYellow: isDark ? const Color(0xFFEAB308) : const Color(0xFFCA8A04),
+      statusRed: isDark ? const Color(0xFFEF4444) : const Color(0xFFB91C1C),
     );
 
     return Scaffold(
@@ -297,46 +301,76 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
       body: Container(
         decoration: mainDecoration,
-        child: IndexedStack(
-          index: _tabIndex,
+        child: Stack(
           children: [
-            StationsView(
-              stations: _stations,
-              lockersByStation: _lockersByStation,
-              locationDraft: _locationDraft,
-              savedLocation: _savedLocation,
-              savingLocation: _savingLocation,
-              onLocationChanged: (val) => setState(() => _locationDraft = val),
-              onSaveLocation: _saveLocation,
-              activeRequestForStation: _activeRequestForStation,
-              freeCountForStation: _freeCountForStation,
-              onOpenStation: _openStation,
-              onRefresh: _loadData,
-              onGoToProfile: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => AccountScreen(
-                      user: _user,
-                      client: widget.session.client,
-                      onProfileUpdated: (updatedUser) {
-                        setState(() {
-                          _user = updatedUser;
-                        });
-                      },
-                      onLogout: widget.onLogout,
+            IndexedStack(
+              index: _tabIndex,
+              children: [
+                StationsView(
+                  stations: _stations,
+                  lockersByStation: _lockersByStation,
+                  locationDraft: _locationDraft,
+                  savedLocation: _savedLocation,
+                  savingLocation: _savingLocation,
+                  onLocationChanged: (val) => setState(() => _locationDraft = val),
+                  onSaveLocation: _saveLocation,
+                  activeRequestForStation: _activeRequestForStation,
+                  freeCountForStation: _freeCountForStation,
+                  onOpenStation: _openStation,
+                  onRefresh: _loadData,
+                  onGoToProfile: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => AccountScreen(
+                          user: _user,
+                          client: widget.session.client,
+                          onProfileUpdated: (updatedUser) {
+                            setState(() {
+                              _user = updatedUser;
+                            });
+                          },
+                          onLogout: widget.onLogout,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                RequestsScreen(
+                  requests: _requests,
+                  stations: _stations,
+                  client: widget.session.client,
+                  user: _user,
+                  lockersByStation: _lockersByStation,
+                  onRefresh: _loadData,
+                  onLockerAction: _refreshActiveLocker,
+                ),
+              ],
+            ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 180,
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Theme.of(context).scaffoldBackgroundColor,
+                        Theme.of(context).scaffoldBackgroundColor,
+                        Theme.of(context).scaffoldBackgroundColor.withOpacity(0.0),
+                      ],
+                      stops: const [
+                        0.0,
+                        0.6,
+                        1.0,
+                      ],
                     ),
                   ),
-                );
-              },
-            ),
-            RequestsScreen(
-              requests: _requests,
-              stations: _stations,
-              client: widget.session.client,
-              user: _user,
-              lockersByStation: _lockersByStation,
-              onRefresh: _loadData,
-              onLockerAction: _refreshActiveLocker,
+                ),
+              ),
             ),
           ],
         ),

@@ -24,6 +24,13 @@ class UiPrefs {
 class LocalStore {
   LocalStore._();
 
+  static final ValueNotifier<int> unreadCountNotifier = ValueNotifier<int>(0);
+
+  static Future<void> refreshUnreadCount() async {
+    final count = await getUnreadNotificationCount();
+    unreadCountNotifier.value = count;
+  }
+
   // Constant variables for shared preferences keys
   static const _keyBaseUrl = 'api_base_url';
   static const _keyToken = 'auth_token';
@@ -196,6 +203,7 @@ class LocalStore {
       notifications.removeRange(50, notifications.length);
     }
     await prefs.setString(_keyNotifications, json.encode(notifications));
+    await refreshUnreadCount();
   }
 
   /// Adds a notification only if one with the same [dedupeId] does not already exist.
@@ -224,6 +232,7 @@ class LocalStore {
       notifications.removeRange(50, notifications.length);
     }
     await prefs.setString(_keyNotifications, json.encode(notifications));
+    await refreshUnreadCount();
   }
 
   /// Dismisses a single notification by ID.
@@ -233,6 +242,7 @@ class LocalStore {
     final dismissed = await getDismissedNotificationIds();
     dismissed.add(id);
     await prefs.setString(_keyDismissedNotifications, json.encode(dismissed.toList()));
+    await refreshUnreadCount();
   }
 
   /// Dismisses ALL current notifications.
@@ -250,6 +260,7 @@ class LocalStore {
       final dismissed = await getDismissedNotificationIds();
       dismissed.addAll(allIds);
       await prefs.setString(_keyDismissedNotifications, json.encode(dismissed.toList()));
+      await refreshUnreadCount();
     } catch (_) {}
   }
 
@@ -269,6 +280,7 @@ class LocalStore {
         item['read'] = true;
       }
       await prefs.setString(_keyNotifications, json.encode(list));
+      await refreshUnreadCount();
     } catch (_) {}
   }
 

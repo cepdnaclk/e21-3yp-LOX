@@ -167,7 +167,7 @@ class RequestsScreen extends StatelessWidget {
         child: RefreshIndicator(
           onRefresh: onRefresh,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 110),
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 180),
             children: [
               // Active locker control card (if any)
               if (activeLocker != null && activeRequest != null) ...[

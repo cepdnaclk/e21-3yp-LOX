@@ -4,7 +4,7 @@ import '../../../../../data/models/access_request.dart';
 import '../../../../../data/models/locker.dart';
 import '../../../../../data/models/station.dart';
 import '../../../../../data/remote/api_client.dart';
-import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/theme_style.dart';
 import '../widgets/locker_chip.dart';
 import '../widgets/stat_card.dart';
 
@@ -104,16 +104,51 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isLight = !isDark;
+
+    final themeStyle = theme.extension<AppThemeStyle>() ?? AppThemeStyle(
+      cardRadius: 26,
+      buttonRadius: 16,
+      fieldRadius: 14,
+      navBarBg: theme.colorScheme.surface,
+      navBarBlur: 10,
+      navBarActiveColor: theme.colorScheme.primary,
+      statusGreen: isDark ? const Color(0xFF84CC16) : const Color(0xFF4D7C0F),
+      statusYellow: isDark ? const Color(0xFFEAB308) : const Color(0xFFCA8A04),
+      statusRed: isDark ? const Color(0xFFEF4444) : const Color(0xFFB91C1C),
+    );
+
+    final primaryColor = theme.colorScheme.primary;
+    final cardBg = isLight 
+        ? Color.lerp(Colors.white, primaryColor, 0.03)! 
+        : theme.colorScheme.surface;
+    final txtColor = theme.colorScheme.onSurface;
+    final mutedColor = isDark 
+        ? theme.colorScheme.onSurfaceVariant 
+        : theme.colorScheme.onSurfaceVariant.withOpacity(0.7);
+    final trackColor = theme.colorScheme.outlineVariant.withOpacity(0.3);
+
     final freeCount = _lockers.where((l) => !l.isBooked).length;
     final reservedCount = _lockers.length - freeCount;
     final canRequest = _activeRequest == null;
 
+    final Color statusColor;
+    if (freeCount > 0) {
+      statusColor = themeStyle.statusGreen;
+    } else if (_lockers.isNotEmpty && freeCount == 0) {
+      statusColor = themeStyle.statusYellow;
+    } else {
+      statusColor = themeStyle.statusRed;
+    }
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: AppColors.textMain),
+        iconTheme: IconThemeData(color: txtColor),
       ),
       body: RefreshIndicator(
         onRefresh: _refreshLockers,
@@ -122,9 +157,13 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
           children: [
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(26),
-                boxShadow: [
+                color: cardBg,
+                borderRadius: BorderRadius.circular(themeStyle.cardRadius),
+                border: Border.all(
+                  color: primaryColor.withOpacity(isLight ? 0.12 : 0.25),
+                  width: 1.2,
+                ),
+                boxShadow: themeStyle.cardShadow ?? [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.06),
                     blurRadius: 18,
@@ -142,12 +181,16 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
                         width: 52,
                         height: 52,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F0EC),
+                          color: statusColor.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: statusColor.withOpacity(0.2),
+                            width: 1.2,
+                          ),
                         ),
                         child: Icon(
-                          Icons.lock_outline_rounded,
-                          color: AppColors.olive,
+                          freeCount > 0 ? Icons.lock_open_rounded : Icons.lock_rounded,
+                          color: statusColor,
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -160,13 +203,13 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
                               style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w900,
-                                color: AppColors.textMain,
+                                color: txtColor,
                               ),
                             ),
                             Text(
-                              'Code: ${widget.station.code} • Hours: ${widget.station.openTime} - ${widget.station.closeTime}',
+                              ' Hours: ${widget.station.openTime} - ${widget.station.closeTime}',
                               style: TextStyle(
-                                color: AppColors.textLabel,
+                                color: mutedColor,
                                 fontWeight: FontWeight.w800,
                                 fontSize: 13,
                               ),
@@ -182,7 +225,7 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
                     '$freeCount / ${_lockers.length} available',
                     style: TextStyle(
                       fontWeight: FontWeight.w800,
-                      color: AppColors.olive,
+                      color: statusColor,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -194,8 +237,8 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
                           ? 0.0
                           : (freeCount / _lockers.length).clamp(0.0, 1.0),
                       minHeight: 8,
-                      backgroundColor: AppColors.fieldBackground,
-                      valueColor: AlwaysStoppedAnimation(AppColors.olive),
+                      backgroundColor: trackColor,
+                      valueColor: AlwaysStoppedAnimation(statusColor),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -206,8 +249,8 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
                         child: StatCard(
                           label: 'Available',
                           value: freeCount.toString(),
-                          color: const Color(0xFFE4ECE5),
-                          borderColor: const Color(0xFFC3D8C6),
+                          color: themeStyle.statusGreen.withOpacity(isDark ? 0.15 : 0.08),
+                          borderColor: themeStyle.statusGreen.withOpacity(isDark ? 0.35 : 0.2),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -215,8 +258,8 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
                         child: StatCard(
                           label: 'Reserved',
                           value: reservedCount.toString(),
-                          color: const Color(0xFFF3E9E8),
-                          borderColor: const Color(0xFFE6C8C6),
+                          color: themeStyle.statusRed.withOpacity(isDark ? 0.15 : 0.08),
+                          borderColor: themeStyle.statusRed.withOpacity(isDark ? 0.35 : 0.2),
                         ),
                       ),
                     ],
@@ -230,14 +273,14 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF1F0EC),
+                        color: theme.colorScheme.surfaceContainerHigh,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         'Request status: ${_activeRequest!.status}',
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textMain,
+                          color: txtColor,
                         ),
                       ),
                     ),
@@ -249,11 +292,11 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
                     width: double.infinity,
                     child: FilledButton(
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.olive,
+                        backgroundColor: primaryColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(themeStyle.buttonRadius),
                         ),
                       ),
                       onPressed: !_submittingRequest && canRequest
@@ -290,7 +333,7 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
                 Text(
                   'LOCKERS',
                   style: TextStyle(
-                    color: AppColors.textLabel,
+                    color: mutedColor,
                     fontSize: 12,
                     letterSpacing: 2.2,
                     fontWeight: FontWeight.w800,
@@ -320,7 +363,7 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 1.1,
+                  childAspectRatio: 1.3,
                 ),
                 itemBuilder: (context, index) {
                   return LockerChip(locker: _lockers[index]);
