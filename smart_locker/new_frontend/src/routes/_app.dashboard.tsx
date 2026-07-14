@@ -7,6 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { type LockerStatus } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { apiGet, apiMutate } from "@/lib/api";
@@ -287,6 +297,23 @@ function Dashboard() {
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const prevAlertIdsRef = useRef<Set<string>>(new Set());
 
+  // Confirmation dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+    actionLabel: string;
+    variant: 'default' | 'destructive' | 'success';
+  }>({
+    isOpen: false,
+    title: "",
+    description: "",
+    onConfirm: () => {},
+    actionLabel: "Confirm",
+    variant: 'default'
+  });
+
   const navigate = useNavigate();
 
   const fetchAll = async (t: string, u: any, skipCache = false) => {
@@ -487,6 +514,81 @@ function Dashboard() {
     }
   };
 
+  const confirmApproveRequest = (id: string, userName: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Approve Request?",
+      description: `Are you sure you want to approve the locker request for ${userName}?`,
+      onConfirm: () => approveRequest(id),
+      actionLabel: "Approve",
+      variant: 'success'
+    });
+  };
+
+  const confirmRejectRequest = (id: string, userName: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Reject Request?",
+      description: `Are you sure you want to reject the locker request for ${userName}?`,
+      onConfirm: () => rejectRequest(id),
+      actionLabel: "Reject",
+      variant: 'destructive'
+    });
+  };
+
+  const confirmCommandLocker = (id: string, action: string, code: string, isMaintenance?: boolean) => {
+    let title = "";
+    let description = "";
+    let variant: 'default' | 'destructive' | 'success' = 'default';
+    let actionLabel = "Confirm";
+
+    switch(action) {
+      case 'unlock':
+        title = `Unlock Locker ${code}?`;
+        description = `Are you sure you want to unlock locker ${code}?`;
+        variant = 'success';
+        actionLabel = "Unlock";
+        break;
+      case 'lock':
+        title = `Lock Locker ${code}?`;
+        description = `Are you sure you want to lock locker ${code}?`;
+        variant = 'default';
+        actionLabel = "Lock";
+        break;
+      case 'release':
+        title = `Release Locker ${code}?`;
+        description = `Are you sure you want to release locker ${code}? The user will lose access.`;
+        variant = 'destructive';
+        actionLabel = "Release";
+        break;
+      case 'maintenance':
+        if (isMaintenance) {
+          title = `Mark Locker ${code} Ready?`;
+          description = `Are you sure you want to mark locker ${code} as ready for use?`;
+          variant = 'success';
+          actionLabel = "Mark Ready";
+        } else {
+          title = `Set Locker ${code} to Maintenance?`;
+          description = `Are you sure you want to set locker ${code} to maintenance mode? It will not be available for new requests.`;
+          variant = 'destructive';
+          actionLabel = "Set Maintenance";
+        }
+        break;
+      default:
+        commandLocker(id, action);
+        return;
+    }
+
+    setConfirmDialog({
+      isOpen: true,
+      title,
+      description,
+      onConfirm: () => commandLocker(id, action),
+      actionLabel,
+      variant
+    });
+  };
+
   const getLockerStatus = (l: any): LockerStatus => {
     if (l.isMaintenance) return "maintenance";
     if (l.isBooked) return "occupied";
@@ -603,7 +705,7 @@ function Dashboard() {
                           variant="default"
                           size="sm"
                           className="bg-success hover:bg-success/90 text-success-foreground rounded-xl px-4"
-                          onClick={() => approveRequest(req._id)}
+                          onClick={() => confirmApproveRequest(req._id, req.userId?.name ?? 'Unknown User')}
                         >
                           Approve
                         </Button>
@@ -611,7 +713,7 @@ function Dashboard() {
                           variant="destructive"
                           size="sm"
                           className="rounded-xl px-4"
-                          onClick={() => rejectRequest(req._id)}
+                          onClick={() => confirmRejectRequest(req._id, req.userId?.name ?? 'Unknown User')}
                         >
                           Reject
                         </Button>
@@ -640,9 +742,9 @@ function Dashboard() {
                 <p className="text-sm mb-1">Door: <span className="font-semibold">{l.doorState}</span></p>
                 <p className="text-sm mb-4">Booked: <span className="font-semibold">{l.isBooked ? 'Yes' : 'No'}</span></p>
                 <div className="flex gap-2 flex-wrap">
-                  <Button size="sm" variant="outline" onClick={() => commandLocker(l._id, 'unlock')}><Unlock className="w-4 h-4 mr-1" /> Unlock</Button>
-                  <Button size="sm" variant="outline" onClick={() => commandLocker(l._id, 'lock')}><LockKeyhole className="w-4 h-4 mr-1" /> Lock</Button>
-                  <Button size="sm" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => commandLocker(l._id, 'release')}><LogOut className="w-4 h-4 mr-1" /> Release</Button>
+                  <Button size="sm" variant="outline" onClick={() => confirmCommandLocker(l._id, 'unlock', l.code)}><Unlock className="w-4 h-4 mr-1" /> Unlock</Button>
+                  <Button size="sm" variant="outline" onClick={() => confirmCommandLocker(l._id, 'lock', l.code)}><LockKeyhole className="w-4 h-4 mr-1" /> Lock</Button>
+                  <Button size="sm" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => confirmCommandLocker(l._id, 'release', l.code)}><LogOut className="w-4 h-4 mr-1" /> Release</Button>
                 </div>
               </div>
             ))}
@@ -744,12 +846,12 @@ function Dashboard() {
                   {isSubAdmin && (
                     <div className="mt-4 pt-3 border-t border-border flex flex-col gap-2">
                       <div className="grid grid-cols-3 gap-2">
-                        <Button title="Unlock" size="sm" variant="outline" className="h-8 text-[11px] px-2" onClick={() => commandLocker(l._id, 'unlock')}><Unlock className="w-3 h-3" /></Button>
-                        <Button title="Lock" size="sm" variant="outline" className="h-8 text-[11px] px-2" onClick={() => commandLocker(l._id, 'lock')}><LockKeyhole className="w-3 h-3" /></Button>
-                        <Button title="Release User" size="sm" variant="outline" className="h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => commandLocker(l._id, 'release')}><LogOut className="w-3 h-3" /></Button>
+                        <Button title="Unlock" size="sm" variant="outline" className="h-8 text-[11px] px-2" onClick={() => confirmCommandLocker(l._id, 'unlock', l.code)}><Unlock className="w-3 h-3" /></Button>
+                        <Button title="Lock" size="sm" variant="outline" className="h-8 text-[11px] px-2" onClick={() => confirmCommandLocker(l._id, 'lock', l.code)}><LockKeyhole className="w-3 h-3" /></Button>
+                        <Button title="Release User" size="sm" variant="outline" className="h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => confirmCommandLocker(l._id, 'release', l.code)}><LogOut className="w-3 h-3" /></Button>
                       </div>
                       <div className="grid grid-cols-1 gap-2">
-                        <Button size="sm" variant="outline" className={cn("h-8 text-[11px] px-2", l.isMaintenance ? "border-success/30 text-success hover:bg-success/10" : "border-warning/30 text-warning hover:bg-warning/10")} onClick={() => commandLocker(l._id, 'maintenance')}><Wrench className="w-3 h-3 mr-1" /> {l.isMaintenance ? 'Mark Ready' : 'Maintenance'}</Button>
+                        <Button size="sm" variant="outline" className={cn("h-8 text-[11px] px-2", l.isMaintenance ? "border-success/30 text-success hover:bg-success/10" : "border-warning/30 text-warning hover:bg-warning/10")} onClick={() => confirmCommandLocker(l._id, 'maintenance', l.code, l.isMaintenance)}><Wrench className="w-3 h-3 mr-1" /> {l.isMaintenance ? 'Mark Ready' : 'Maintenance'}</Button>
                         {l.securityAlertActive && (
                           <Button size="sm" variant="outline" className="h-8 text-[11px] px-2 bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20" onClick={() => commandLocker(l._id, 'security-ignore')}><CheckCircle2 className="w-3 h-3 mr-1" /> Ignore Alert</Button>
                         )}
@@ -790,6 +892,32 @@ function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={confirmDialog.isOpen} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, isOpen: open }))}>
+        <AlertDialogContent className="rounded-2xl border-border bg-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold">{confirmDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground text-[15px]">
+              {confirmDialog.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 sm:space-x-4">
+            <AlertDialogCancel className="rounded-xl h-10 px-5">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDialog.onConfirm}
+              className={cn(
+                "rounded-xl h-10 px-5 text-white font-medium border-0",
+                confirmDialog.variant === 'destructive' && "bg-destructive hover:bg-destructive/90 text-destructive-foreground",
+                confirmDialog.variant === 'success' && "bg-success hover:bg-success/90 text-success-foreground",
+                confirmDialog.variant === 'default' && "bg-primary hover:bg-primary/90 text-primary-foreground"
+              )}
+            >
+              {confirmDialog.actionLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
