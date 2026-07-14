@@ -546,21 +546,80 @@ function Dashboard() {
           {pendingRequests.length === 0 ? (
             <p className="text-sm text-muted-foreground">No pending requests.</p>
           ) : (
-            <div className="space-y-4">
-              {pendingRequests.map(req => (
-                <div key={req._id} className="p-4 rounded-xl border border-border bg-card flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
-                  <div>
-                    <p className="font-semibold">{req.userId?.name}</p>
-                    <p className="text-sm">Status: <span className="font-bold text-warning">{req.status}</span></p>
-                    <p className="text-sm">Sub-admin station: {req.stationId?.code}</p>
-                    {req.note && <p className="text-sm text-muted-foreground mt-1">Note: {req.note}</p>}
+            <div className="space-y-3">
+              {pendingRequests.map(req => {
+                const submittedAt = req.createdAt ? new Date(req.createdAt) : null;
+                const dateStr = submittedAt
+                  ? submittedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                  : '—';
+                const timeStr = submittedAt
+                  ? submittedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                  : '—';
+
+                return (
+                  <div
+                    key={req._id}
+                    className="relative p-4 rounded-2xl border border-border border-l-4 border-l-warning bg-warning/5 hover:shadow-md transition-shadow duration-200"
+                  >
+                    <div className="flex flex-col sm:flex-row gap-4 sm:items-start justify-between">
+                      {/* Left: user & request info */}
+                      <div className="flex-1 min-w-0 space-y-2">
+
+                        {/* Row 1: User name + status badge */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center gap-1.5 text-base font-bold text-foreground">
+                            <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-warning/20 text-warning text-xs font-bold flex-shrink-0">
+                              {req.userId?.name?.[0]?.toUpperCase() ?? '?'}
+                            </span>
+                            {req.userId?.name ?? 'Unknown User'}
+                          </span>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-warning/15 text-warning">
+                            {req.status}
+                          </span>
+                        </div>
+
+                        {/* Row 2: Station */}
+                        <p className="text-sm text-muted-foreground">
+                          Station: <span className="font-semibold text-foreground">{req.stationId?.name || req.stationId?.code || '—'}</span>
+                        </p>
+
+                        {/* Row 3: Note */}
+                        {req.note && (
+                          <p className="text-sm text-muted-foreground italic">"{req.note}"</p>
+                        )}
+
+                        {/* Row 4: Date & Time */}
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+                          <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span>Requested on <span className="font-semibold text-foreground">{dateStr}</span></span>
+                          <span>·</span>
+                          <span className="font-semibold text-foreground">{timeStr}</span>
+                        </div>
+                      </div>
+
+                      {/* Right: action buttons */}
+                      <div className="flex sm:flex-col gap-2 sm:items-end justify-end flex-shrink-0">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="bg-success hover:bg-success/90 text-success-foreground rounded-xl px-4"
+                          onClick={() => approveRequest(req._id)}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="rounded-xl px-4"
+                          onClick={() => rejectRequest(req._id)}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="default" className="bg-success hover:bg-success/90 text-success-foreground" onClick={() => approveRequest(req._id)}>Approve</Button>
-                    <Button variant="destructive" onClick={() => rejectRequest(req._id)}>Reject</Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
