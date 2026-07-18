@@ -120,15 +120,21 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
       statusRed: isDark ? const Color(0xFFEF4444) : const Color(0xFFB91C1C),
     );
 
+    final isLuxuryGreen = themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
+
     final primaryColor = theme.colorScheme.primary;
-    final cardBg = isLight 
+    final cardBg = themeStyle.cardBg ?? (isLight 
         ? Color.lerp(Colors.white, primaryColor, 0.03)! 
-        : theme.colorScheme.surface;
+        : theme.colorScheme.surface);
     final txtColor = theme.colorScheme.onSurface;
-    final mutedColor = isDark 
-        ? theme.colorScheme.onSurfaceVariant 
-        : theme.colorScheme.onSurfaceVariant.withOpacity(0.7);
-    final trackColor = theme.colorScheme.outlineVariant.withOpacity(0.3);
+    final mutedColor = isLuxuryGreen
+        ? const Color(0xFFBB8A52)
+        : (isDark 
+            ? theme.colorScheme.onSurfaceVariant 
+            : theme.colorScheme.onSurfaceVariant.withOpacity(0.7));
+    final trackColor = isLuxuryGreen
+        ? const Color(0xFFBB8A52)
+        : theme.colorScheme.outlineVariant.withOpacity(0.3);
 
     final freeCount = _lockers.where((l) => !l.isBooked).length;
     final reservedCount = _lockers.length - freeCount;

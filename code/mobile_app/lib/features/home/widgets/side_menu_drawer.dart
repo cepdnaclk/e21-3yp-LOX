@@ -6,6 +6,7 @@ import '../tabs/explore/screens/notification_screen.dart';
 import '../screens/payment_history_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/themes_screen.dart';
+import '../../../core/theme/theme_style.dart';
 
 class SideMenuDrawer extends StatelessWidget {
   const SideMenuDrawer({
@@ -186,7 +187,9 @@ class SideMenuDrawer extends StatelessWidget {
                     context: context,
                     icon: Icons.logout_rounded,
                     label: 'Logout',
-                    color: Colors.redAccent,
+                    color: (Theme.of(context).extension<AppThemeStyle>()?.statusGreen == const Color(0xFF6D9773))
+                        ? const Color(0xFFBB8A52)
+                        : Colors.redAccent,
                     showTrailing: false,
                     onTap: () {
                       Navigator.pop(context);
@@ -204,6 +207,8 @@ class SideMenuDrawer extends StatelessWidget {
 
   Widget _buildSectionLabel(BuildContext context, String label) {
     final theme = Theme.of(context);
+    final themeStyle = theme.extension<AppThemeStyle>();
+    final isLuxuryGreen = themeStyle != null && themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
       child: Text(
@@ -212,7 +217,7 @@ class SideMenuDrawer extends StatelessWidget {
           fontSize: 11,
           fontWeight: FontWeight.w800,
           letterSpacing: 1.6,
-          color: theme.colorScheme.onSurfaceVariant.withOpacity(0.55),
+          color: isLuxuryGreen ? const Color(0xFFBB8A52) : theme.colorScheme.onSurfaceVariant.withOpacity(0.55),
         ),
       ),
     );
@@ -227,12 +232,19 @@ class SideMenuDrawer extends StatelessWidget {
     bool showTrailing = true,
   }) {
     final theme = Theme.of(context);
+    final themeStyle = theme.extension<AppThemeStyle>();
+    final isLuxuryGreen = themeStyle != null && themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
+    
+    final itemColor = color ?? (isLuxuryGreen ? theme.colorScheme.primary : theme.colorScheme.onSurface);
+    final iconColor = color ?? (isLuxuryGreen ? const Color(0xFFFFBA00) : theme.colorScheme.onSurface.withOpacity(0.7));
+    final trailingColor = color ?? (isLuxuryGreen ? const Color(0xFFBB8A52) : theme.colorScheme.onSurfaceVariant.withOpacity(0.3));
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       child: ListTile(
         leading: Icon(
           icon,
-          color: color ?? theme.colorScheme.onSurface.withOpacity(0.7),
+          color: iconColor,
           size: 22,
         ),
         title: Text(
@@ -240,13 +252,13 @@ class SideMenuDrawer extends StatelessWidget {
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
-            color: color ?? theme.colorScheme.onSurface,
+            color: itemColor,
           ),
         ),
         trailing: showTrailing
             ? Icon(
                 Icons.chevron_right_rounded,
-                color: color?.withOpacity(0.5) ?? theme.colorScheme.onSurfaceVariant.withOpacity(0.3),
+                color: trailingColor,
                 size: 20,
               )
             : null,

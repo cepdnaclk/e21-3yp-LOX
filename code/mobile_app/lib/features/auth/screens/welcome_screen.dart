@@ -21,13 +21,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   int _currentPage = 0;
   Timer? _timer;
 
-  final List<Map<String, dynamic>> _slides = [
+  List<Map<String, dynamic>> get _slides => [
     {
       'label': 'SMART LOCKERS',
       'highlighted': 'MADE SIMPLE.',
       'subtitle': 'Experience next-generation locker security with advanced encryption and real-time monitoring.',
       'icon': Icons.lock_person_rounded,
-      'gradient': [const Color(0xFF5C5F3E), const Color(0xFF383A26)],
+      'gradient': [AppColors.olive, AppColors.oliveDark],
       'image': 'assets/images/Locker-image-01.png',
     },
     {

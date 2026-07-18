@@ -156,6 +156,8 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
       statusRed: isDark ? const Color(0xFFEF4444) : const Color(0xFFB91C1C),
     );
 
+    final isLuxuryGreen = themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
+
     // Dynamic Card background color
     final cardBg = themeStyle.cardBg ?? theme.colorScheme.surface;
 
@@ -271,7 +273,9 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
                     'LOCK STATE',
                     lock,
                     isLocked ? Icons.lock_outline_rounded : Icons.lock_open_rounded,
-                    isLocked ? theme.colorScheme.primary : const Color(0xFFD97706),
+                    isLuxuryGreen
+                        ? (isLocked ? theme.colorScheme.primary : const Color(0xFFBB8A52))
+                        : (isLocked ? theme.colorScheme.primary : const Color(0xFFD97706)),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -280,7 +284,9 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
                     'DOOR STATE',
                     door,
                     isClosed ? Icons.sensor_door_outlined : Icons.sensor_door,
-                    isClosed ? theme.colorScheme.primary : const Color(0xFFC95454),
+                    isLuxuryGreen
+                        ? (isClosed ? theme.colorScheme.primary : const Color(0xFFBB8A52))
+                        : (isClosed ? theme.colorScheme.primary : const Color(0xFFC95454)),
                   ),
                 ),
               ],
@@ -311,11 +317,18 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
   Widget _buildOverduePaySection(AppThemeStyle themeStyle) {
     final charge = _status?.chargeAmount ?? 0.0;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isLuxuryGreen = themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
     
     // Adaptive Alert Box Colors for Dark/Light Mode
-    final alertBg = isDark ? const Color(0xFF3B1E1E) : const Color(0xFFFDE8E8);
-    final alertBorderColor = isDark ? const Color(0xFF7F1D1D) : const Color(0xFFF8B4B4);
-    final alertTextColor = isDark ? const Color(0xFFFCA3A3) : const Color(0xFFC81E1E);
+    final alertBg = isLuxuryGreen
+        ? const Color(0xFF0C3B2E)
+        : (isDark ? const Color(0xFF3B1E1E) : const Color(0xFFFDE8E8));
+    final alertBorderColor = isLuxuryGreen
+        ? const Color(0xFFFFBA00)
+        : (isDark ? const Color(0xFF7F1D1D) : const Color(0xFFF8B4B4));
+    final alertTextColor = isLuxuryGreen
+        ? const Color(0xFFFFBA00)
+        : (isDark ? const Color(0xFFFCA3A3) : const Color(0xFFC81E1E));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -325,7 +338,7 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
           decoration: BoxDecoration(
             color: alertBg,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: alertBorderColor),
+            border: Border.all(color: alertBorderColor, width: isLuxuryGreen ? 1.5 : 1.0),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -342,7 +355,7 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
               Text(
                 'Your free storage period has expired. Pay the overdue fee to unlock and retrieve your items.',
                 style: TextStyle(
-                  color: alertTextColor.withOpacity(0.9),
+                  color: isLuxuryGreen ? const Color(0xFFFFFFFF) : alertTextColor.withOpacity(0.9),
                   fontSize: 12,
                   height: 1.45,
                 ),
@@ -353,7 +366,8 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
         const SizedBox(height: 12),
         FilledButton.icon(
           style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFFB42318),
+            backgroundColor: isLuxuryGreen ? const Color(0xFFFFBA00) : const Color(0xFFB42318),
+            foregroundColor: isLuxuryGreen ? const Color(0xFF0C3B2E) : Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(themeStyle.buttonRadius)),
             padding: const EdgeInsets.symmetric(vertical: 14),
           ),
@@ -368,7 +382,12 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
         Text(
           'After payment, you will have a grace period to retrieve your items.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6)),
+          style: TextStyle(
+            fontSize: 11,
+            color: isLuxuryGreen
+                ? const Color(0xFFBB8A52)
+                : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6),
+          ),
         ),
       ],
     );
@@ -376,11 +395,18 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
 
   Widget _buildOverdueReleasedSection(AppThemeStyle themeStyle) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isLuxuryGreen = themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
     
     // Adaptive green alert colors
-    final alertBg = isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5);
-    final alertBorderColor = isDark ? const Color(0xFF065F46) : const Color(0xFF6EE7B7);
-    final alertTextColor = isDark ? const Color(0xFFA7F3D0) : const Color(0xFF027A48);
+    final alertBg = isLuxuryGreen
+        ? const Color(0xFF0C3B2E)
+        : (isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5));
+    final alertBorderColor = isLuxuryGreen
+        ? const Color(0xFF6D9773)
+        : (isDark ? const Color(0xFF065F46) : const Color(0xFF6EE7B7));
+    final alertTextColor = isLuxuryGreen
+        ? const Color(0xFF6D9773)
+        : (isDark ? const Color(0xFFA7F3D0) : const Color(0xFF027A48));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -390,7 +416,7 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
           decoration: BoxDecoration(
             color: alertBg,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: alertBorderColor),
+            border: Border.all(color: alertBorderColor, width: isLuxuryGreen ? 1.5 : 1.0),
           ),
           child: Row(
             children: [
@@ -400,7 +426,7 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
                 child: Text(
                   'Payment confirmed! Unlock your locker and retrieve your items during the grace period.',
                   style: TextStyle(
-                    color: alertTextColor,
+                    color: isLuxuryGreen ? const Color(0xFFFFFFFF) : alertTextColor,
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
                     height: 1.4,
@@ -417,6 +443,7 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
               child: FilledButton.icon(
                 style: FilledButton.styleFrom(
                   backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: isLuxuryGreen ? const Color(0xFF0C3B2E) : Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(themeStyle.buttonRadius)),
                 ),
                 onPressed: _busy ? null : _onUnlockPressed,
@@ -428,8 +455,8 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
             Expanded(
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFC95454),
-                  side: const BorderSide(color: Color(0xFFC95454)),
+                  foregroundColor: isLuxuryGreen ? const Color(0xFFBB8A52) : const Color(0xFFC95454),
+                  side: BorderSide(color: isLuxuryGreen ? const Color(0xFFBB8A52) : const Color(0xFFC95454), width: isLuxuryGreen ? 1.5 : 1.0),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(themeStyle.buttonRadius)),
                 ),
                 onPressed: _busy
@@ -450,6 +477,7 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
 
   Widget _buildNormalControls(AppThemeStyle themeStyle) {
     final theme = Theme.of(context);
+    final isLuxuryGreen = themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -459,6 +487,7 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
               child: FilledButton.icon(
                 style: FilledButton.styleFrom(
                   backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: isLuxuryGreen ? const Color(0xFF0C3B2E) : Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(themeStyle.buttonRadius)),
                 ),
                 onPressed: _busy ? null : _onUnlockPressed,
@@ -470,12 +499,16 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
             Expanded(
               child: FilledButton.icon(
                 style: FilledButton.styleFrom(
-                  backgroundColor: theme.brightness == Brightness.dark
-                      ? theme.colorScheme.primaryContainer
-                      : theme.colorScheme.primary.withOpacity(0.85),
-                  foregroundColor: theme.brightness == Brightness.dark
-                      ? theme.colorScheme.onPrimaryContainer
-                      : Colors.white,
+                  backgroundColor: isLuxuryGreen
+                      ? (theme.brightness == Brightness.dark ? const Color(0xFF6D9773) : const Color(0xFF0C3B2E))
+                      : (theme.brightness == Brightness.dark
+                          ? theme.colorScheme.primaryContainer
+                          : theme.colorScheme.primary.withOpacity(0.85)),
+                  foregroundColor: isLuxuryGreen
+                      ? (theme.brightness == Brightness.dark ? const Color(0xFF0C3B2E) : Colors.white)
+                      : (theme.brightness == Brightness.dark
+                          ? theme.colorScheme.onPrimaryContainer
+                          : Colors.white),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(themeStyle.buttonRadius)),
                 ),
                 onPressed: _busy
@@ -493,8 +526,8 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
         const SizedBox(height: 8),
         OutlinedButton.icon(
           style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFFC95454),
-            side: const BorderSide(color: Color(0xFFC95454)),
+            foregroundColor: isLuxuryGreen ? const Color(0xFFBB8A52) : const Color(0xFFC95454),
+            side: BorderSide(color: isLuxuryGreen ? const Color(0xFFBB8A52) : const Color(0xFFC95454), width: isLuxuryGreen ? 1.5 : 1.0),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(themeStyle.buttonRadius)),
           ),
           onPressed: _busy
@@ -511,12 +544,15 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
   }
 
   Widget _buildStateBadge(String label, String value, IconData icon, Color color) {
+    final theme = Theme.of(context);
+    final themeStyle = theme.extension<AppThemeStyle>();
+    final isLuxuryGreen = themeStyle != null && themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: isLuxuryGreen ? const Color(0xFF0C3B2E) : color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.18)),
+        border: Border.all(color: isLuxuryGreen ? const Color(0xFFBB8A52) : color.withOpacity(0.18), width: isLuxuryGreen ? 1.5 : 1.0),
       ),
       child: Row(
         children: [
@@ -530,9 +566,9 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
                   label,
                   style: TextStyle(
                     fontSize: 8,
-                    fontWeight: FontWeight.w700,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                    fontWeight: FontWeight.w800,
                     letterSpacing: 0.8,
+                    color: isLuxuryGreen ? const Color(0xFFBB8A52) : color.withOpacity(0.75),
                   ),
                 ),
                 Text(
@@ -540,7 +576,7 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w900,
-                    color: color,
+                    color: isLuxuryGreen ? const Color(0xFFFFFFFF) : color,
                   ),
                 ),
               ],

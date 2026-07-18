@@ -52,15 +52,21 @@ class StationCard extends StatelessWidget {
       statusRed: isDark ? const Color(0xFFEF4444) : const Color(0xFFB91C1C),
     );
 
+    final isLuxuryGreen = themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
+
     final primaryColor = theme.colorScheme.primary;
-    final cardBg = isLight 
+    final cardBg = themeStyle.cardBg ?? (isLight 
         ? Color.lerp(Colors.white, primaryColor, 0.03)! 
-        : theme.colorScheme.surface;
+        : theme.colorScheme.surface);
     final txtColor = theme.colorScheme.onSurface;
-    final mutedColor = isDark 
-        ? theme.colorScheme.onSurfaceVariant 
-        : theme.colorScheme.onSurfaceVariant.withOpacity(0.7);
-    final trackColor = theme.colorScheme.outlineVariant.withOpacity(0.3);
+    final mutedColor = isLuxuryGreen
+        ? const Color(0xFFBB8A52)
+        : (isDark 
+            ? theme.colorScheme.onSurfaceVariant 
+            : theme.colorScheme.onSurfaceVariant.withOpacity(0.7));
+    final trackColor = isLuxuryGreen
+        ? const Color(0xFFBB8A52)
+        : theme.colorScheme.outlineVariant.withOpacity(0.3);
 
     // Define status color & icon based on availability
     final Color statusColor;
@@ -87,8 +93,10 @@ class StationCard extends StatelessWidget {
           color: cardBg,
           borderRadius: BorderRadius.circular(themeStyle.cardRadius),
           border: Border.all(
-            color: primaryColor.withOpacity(isLight ? 0.12 : 0.25),
-            width: 1.2,
+            color: isLuxuryGreen
+                ? const Color(0xFFBB8A52)
+                : primaryColor.withOpacity(isLight ? 0.12 : 0.25),
+            width: isLuxuryGreen ? 1.5 : 1.2,
           ),
           boxShadow: themeStyle.cardShadow ?? [
             BoxShadow(
@@ -105,21 +113,28 @@ class StationCard extends StatelessWidget {
             Container(
               width: 60, height: 60,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    statusColor.withOpacity(0.12),
-                    statusColor.withOpacity(0.04),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: isLuxuryGreen ? statusColor : null,
+                gradient: isLuxuryGreen
+                    ? null
+                    : LinearGradient(
+                        colors: [
+                          statusColor.withOpacity(0.12),
+                          statusColor.withOpacity(0.04),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                 borderRadius: BorderRadius.circular(math.max(themeStyle.cardRadius - 8, 8.0)),
                 border: Border.all(
-                  color: statusColor.withOpacity(0.2),
+                  color: isLuxuryGreen ? statusColor : statusColor.withOpacity(0.2),
                   width: 1.2,
                 ),
               ),
-              child: Icon(statusIcon, color: statusColor, size: 26),
+              child: Icon(
+                statusIcon,
+                color: isLuxuryGreen ? Colors.white : statusColor,
+                size: 26,
+              ),
             ),
             const SizedBox(width: 14),
 
@@ -157,10 +172,10 @@ class StationCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: primaryColor.withOpacity(0.06),
+                            color: isLuxuryGreen ? const Color(0xFF0C3B2E) : primaryColor.withOpacity(0.06),
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(
-                              color: primaryColor.withOpacity(0.15),
+                              color: isLuxuryGreen ? const Color(0xFFBB8A52) : primaryColor.withOpacity(0.15),
                               width: 1.0,
                             ),
                           ),
@@ -169,7 +184,7 @@ class StationCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w900,
-                              color: txtColor,
+                              color: isLuxuryGreen ? const Color(0xFFFFFFFF) : txtColor,
                             ),
                           ),
                         ),

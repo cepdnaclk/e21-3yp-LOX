@@ -106,7 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 'Location Permission Required',
                 style: TextStyle(fontWeight: FontWeight.w900),
               ),
-              content: const Text(
+              content: Text(
                 'Location permissions are permanently denied. Please enable them in your device settings.',
                 style: TextStyle(fontSize: 14, color: AppColors.textLabel),
               ),
@@ -204,7 +204,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Enter your password to enable biometric login.',
                     style: TextStyle(fontSize: 14, color: AppColors.textLabel),
                   ),

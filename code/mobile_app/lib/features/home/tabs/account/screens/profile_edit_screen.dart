@@ -130,21 +130,21 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Edit Profile Details',
           style: TextStyle(
             fontWeight: FontWeight.w800,
             color: AppColors.textMain,
           ),
         ),
-        iconTheme: const IconThemeData(color: AppColors.textMain),
+        iconTheme: IconThemeData(color: AppColors.textMain),
       ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           children: [
             // Background Selection & Preview Container
-            const Text(
+            Text(
               'BACKGROUND IMAGE',
               style: TextStyle(
                 fontSize: 11,
@@ -222,7 +222,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               ? NetworkImage(currentAvatar)
                               : null) as ImageProvider?,
                       child: (_avatarFile == null && currentAvatar.isEmpty)
-                          ? const Icon(Icons.person, size: 54, color: AppColors.textLabel)
+                          ? Icon(Icons.person, size: 54, color: AppColors.textLabel)
                           : null,
                     ),
                   ),
@@ -313,7 +313,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.2,
@@ -330,14 +330,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             controller: controller,
             keyboardType: keyboardType,
             maxLines: maxLines,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               color: AppColors.textField,
               fontWeight: FontWeight.w600,
             ),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: const TextStyle(
+              hintStyle: TextStyle(
                 color: AppColors.textHint,
                 fontWeight: FontWeight.w400,
               ),

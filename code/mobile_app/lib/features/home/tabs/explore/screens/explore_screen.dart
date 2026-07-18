@@ -10,6 +10,7 @@ import '../widgets/station_card.dart';
 import '../../../../../core/services/biometric_service.dart';
 import '../../../../../data/local/local_store.dart';
 import 'notification_screen.dart';
+import '../../../../../core/theme/theme_style.dart';
 
 /// Defines the available sorting strategies for the stations list.
 enum HomeStationSort { distance, availability }
@@ -391,30 +392,38 @@ class _StationsViewState extends State<StationsView> {
 
     final sorted = _sortedStations;
 
+    final themeStyle = theme.extension<AppThemeStyle>();
+    final isLuxuryGreen = themeStyle != null && themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
+
     return Container(
       color: Colors.transparent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            decoration: const BoxDecoration(
+              color: Colors.transparent,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+              child: SafeArea(
+                bottom: false,
+                child: LocationPill(
+                  label: _locLoading
+                      ? 'Detecting location…'
+                      : activeLocationText,
+                  loading: _locLoading,
+                  onTap: _locLoading ? null : _showLocationSheet,
+                ),
+              ),
+            ),
+          ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Location display and interactive trigger
-                SafeArea(
-                  bottom: false,
-                  child: LocationPill(
-                    label: _locLoading
-                        ? 'Detecting location…'
-                        : activeLocationText,
-                    loading: _locLoading,
-                    onTap: _locLoading ? null : _showLocationSheet,
-                  ),
-                ),
-                const SizedBox(height: 22),
-
                 // Title & controls section
                 Row(
                   children: [
@@ -560,7 +569,7 @@ class _StationsViewState extends State<StationsView> {
                 RefreshIndicator(
                   onRefresh: widget.onRefresh,
                   child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 180),
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 90),
                     itemCount: sorted.isEmpty ? 1 : sorted.length,
                     itemBuilder: (context, index) {
                       if (sorted.isEmpty) {
