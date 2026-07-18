@@ -269,7 +269,7 @@ function OverdueBadge({ minutes }: { minutes: number }) {
 
 function ActiveOverdueSection({ rows, freeDuration, onRefresh }: { rows: LockerUsage[]; freeDuration: number; onRefresh: () => void }) {
   type SK = "overdueMinutes" | "charge" | "approvedAt";
-  const [sk, setSk] = useState<SK>("overdueMinutes");
+  const [sk, setSk] = useState<SK>("approvedAt");
   const [sd, setSd] = useState<"desc" | "asc">("desc");
   const [filter, setFilter] = useState<"all" | "overdue" | "free">("all");
   const [page, setPage] = useState(1);

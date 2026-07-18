@@ -79,7 +79,7 @@ function SecurityAlertCard({
 }: {
   event: SecurityEvent;
   isNew: boolean;
-  onIgnore: (lockerId: string) => void;
+  onIgnore: (lockerId: string, eventId: string) => void;
   onDismiss: (id: string) => void;
   isSubAdmin: boolean;
   lockerMap: Record<string, string>;   // lockerId → locker code
@@ -149,7 +149,7 @@ function SecurityAlertCard({
             size="sm"
             variant="outline"
             className="h-8 text-xs px-3 border-green-500/30 text-green-500 hover:bg-green-500/10 hover:text-green-400 transition-colors"
-            onClick={() => onIgnore(event.lockerId!)}
+            onClick={() => onIgnore(event.lockerId!, event._id)}
           >
             <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
             Ignore Alert
@@ -181,7 +181,7 @@ function SecurityAlertsPanel({
 }: {
   alerts: SecurityEvent[];
   newAlertIds: Set<string>;
-  onIgnore: (lockerId: string) => void;
+  onIgnore: (lockerId: string, eventId: string) => void;
   onDismiss: (id: string) => void;
   isSubAdmin: boolean;
   lockerMap: Record<string, string>;
@@ -290,11 +290,14 @@ function Dashboard() {
   
   // Sub-admin specific state
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [activeRequests, setActiveRequests] = useState<any[]>([]);
 
   // Security alert notifications
   const [securityAlerts, setSecurityAlerts] = useState<SecurityEvent[]>([]);
   const [newAlertIds, setNewAlertIds] = useState<Set<string>>(new Set());
-  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const dismissedIdsRef = useRef<Set<string>>(new Set(
+    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('dismissedAlerts') || '[]') : []
+  ));
   const prevAlertIdsRef = useRef<Set<string>>(new Set());
 
   // Confirmation dialog state
@@ -325,6 +328,8 @@ function Dashboard() {
       let lockersPromise: Promise<any> | null = null;
       let pendingPromise: Promise<any> | null = null;
 
+      let activePromise: Promise<any> | null = null;
+
       if (u.role === 'USER') {
         requestsPromise = apiGet('/requests', { skipCache });
         lockersPromise = apiGet('/lockers', { skipCache });
@@ -332,19 +337,22 @@ function Dashboard() {
 
       if (u.role === 'SUB_ADMIN' || u.role === 'SUPER_ADMIN') {
         pendingPromise = apiGet('/requests?status=PENDING', { skipCache });
+        activePromise = apiGet('/requests?status=APPROVED', { skipCache });
       }
 
       // Await all in parallel
-      const [stData, reqData, lockData, pReqData] = await Promise.all([
+      const [stData, reqData, lockData, pReqData, aReqData] = await Promise.all([
         stationsPromise,
         requestsPromise,
         lockersPromise,
-        pendingPromise
+        pendingPromise,
+        activePromise
       ]);
 
       if (reqData) setMyRequests(reqData.requests || []);
       if (lockData) setMyLockers(lockData.lockers || []);
       if (pReqData) setPendingRequests(pReqData.requests || []);
+      if (aReqData) setActiveRequests(aReqData.requests || []);
 
       const stList = stData.stations || [];
       setStationsList(stList);
@@ -391,7 +399,7 @@ function Dashboard() {
         setNewAlertIds(fresh);
         setTimeout(() => setNewAlertIds(new Set()), 6000);
       }
-      setSecurityAlerts(alertEvents.filter(e => !dismissedIds.has(e._id)));
+      setSecurityAlerts(alertEvents.filter(e => !dismissedIdsRef.current.has(e._id)));
     } catch (e) {
       console.error('Failed to fetch security alerts', e);
     }
@@ -491,8 +499,15 @@ function Dashboard() {
     try {
       await apiMutate(`/lockers/${lockerId}/security-ignore`, 'POST', undefined, ['/lockers']);
       toast.success('Security alert ignored');
-      setDismissedIds(prev => new Set([...prev, eventId]));
-      setSecurityAlerts(prev => prev.filter(e => e._id !== eventId));
+      
+      setSecurityAlerts(prev => {
+        const remaining = prev.filter(e => e.lockerId !== lockerId);
+        const removed = prev.filter(e => e.lockerId === lockerId);
+        removed.forEach(e => dismissedIdsRef.current.add(e._id));
+        localStorage.setItem('dismissedAlerts', JSON.stringify(Array.from(dismissedIdsRef.current)));
+        return remaining;
+      });
+
       fetchAll(token, user, true);
     } catch (err: any) {
       toast.error(err.message);
@@ -500,7 +515,8 @@ function Dashboard() {
   };
 
   const dismissAlert = (eventId: string) => {
-    setDismissedIds(prev => new Set([...prev, eventId]));
+    dismissedIdsRef.current.add(eventId);
+    localStorage.setItem('dismissedAlerts', JSON.stringify(Array.from(dismissedIdsRef.current)));
     setSecurityAlerts(prev => prev.filter(e => e._id !== eventId));
   };
 
@@ -618,7 +634,7 @@ function Dashboard() {
         <SecurityAlertsPanel
           alerts={securityAlerts}
           newAlertIds={newAlertIds}
-          onIgnore={(lockerId) => ignoreAlertAndDismiss(lockerId, securityAlerts.find(e => e.lockerId === lockerId)?._id ?? '')}
+          onIgnore={ignoreAlertAndDismiss}
           onDismiss={dismissAlert}
           isSubAdmin={isSubAdmin}
           lockerMap={lockerMap}
@@ -800,6 +816,18 @@ function Dashboard() {
               const status = getLockerStatus(l);
               const s = statusStyles[status];
               const Icon = s.icon;
+              
+              let occupantName = null;
+              let bookedTime = null;
+              if (l.isBooked && l.activeRequestId) {
+                const req = activeRequests.find(r => r._id === l.activeRequestId);
+                if (req) {
+                  occupantName = req.userId?.name;
+                  const date = new Date(req.approvedAt || req.updatedAt || req.createdAt);
+                  bookedTime = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                }
+              }
+
               return (
                 <motion.div
                   key={l._id}
@@ -824,6 +852,13 @@ function Dashboard() {
                   <p className="mt-3 text-sm font-semibold">{l.code}</p>
                   <p className="text-xs text-muted-foreground">{s.label}</p>
                   
+                  {occupantName && (
+                    <div className="mt-2 space-y-0.5">
+                      <p className="text-[11px] font-medium text-foreground truncate" title={occupantName}>👤 {occupantName}</p>
+                      {bookedTime && <p className="text-[10px] text-muted-foreground">🕒 {bookedTime}</p>}
+                    </div>
+                  )}
+
                   {l.securityAlertActive && (
                     <div className="mt-3 p-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold flex items-center gap-1.5 shadow-sm">
                       <span className="relative flex h-2 w-2">
