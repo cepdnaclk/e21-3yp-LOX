@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Store, BarChart3, User, HelpCircle, Settings, LogOut, LockKeyhole, ListOrdered, Receipt } from "lucide-react";
+import { Home, Store, BarChart3, User, HelpCircle, Settings, LogOut, LockKeyhole, ListOrdered, Receipt, Package } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 const items = [
   { title: "Home", url: "/dashboard", icon: Home, roles: null },
   { title: "Store", url: "/store", icon: Store, roles: null },
+  { title: "My Orders", url: "/orders", icon: Package, roles: null },
   { title: "Queue", url: "/queue", icon: ListOrdered, roles: null },
   { title: "Analytics", url: "/analytics", icon: BarChart3, roles: null },
   { title: "Overdue Payments", url: "/overdue", icon: Receipt, roles: ["SUB_ADMIN", "SUPER_ADMIN"] },
@@ -77,7 +78,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
                   />
                 )}
                 <item.icon className={cn("h-4.5 w-4.5 shrink-0", active ? "text-primary" : "")} />
-                <span>{item.title}</span>
+                <span>{item.url === "/orders" && user?.role === 'SUPER_ADMIN' ? "View Orders" : item.title}</span>
                 {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
               </Link>
             </motion.div>

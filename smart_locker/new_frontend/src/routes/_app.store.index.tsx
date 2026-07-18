@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Star, Search, ShoppingBag, ArrowRight, Package, Calendar } from "lucide-react";
+import { Star, Search, ShoppingBag, ArrowRight } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -245,35 +245,7 @@ function StorePage() {
             <p className="text-sm text-muted-foreground">Search, price filters, delivery filters and color selection all work together.</p>
           </div>
 
-          <div className="card-soft p-5 rounded-2xl">
-            <h3 className="font-bold text-lg">Recent orders</h3>
-            <p className="text-sm text-muted-foreground mb-4">Stripe-backed checkout sessions and payment status updates appear here.</p>
-            {orders.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No orders yet. Buy a product to create your first Stripe test checkout session.</p>
-            ) : (
-              <div className="space-y-3">
-                {orders.map(o => (
-                  <div key={o.id} className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-primary/10 rounded-lg grid place-items-center text-primary">
-                        <Package className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm">Order {o.orderNumber || (o.id ? o.id.substring(Math.max(0, o.id.length - 6)).toUpperCase() : o._id?.substring(Math.max(0, o._id.length - 6)).toUpperCase() || 'UNKNOWN')}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3"/> {new Date(o.createdAt).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-sm">${(o.amount || 0).toLocaleString()}</p>
-                      <span className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full", o.status === 'PAID' ? "bg-success/10 text-success" : o.status === 'CANCELLED' ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning")}>
-                        {o.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map((p, i) => (

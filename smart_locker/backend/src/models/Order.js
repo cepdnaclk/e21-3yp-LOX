@@ -13,12 +13,25 @@ const orderSchema = new mongoose.Schema(
     deliveryDays: { type: Number, default: 0, min: 0 },
     currency: { type: String, default: 'usd', trim: true },
     amount: { type: Number, required: true, min: 0 },
-    status: {
+    orderStatus: {
       type: String,
-      enum: ['PENDING', 'PAID', 'FAILED', 'CANCELLED'],
+      enum: ['PENDING', 'PROCESSING', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED'],
       default: 'PENDING',
       index: true
     },
+    paymentStatus: {
+      type: String,
+      enum: ['PENDING', 'PAID', 'FAILED', 'REFUNDED'],
+      default: 'PENDING',
+      index: true
+    },
+    messages: [
+      {
+        message: { type: String, required: true },
+        senderRole: { type: String, default: 'SUPER_ADMIN' },
+        date: { type: Date, default: Date.now }
+      }
+    ],
     stripeSessionId: { type: String, trim: true, index: true, default: '' },
     stripePaymentIntentId: { type: String, trim: true, default: '' },
     stripePaymentStatus: { type: String, trim: true, default: '' },

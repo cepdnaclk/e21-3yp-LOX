@@ -1,7 +1,7 @@
 const asyncHandler = require('../utils/asyncHandler');
 const { success } = require('../presenters/apiPresenter');
 const { env } = require('../config/env');
-const { createCheckoutSession, handleStripeWebhookEvent } = require('../services/paymentService');
+const { createCheckoutSession, handleStripeWebhookEvent, verifySession } = require('../services/paymentService');
 
 const createCheckoutSessionHandler = asyncHandler(async (req, res) => {
   const result = await createCheckoutSession(req.user, req.body || {}, req);
@@ -28,7 +28,13 @@ const stripeWebhookHandler = asyncHandler(async (req, res) => {
   return success(res, { received: true, order });
 });
 
+const verifySessionHandler = asyncHandler(async (req, res) => {
+  const result = await verifySession(req.query.session_id);
+  return success(res, result);
+});
+
 module.exports = {
   createCheckoutSessionHandler,
-  stripeWebhookHandler
+  stripeWebhookHandler,
+  verifySessionHandler
 };
