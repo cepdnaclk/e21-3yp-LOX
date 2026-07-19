@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { Battery, BatteryLow, DoorOpen, DoorClosed, LockKeyhole, Wrench, WifiOff, CheckCircle2, Unlock, LogOut, ShieldAlert, ShieldOff, Vibrate, BellRing, X, AlertTriangle, Clock } from "lucide-react";
+import { Battery, BatteryLow, DoorOpen, DoorClosed, LockKeyhole, Wrench, WifiOff, CheckCircle2, Unlock, LogOut, ShieldAlert, ShieldOff, Vibrate, BellRing, X, AlertTriangle, Clock, KeyRound, Plus, Trash2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -300,6 +300,15 @@ function Dashboard() {
   ));
   const prevAlertIdsRef = useRef<Set<string>>(new Set());
 
+  // Add Locker modal state (SUB_ADMIN)
+  const [addLockerOpen, setAddLockerOpen] = useState(false);
+  const [addLockerStep, setAddLockerStep] = useState<1 | 2>(1);
+  const [addLockerKey, setAddLockerKey] = useState("");
+  const [addLockerKeyError, setAddLockerKeyError] = useState("");
+  const [addLockerCode, setAddLockerCode] = useState("");
+  const [addLockerStation, setAddLockerStation] = useState("");
+  const [addLockerLoading, setAddLockerLoading] = useState(false);
+
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -318,6 +327,67 @@ function Dashboard() {
   });
 
   const navigate = useNavigate();
+
+  const openAddLockerModal = () => {
+    setAddLockerStep(1);
+    setAddLockerKey("");
+    setAddLockerKeyError("");
+    setAddLockerCode("");
+    setAddLockerStation(stationsList[0]?._id || "");
+    setAddLockerOpen(true);
+  };
+
+  const handleAddLockerKeyNext = () => {
+    const trimmed = addLockerKey.trim().toUpperCase();
+    const keyPattern = /^LOXA-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+    if (!trimmed) {
+      setAddLockerKeyError("Please enter an activation key.");
+      return;
+    }
+    if (!keyPattern.test(trimmed)) {
+      setAddLockerKeyError("Invalid format. Key must be: LOXA-XXXX-XXXX-XXXX");
+      return;
+    }
+    setAddLockerKeyError("");
+    setAddLockerStep(2);
+  };
+
+  const handleCreateLockerWithKey = async () => {
+    if (!addLockerCode.trim()) {
+      toast.error("Please enter a locker code");
+      return;
+    }
+    if (!addLockerStation) {
+      toast.error("Please select a station");
+      return;
+    }
+    setAddLockerLoading(true);
+    try {
+      await apiMutate("/activation-keys/use", "POST", {
+        activationKey: addLockerKey.trim().toUpperCase(),
+        stationId: addLockerStation,
+        code: addLockerCode.trim(),
+      }, ["/lockers", "/activation-keys"]);
+      toast.success(`Locker "${addLockerCode.trim().toUpperCase()}" created successfully!`);
+      setAddLockerOpen(false);
+      fetchAll(token, user, true);
+      if (selectedGridStation === addLockerStation || user?.role === 'SUB_ADMIN') {
+        fetchLockersForStation(addLockerStation, true);
+      }
+    } catch (err: any) {
+      const msg = err.message || "Failed to create locker";
+      // If error is about already-used key, go back to step 1 with error
+      if (msg.toLowerCase().includes("already been used") || msg.toLowerCase().includes("already used")) {
+        setAddLockerStep(1);
+        setAddLockerKey("");
+        setAddLockerKeyError(msg);
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setAddLockerLoading(false);
+    }
+  };
 
   const fetchAll = async (t: string, u: any, skipCache = false) => {
     try {
@@ -528,6 +598,33 @@ function Dashboard() {
     } catch (err: any) {
       toast.error(err.message);
     }
+  };
+
+  const deleteLocker = async (id: string, code: string) => {
+    try {
+      await apiMutate(`/lockers/${id}`, 'DELETE', undefined, ['/lockers']);
+      toast.success(`Locker ${code} deleted successfully`);
+      fetchAll(token, user, true);
+      if (selectedGridStation) fetchLockersForStation(selectedGridStation, true);
+      else if (stationsList.length > 0) fetchLockersForStation(stationsList[0]._id, true);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const confirmDeleteLocker = (id: string, code: string, isBooked: boolean) => {
+    if (isBooked) {
+      toast.error('Cannot delete an occupied locker. Release the user first.');
+      return;
+    }
+    setConfirmDialog({
+      isOpen: true,
+      title: `Delete Locker ${code}?`,
+      description: `Are you sure you want to permanently delete locker ${code}? This action cannot be undone.`,
+      onConfirm: () => deleteLocker(id, code),
+      actionLabel: 'Delete',
+      variant: 'destructive',
+    });
   };
 
   const confirmApproveRequest = (id: string, userName: string) => {
@@ -799,6 +896,17 @@ function Dashboard() {
                   </SelectContent>
                 </Select>
               )}
+              {/* Add Locker button — SUB_ADMIN only */}
+              {user.role === 'SUB_ADMIN' && (
+                <Button
+                  size="sm"
+                  className="h-9 rounded-xl gap-2 gradient-primary hover:opacity-90 text-primary-foreground border-0 font-semibold"
+                  onClick={openAddLockerModal}
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Locker
+                </Button>
+              )}
               {/* Status legend */}
               <div className="flex flex-wrap gap-2">
                 {(Object.keys(statusStyles) as LockerStatus[]).map((k) => (
@@ -887,6 +995,21 @@ function Dashboard() {
                       </div>
                       <div className="grid grid-cols-1 gap-2">
                         <Button size="sm" variant="outline" className={cn("h-8 text-[11px] px-2", l.isMaintenance ? "border-success/30 text-success hover:bg-success/10" : "border-warning/30 text-warning hover:bg-warning/10")} onClick={() => confirmCommandLocker(l._id, 'maintenance', l.code, l.isMaintenance)}><Wrench className="w-3 h-3 mr-1" /> {l.isMaintenance ? 'Mark Ready' : 'Maintenance'}</Button>
+                        {user.role === 'SUB_ADMIN' && (
+                          <Button
+                            title={l.isBooked ? 'Release user before deleting' : 'Delete locker'}
+                            size="sm"
+                            variant="outline"
+                            disabled={l.isBooked}
+                            className={cn(
+                              "h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive/10",
+                              l.isBooked && "opacity-40 cursor-not-allowed"
+                            )}
+                            onClick={() => confirmDeleteLocker(l._id, l.code, l.isBooked)}
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" /> Delete
+                          </Button>
+                        )}
                         {l.securityAlertActive && (
                           <Button size="sm" variant="outline" className="h-8 text-[11px] px-2 bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20" onClick={() => commandLocker(l._id, 'security-ignore')}><CheckCircle2 className="w-3 h-3 mr-1" /> Ignore Alert</Button>
                         )}
@@ -927,6 +1050,166 @@ function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* ── Add Locker Modal (SUB_ADMIN) ── */}
+      <AnimatePresence>
+        {addLockerOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md"
+            onClick={(e) => { if (e.target === e.currentTarget) setAddLockerOpen(false); }}
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 24 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.92, y: 24 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              className="relative w-full max-w-md mx-4 bg-card border border-border rounded-3xl shadow-2xl overflow-hidden"
+            >
+              {/* Accent bar */}
+              <div className="h-1 w-full gradient-primary" />
+
+              <div className="p-7">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      {addLockerStep === 1 ? (
+                        <KeyRound className="h-5 w-5 text-primary" />
+                      ) : (
+                        <Plus className="h-5 w-5 text-primary" />
+                      )}
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold">
+                        {addLockerStep === 1 ? "Enter Activation Key" : "Set Locker Details"}
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        {addLockerStep === 1 ? "Step 1 of 2 — Key verification" : "Step 2 of 2 — Locker setup"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setAddLockerOpen(false)}
+                    className="h-8 w-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Step indicator */}
+                <div className="flex gap-2 mb-6">
+                  <div className={cn("flex-1 h-1 rounded-full transition-colors", addLockerStep >= 1 ? "bg-primary" : "bg-muted")} />
+                  <div className={cn("flex-1 h-1 rounded-full transition-colors", addLockerStep >= 2 ? "bg-primary" : "bg-muted")} />
+                </div>
+
+                {/* Step 1 — Activation key */}
+                {addLockerStep === 1 && (
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Activation Key
+                      </Label>
+                      <div className="relative">
+                        <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          value={addLockerKey}
+                          onChange={(e) => { setAddLockerKey(e.target.value.toUpperCase()); setAddLockerKeyError(""); }}
+                          placeholder="LOXA-XXXX-XXXX-XXXX"
+                          className={cn(
+                            "h-11 pl-10 rounded-xl font-mono tracking-widest",
+                            addLockerKeyError && "border-destructive focus-visible:ring-destructive"
+                          )}
+                          maxLength={19}
+                          onKeyDown={(e) => e.key === "Enter" && handleAddLockerKeyNext()}
+                        />
+                      </div>
+                      {addLockerKeyError && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-xs text-destructive font-medium flex items-center gap-1.5"
+                        >
+                          <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                          {addLockerKeyError}
+                        </motion.p>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Contact your super admin if you don't have an activation key.</p>
+                    <Button
+                      className="w-full h-11 rounded-xl gradient-primary hover:opacity-90 text-primary-foreground border-0 font-semibold"
+                      onClick={handleAddLockerKeyNext}
+                    >
+                      Verify Key & Continue
+                    </Button>
+                  </div>
+                )}
+
+                {/* Step 2 — Locker details */}
+                {addLockerStep === 2 && (
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Locker Code
+                      </Label>
+                      <Input
+                        value={addLockerCode}
+                        onChange={(e) => setAddLockerCode(e.target.value.toUpperCase())}
+                        placeholder="e.g. L1, L2, A1"
+                        className="h-11 rounded-xl font-mono font-bold tracking-widest"
+                        maxLength={10}
+                        onKeyDown={(e) => e.key === "Enter" && handleCreateLockerWithKey()}
+                        autoFocus
+                      />
+                      <p className="text-[11px] text-muted-foreground">A unique code to identify this locker (e.g. L1, A3, B2).</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Station
+                      </Label>
+                      <Select value={addLockerStation} onValueChange={setAddLockerStation}>
+                        <SelectTrigger className="h-11 rounded-xl">
+                          <SelectValue placeholder="Select station" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {stationsList
+                            .filter((s: any) => (user.stationIds || []).map(String).includes(String(s._id)))
+                            .map((s: any) => (
+                              <SelectItem key={s._id} value={s._id}>
+                                {s.name || s.code}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        className="flex-1 h-11 rounded-xl"
+                        onClick={() => setAddLockerStep(1)}
+                        disabled={addLockerLoading}
+                      >
+                        Back
+                      </Button>
+                      <Button
+                        className="flex-1 h-11 rounded-xl gradient-primary hover:opacity-90 text-primary-foreground border-0 font-semibold"
+                        onClick={handleCreateLockerWithKey}
+                        disabled={addLockerLoading}
+                      >
+                        {addLockerLoading ? "Creating…" : "Create Locker"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Confirmation Dialog */}
       <AlertDialog open={confirmDialog.isOpen} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, isOpen: open }))}>

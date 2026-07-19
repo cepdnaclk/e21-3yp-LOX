@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Store, BarChart3, User, HelpCircle, Settings, LogOut, LockKeyhole, ListOrdered, Receipt, Package } from "lucide-react";
+import { Home, Store, BarChart3, User, HelpCircle, Settings, LogOut, LockKeyhole, ListOrdered, Receipt, Package, KeyRound } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ const items = [
   { title: "Queue", url: "/queue", icon: ListOrdered, roles: null },
   { title: "Analytics", url: "/analytics", icon: BarChart3, roles: null },
   { title: "Overdue Payments", url: "/overdue", icon: Receipt, roles: ["SUB_ADMIN", "SUPER_ADMIN"] },
+  { title: "Activation Keys", url: "/activation-keys", icon: KeyRound, roles: ["SUPER_ADMIN"] },
   { title: "My Account", url: "/account", icon: User, roles: null },
   { title: "Help", url: "/help", icon: HelpCircle, roles: null },
   { title: "Settings", url: "/settings", icon: Settings, roles: null },

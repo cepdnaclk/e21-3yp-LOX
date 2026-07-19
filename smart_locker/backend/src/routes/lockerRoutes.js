@@ -6,7 +6,8 @@ const {
   lockLockerHandler,
   releaseLockerHandler,
   ignoreSecurityAlertHandler,
-  toggleMaintenanceHandler
+  toggleMaintenanceHandler,
+  deleteLockerHandler
 } = require('../controllers/lockerController');
 const { requireAuth, allowRoles } = require('../middleware/authMiddleware');
 const { Roles } = require('../constants/enums');
@@ -21,5 +22,6 @@ router.post('/:lockerId/lock', lockLockerHandler);
 router.post('/:lockerId/release', releaseLockerHandler);
 router.post('/:lockerId/security-ignore', ignoreSecurityAlertHandler);
 router.post('/:lockerId/maintenance', toggleMaintenanceHandler);
+router.delete('/:lockerId', allowRoles([Roles.SUPER_ADMIN, Roles.SUB_ADMIN]), deleteLockerHandler);
 
 module.exports = router;

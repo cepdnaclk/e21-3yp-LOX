@@ -19,6 +19,7 @@ import { Route as AppOrdersRouteImport } from './routes/_app.orders'
 import { Route as AppHelpRouteImport } from './routes/_app.help'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
+import { Route as AppActivationKeysRouteImport } from './routes/_app.activation-keys'
 import { Route as AppAccountRouteImport } from './routes/_app.account'
 import { Route as AppStoreIndexRouteImport } from './routes/_app.store.index'
 import { Route as AppStoreIdRouteImport } from './routes/_app.store.$id'
@@ -72,6 +73,11 @@ const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AppRoute,
 } as any)
+const AppActivationKeysRoute = AppActivationKeysRouteImport.update({
+  id: '/activation-keys',
+  path: '/activation-keys',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAccountRoute = AppAccountRouteImport.update({
   id: '/account',
   path: '/account',
@@ -92,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/register': typeof RegisterRoute
   '/account': typeof AppAccountRoute
+  '/activation-keys': typeof AppActivationKeysRoute
   '/analytics': typeof AppAnalyticsRoute
   '/dashboard': typeof AppDashboardRoute
   '/help': typeof AppHelpRoute
@@ -106,6 +113,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/register': typeof RegisterRoute
   '/account': typeof AppAccountRoute
+  '/activation-keys': typeof AppActivationKeysRoute
   '/analytics': typeof AppAnalyticsRoute
   '/dashboard': typeof AppDashboardRoute
   '/help': typeof AppHelpRoute
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/register': typeof RegisterRoute
   '/_app/account': typeof AppAccountRoute
+  '/_app/activation-keys': typeof AppActivationKeysRoute
   '/_app/analytics': typeof AppAnalyticsRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/help': typeof AppHelpRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/'
     | '/register'
     | '/account'
+    | '/activation-keys'
     | '/analytics'
     | '/dashboard'
     | '/help'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/'
     | '/register'
     | '/account'
+    | '/activation-keys'
     | '/analytics'
     | '/dashboard'
     | '/help'
@@ -167,6 +178,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/register'
     | '/_app/account'
+    | '/_app/activation-keys'
     | '/_app/analytics'
     | '/_app/dashboard'
     | '/_app/help'
@@ -256,6 +268,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAnalyticsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/activation-keys': {
+      id: '/_app/activation-keys'
+      path: '/activation-keys'
+      fullPath: '/activation-keys'
+      preLoaderRoute: typeof AppActivationKeysRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/account': {
       id: '/_app/account'
       path: '/account'
@@ -282,6 +301,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAccountRoute: typeof AppAccountRoute
+  AppActivationKeysRoute: typeof AppActivationKeysRoute
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppHelpRoute: typeof AppHelpRoute
@@ -295,6 +315,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAccountRoute: AppAccountRoute,
+  AppActivationKeysRoute: AppActivationKeysRoute,
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppHelpRoute: AppHelpRoute,
