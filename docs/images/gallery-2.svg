@@ -1,0 +1,7 @@
+<svg width="600" height="380" viewBox="0 0 600 380" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="380" fill="#F5FAFF"/>
+  <rect x="45" y="45" width="510" height="290" rx="22" fill="#ffffff" stroke="#dceeff" stroke-width="4"/>
+  <circle cx="300" cy="165" r="56" fill="#2196F3" opacity="0.18"/>
+  <text x="300" y="177" font-family="Arial" font-size="34" font-weight="700" text-anchor="middle" fill="#2196F3">Image 2</text>
+  <text x="300" y="245" font-family="Arial" font-size="20" text-anchor="middle" fill="#666666">Replace this placeholder</text>
+</svg>
