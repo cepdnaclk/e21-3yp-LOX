@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LOX - Mobile App Based Smart Locker</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ================= NAVBAR ================= -->
+  <!-- Edit menu names or links here. Each link connects to a section ID below. -->
+  <header class="navbar">
+    <div class="container nav-content">
+      <a class="logo" href="#home"><img src="images/logo.png" alt="LOX Logo" /></a>
+      <nav class="nav-links">
+        <a href="#home">Overview</a>
+        <a href="#about">About</a>
+        <a href="#problem">Problem</a>
+        <a href="#solution">Solution</a>
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#team">Our Team</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#budget">Budget</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <a class="nav-cta" href="#home">Get Started</a>
+    </div>  
+  </header>
+
+  <!-- ================= HERO SECTION ================= -->
+  <section id="home" class="hero section">
+    <div class="container hero-content">
+      <h1>IOT Smart Locker</h1>
+      <p class="hero-subtitle hero-center-copy">
+        Secure. Smart. Connected.
+      </p>
+      <div class="button-row hero-button-row">
+        <a href="#features" class="btn hero-btn">Explore More</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ABOUT SECTION ================= -->
+  <section id="about" class="section light-section">
+    <div class="container">
+      
+      <h2>What is LOX?</h2>
+      <p class="section-text">
+        LOX is an IoT-enabled smart locker ecosystem. Users can reserve and unlock lockers through a mobile application, while administrators can monitor and manage lockers through a connected system.
+      </p>
+
+      <div class="card-grid three-columns">
+        <div class="card">
+          <h3>Secure</h3>
+          <p>Provides safe temporary storage with electronic locking and authentication.</p>
+        </div>
+        <div class="card">
+          <h3>Smart</h3>
+          <p>Uses sensors, ESP32 control and software logic to automate locker access.</p>
+        </div>
+        <div class="card">
+          <h3>Connected</h3>
+          <p>Connects the mobile app, backend and hardware locker system together.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PROBLEM SECTION ================= -->
+  <section id="problem" class="section">
+    <div class="container">
+      
+      <h2>Why LOX is Needed</h2>
+      <div class="card-grid four-columns">
+        <div class="card"><h3>No Secure Storage</h3><p>Many public places do not provide safe temporary storage.</p></div>
+        <div class="card"><h3>Risk of Theft</h3><p>Students and passengers may lose personal belongings.</p></div>
+        <div class="card"><h3>Manual Management</h3><p>Traditional lockers need keys and manual supervision.</p></div>
+        <div class="card"><h3>Poor Convenience</h3><p>Users need a faster and easier way to access lockers.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SOLUTION SECTION ================= -->
+  <section id="solution" class="section light-section">
+    <div class="container two-column">
+      <div>
+       
+        <h2>Our Solution</h2>
+        <p class="section-text">
+          LOX allows users to reserve lockers, unlock them remotely, monitor locker status and securely store items using a mobile app and IoT-enabled locker hardware.
+        </p>
+        <ul class="simple-list">
+          <li>Mobile app reservation</li>
+          <li>Remote locker control</li>
+          <li>Real-time locker status</li>
+          <li>Automatic locking</li>
+          <li>Secure authentication</li>
+        </ul>
+
+      </div>
+      <div class="image-card">
+        <img src="images/solution.png" alt="LOX solution illustration" />
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FEATURES SECTION ================= -->
+  <section id="features" class="section">
+    <div class="container">
+      
+      <div class="feature-heading">
+        <h2>Main Features</h2>
+        <p class="section-text">
+          Select a feature to take a closer look at the main smart locker capabilities.
+        </p>
+      </div>
+
+      <div class="feature-showcase" aria-label="LOX main feature preview">
+        <div class="feature-visual-card" id="featureVisualCard">
+          <div class="feature-image-wrap">
+            <img
+              id="featureImage"
+              class="feature-image has-image"
+              src="metal look.png"
+              alt="Smartphone Access feature image placeholder"
+            />
+            <div class="feature-placeholder" id="featurePlaceholder" aria-hidden="true"></div>
+          </div>
+
+          <div class="feature-caption">
+            <span id="featureCount">01 / 08</span>
+            <h3 id="featureTitle">Smartphone Access</h3>
+            <p id="featureDescription">Users control locker access using the mobile app with a simple and secure interface.</p>
+          </div>
+        </div>
+
+        <div class="feature-tabs" role="tablist" aria-label="Main LOX features">
+          <button class="feature-tab active" type="button" role="tab" aria-selected="true" data-count="01 / 08" data-title="Smartphone Access" data-description="Users control locker access using the mobile app with a simple and secure interface." data-image="images/smartphone access.png" data-alt="Smartphone Access feature image placeholder">
+            <span>01</span>
+            <strong>Smartphone Access</strong>
+            <small>Mobile-first locker control</small>
+          </button>
+
+          <button class="feature-tab" type="button" role="tab" aria-selected="false" data-count="02 / 08" data-title="Metal Body" data-description="Durable and modern design made from high-quality metal." data-image="images/metal look.png" data-alt="Metal Body feature image placeholder">
+            <span>02</span>
+            <strong>Metal Body</strong>
+            <small>Unlock from the phone</small>
+          </button>
+
+          <button class="feature-tab" type="button" role="tab" aria-selected="false" data-count="03 / 08" data-title="Locker Status" data-description="Check whether a locker is free, reserved, occupied, opened or locked in real time." data-image="images/locker status.png" data-alt="Locker Status feature image placeholder">
+            <span>03</span>
+            <strong>Locker Status</strong>
+            <small>Live availability view</small>
+          </button>
+
+          <button class="feature-tab" type="button" role="tab" aria-selected="false" data-count="04 / 08" data-title="Instant Notifications" data-description="Receive instant notifications about your locker's status and activities." data-image="images/notifications.png" data-alt="Instant Notifications feature image placeholder">
+            <span>04</span>
+            <strong>Instant Notifications</strong>
+            <small>Mobile alerts on every activity of your locker</small>
+          </button>
+
+          <button class="feature-tab" type="button" role="tab" aria-selected="false" data-count="05 / 08" data-title="Interior Lighting" data-description="Interior lighting system for night-time visibility." data-image="images/feature-notifications.png" data-alt="Interior Lighting feature image placeholder">
+            <span>05</span>
+            <strong>Interior Lighting</strong>
+            <small>Well-lit storage environment at night time</small>
+          </button>
+
+          <button class="feature-tab" type="button" role="tab" aria-selected="false" data-count="06 / 08" data-title="Auto Close Door" data-description="Using hydraulic hinges to close the door automatically" data-image="images/door hinge.jpg" data-alt="Auto Close Door feature image placeholder">
+            <span>06</span>
+            <strong>Auto Close Door</strong>
+            <small>Using hydraulic hinges to close the door automatically</small>
+          </button>
+
+          <button class="feature-tab" type="button" role="tab" aria-selected="false" data-count="07 / 08" data-title="Smart Queue" data-description="When all lockers are full, enter the queue to be notified when a locker becomes available." data-image="images/queue.png" data-alt="Smart Queue feature image placeholder">
+            <span>07</span>
+            <strong>Smart Queue</strong>
+            <small>when all lockers are full , enter to the queue</small>
+          </button>
+
+          <button class="feature-tab" type="button" role="tab" aria-selected="false" data-count="08 / 08" data-title="Analytics Dashboard" data-description="View detailed insights and reports on locker usage and performance." data-image="images/analytics.png" data-alt="Analytics Dashboard feature image placeholder">
+            <span>08</span>
+            <strong>Analytics Dashboard</strong>
+            <small>View detailed insights and reports on locker usage and performance</small>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= HOW IT WORKS SECTION ================= -->
+  <section id="how-it-works" class="section light-section">
+    <div class="container">
+      
+      <h2>How It Works</h2>
+      <div class="steps">
+        <div class="step">1. Login</div>
+        <div class="step">2. Choose Locker</div>
+        <div class="step">3. Reserve Locker</div>
+        <div class="step">4. Unlock from Mobile</div>
+        <div class="step">5. Store Items</div>
+        <div class="step">6. Close Door</div>
+        <div class="step">7. Automatically Locked</div>
+        <div class="step">8. Unlock Again</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ARCHITECTURE SECTION ================= -->
+  <section id="architecture" class="section">
+    <div class="container">
+      
+      <h2>System Architecture Diagram</h2>
+      <img src="images/infrastructure_diagram.png" alt="LOX system architecture diagram" class="architecture-image" />
+      <img src="images/11.png" alt="LOX system architecture diagram" class="architecture-image" />
+      <img src="images/19.png" alt="LOX system architecture diagram" class="architecture-image" />
+      <img src="images/21.png" alt="LOX system architecture diagram" class="architecture-image" />
+    </div>
+  </section>
+
+  <!-- ================= TECHNOLOGY SECTION ================= -->
+  <section id="technology" class="section light-section">
+    <div class="container">
+      
+      <h2>Technologies Used</h2>
+      <div class="card-grid four-columns">
+        <div class="card"><img src="images/flutter.png" alt="Flutter" class="technology-image"><div class="card-copy"><h3>Flutter</h3><p>Mobile app development.</p></div></div>
+        <div class="card"><img src="images/react.png" alt="React.js" class="technology-image"><div class="card-copy"><h3>React.js</h3><p>Admin dashboard frontend.</p></div></div>
+        <div class="card"><img src="images/node.png" alt="Node.js" class="technology-image"><div class="card-copy"><h3>Node.js</h3><p>Backend API development.</p></div></div>
+        <div class="card"><img src="images/mongodb.png" alt="MongoDB" class="technology-image"><div class="card-copy"><h3>MongoDB</h3><p>Cloud database for storing application data.</p></div></div>
+        <div class="card"><img src="images/aws.png" alt="AWS" class="technology-image"><div class="card-copy"><h3>AWS</h3><p>Cloud hosting and deployment.</p></div></div>
+        <div class="card"><img src="images/mqtt.png" alt="MQTT" class="technology-image"><div class="card-copy"><h3>MQTT</h3><p>Communication between hardware and cloud.</p></div></div>
+        <div class="card"><img src="images/arduino.svg" alt="Arduino IDE" class="technology-image"><div class="card-copy"><h3>Arduino IDE</h3><p>Programming the hardware controller.</p></div></div>
+        <div class="card"><img src="images/github.png" alt="GitHub" class="technology-image"><div class="card-copy"><h3>GitHub</h3><p>Version control for code management.</p></div></div>
+        <div class="card"><img src="images/Stripe.png" alt="Stripe" class="technology-image"><div class="card-copy"><h3>Stripe</h3><p>Payment processing for the application.</p></div></div>
+        <div class="card"><img src="images/postman-icon.svg" alt="Postman" class="technology-image"><div class="card-copy"><h3>Postman</h3><p>API testing and development.</p></div></div>
+ 
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= HARDWARE SECTION ================= -->
+  <section id="hardware" class="section">
+    <div class="container">
+      
+      <h2>Hardware Components</h2>
+      <div class="card-grid four-columns">
+        <div class="card"><img src="images/esp32.jpg" alt="ESP32" class="hardware-image"><div class="card-copy"><h3>ESP32</h3><p>Controls sensors, locks and communication.</p></div></div>
+        <div class="card"><img src="images/oled_display.jpg" alt="OLED Display" class="hardware-image"><div class="card-copy"><h3>OLED Display</h3><p>To Show the Locker Status.</p></div></div>
+        <div class="card"><img src="images/vibration_sensor.jpg" alt="Vibration Sensor" class="hardware-image"><div class="card-copy"><h3>Vibration Sensor</h3><p>To detect any unauthorized access or tampering.</p></div></div>
+        <div class="card"><img src="images/magnetic_door_sensor.jpg" alt="Magnetic Door Sensor" class="hardware-image"><div class="card-copy"><h3>Magnetic Door Sensor</h3><p>To check whether the door is open or closed.</p></div></div>
+        <div class="card"><img src="images/solenoid_lock.jpeg" alt="Solenoid Lock" class="hardware-image"><div class="card-copy"><h3>Solenoid Lock</h3><p>Locks and unlocks the locker door.</p></div></div>
+        <div class="card"><img src="images/led_indicators.jfif" alt="LED Indicators" class="hardware-image"><div class="card-copy"><h3>LED Indicators</h3><p>Shows free, reserved or locked status.</p></div></div>
+        <div class="card"><img src="images/buzzer_alarm.jpg" alt="Buzzer Alarm" class="hardware-image"><div class="card-copy"><h3>Buzzer Alarm</h3><p>Provides audible alerts for security events.</p></div></div>
+        <div class="card"><img src="images/relay_module.jfif" alt="Relay Module" class="hardware-image"><div class="card-copy"><h3>Relay Module</h3><p>ToEnsures stable and continuous power for all locker components, maintaining reliable operation.</p></div></div>
+        <div class="card"><img src="images/buck_converter.jfif" alt="Buck Converter" class="hardware-image"><div class="card-copy"><h3>Buck Converter</h3><p>To reduce the power supply voltage to the required level.</p></div></div>
+        <div class="card"><img src="images/12v_power_pack.jfif" alt="12V Power Pack" class="hardware-image"><div class="card-copy"><h3>12V Power Pack</h3><p>Provides power to the complete system.</p></div></div>
+        <div class="card"><img src="images/lithium_ion_batteries.jfif" alt="Lithium Ion Battery" class="hardware-image"><div class="card-copy"><h3>Lithium Ion Battery</h3><p>Provides backup power for the system.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SECURITY SECTION ================= -->
+  <section id="security" class="section light-section">
+    <div class="container">
+      
+      <h2>Security Features</h2>
+      <div class="card-grid three-columns">
+        <div class="card"><h3>Authentication</h3><p>Only authorized users can access reserved lockers.</p></div>
+        <div class="card"><h3>Automatic Door Lock</h3><p>Door locks automatically after the locker is closed.</p></div>
+        <div class="card"><h3>Real-time Monitoring</h3><p>Locker status can be monitored continuously.</p></div>
+        <div class="card"><h3>Notifications</h3><p>Users and admins can receive alerts.</p></div>
+        <div class="card"><h3>Cloud Backup</h3><p>Important records can be stored in the cloud.</p></div>
+        <div class="card"><h3>Activity Logging</h3><p>All access events are recorded.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= BUDGET SECTION ================= -->
+  <section id="budget" class="section">
+    <div class="container">
+     
+      <h2>Estimated Budget</h2>
+      <p class="section-text">Edit these values according to your final presentation budget.</p>
+
+      <div class="budget-total">Total Estimated Budget: LKR 26,389</div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Item Name</th>
+              <th>Quantity</th>
+              <th>Unit Price</th>
+              <th >Total Price</th>
+            </tr>
+          </thead>
+          <tbody>
+<tr><td>Wooden Locker Body</td><td>1</td><td>LKR 3,900 + 384</td><td>LKR 4,284</td></tr>
+          <tr><td>Micro USB 5V 1A 18650</td><td>1</td><td>LKR 130</td><td>LKR 130</td></tr>
+          <tr><td>Piezo-Ceramic-Copper-B</td><td>2</td><td>LKR 85</td><td>LKR 170</td></tr>
+          <tr><td>S8050 8050 Transistor</td><td>2</td><td>LKR 10</td><td>LKR 20</td></tr>
+          <tr><td>ESP32 CP2102 Type-C</td><td>1</td><td>LKR 1,490</td><td>LKR 1,490</td></tr>
+          <tr><td>Electromagnetic Door Lock</td><td>3</td><td>LKR 1,190</td><td>LKR 3,570</td></tr>
+          <tr><td>Relay Board Module 5V</td><td>2</td><td>LKR 220</td><td>LKR 440</td></tr>
+          <tr><td>Vibration Sensor Module</td><td>2</td><td>LKR 260</td><td>LKR 520</td></tr>
+          <tr><td>Magnetic Reed Switch</td><td>2</td><td>LKR 190</td><td>LKR 380</td></tr>
+          <tr><td>LM2596 Buck Converter</td><td>2</td><td>LKR 290</td><td>LKR 580</td></tr>
+          <tr><td>5V Active Buzzer Alarm</td><td>2</td><td>LKR 65</td><td>LKR 130</td></tr>
+          <tr><td>Reed Sensor Magnetic</td><td>2</td><td>LKR 110</td><td>LKR 220</td></tr>
+          <tr><td>LED Diffused 5mm 3V</td><td>10</td><td>LKR 4</td><td>LKR 40</td></tr>
+          <tr><td>Jumper Wire M/F 20CM</td><td>1</td><td>LKR 190</td><td>LKR 190</td></tr>
+          <tr><td>Jumper Wire F/F 20CM</td><td>1</td><td>LKR 190</td><td>LKR 190</td></tr>
+          <tr><td>Jumper Wire M/M 20CM</td><td>1</td><td>LKR 190</td><td>LKR 190</td></tr>
+          <tr><td>OLED Display</td><td>2</td><td>LKR 790</td><td>LKR 1,580</td></tr>
+          <tr><td>Metal Sticker Finish</td><td>2</td><td>LKR 1,000</td><td>LKR 2,000</td></tr>
+          <tr><td>Metal Handle</td><td>2</td><td>LKR 1,200</td><td>LKR 2,400</td></tr>
+
+          <tr><td>Door Magnets</td><td>2</td><td>LKR 100</td><td>LKR 200</td></tr>
+          <tr><td>Door Handle</td><td>2</td><td>LKR 450</td><td>LKR 900</td></tr>
+          <tr><td>4700F 16V Mosfet</td><td>1</td><td>LKR 20</td><td>LKR 20</td></tr>
+          <tr><td>S8050 8050 Transistor</td><td>1</td><td>LKR 10</td><td>LKR 10</td></tr>
+          <tr><td>Solder Wires</td><td>1</td><td>LKR 790</td><td>LKR 790</td></tr>
+          <tr><td>Circuit Board</td><td>1</td><td>LKR 480</td><td>LKR 480</td></tr>
+          <tr><td>Glue Sticks</td><td>4</td><td>LKR 30</td><td>LKR 120</td></tr>
+          <tr><td>Power Inlet Socket</td><td>1</td><td>LKR 160</td><td>LKR 160</td></tr>
+          <tr><td>Battery Holder</td><td>1</td><td>LKR 200</td><td>LKR 200</td></tr>
+          <tr><td>12V Power Pack</td><td>1</td><td>LKR 1,150</td><td>LKR 1,150</td></tr>
+          <tr><td>12V 8A Lithium Battery</td><td>1</td><td>LKR 590</td><td>LKR 590</td></tr>
+          <tr><td>5V Active Buzzer Alarm</td><td>1</td><td>LKR 65</td><td>LKR 65</td></tr>
+          <tr><td>Reed Sensor Magnetic</td><td>2</td><td>LKR 110</td><td>LKR 220</td></tr>
+          <tr><td>Wires</td><td>5</td><td>LKR 25</td><td>LKR 125</td></tr>
+          <tr><td>3200mAh 3.7V Battery</td><td>3</td><td>LKR 680</td><td>LKR 2,040</td></tr>
+          <tr><td>L7805CV Regulator</td><td>1</td><td>LKR 55</td><td>LKR 55</td></tr>
+          <tr><td>Switch AC</td><td>1</td><td>LKR 40</td><td>LKR 40</td></tr>
+          <tr><td>Hydraulic Hinges</td><td>2</td><td>LKR 350</td><td>LKR 700</td></tr>
+          <tr class="total-row">
+          <td>Total Estimated Budget</td>
+          <td></td>
+          <td></td>
+          <td>LKR 26,389</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= GALLERY SECTION ================= -->
+  <section id="gallery" class="section light-section">
+    <div class="container">
+      <h2>Project Gallery</h2>
+      <div class="gallery-marquee" aria-label="Project gallery">
+        <div class="gallery-track">
+          <article class="gallery-tile gallery-tile-hero">
+            <img src="images/gallery-1.jpeg" alt="Locker Prototype">
+            <div class="gallery-copy">
+              <p>Locker Prototype</p>
+
+            </div>
+          </article>
+          <article class="gallery-tile gallery-tile-tall">
+            <img src="images/gallery-2.jpeg" alt="Our Team">
+            <div class="gallery-copy">
+              <p>Our Team</p>
+  
+            </div>
+          </article>
+          <article class="gallery-tile gallery-tile-square">
+            <img src="images/gallery-3.jpeg" alt="Milestone 2">
+            <div class="gallery-copy">
+              <p>Milestone 2</p>
+
+            </div>
+          </article>
+          <article class="gallery-tile gallery-tile-wide">
+            <img src="images/gallery-4.jpeg" alt="At Workshop">
+            <div class="gallery-copy">
+              <p>At Workshop</p>
+              
+            </div>
+          </article>
+          <article class="gallery-tile gallery-tile-square">
+            <img src="images/gallery-5.jpeg" alt="Architecture Diagram">
+            <div class="gallery-copy">
+              <p>Shane Baines</p>
+              
+            </div>
+          </article>
+          <article class="gallery-tile gallery-tile-tall">
+            <img src="images/gallery-6.jpeg" alt="Team Working">
+            <div class="gallery-copy">
+              <p>Milestone 3</p>
+            
+            </div>
+          </article>
+          <article class="gallery-tile gallery-tile-hero" aria-hidden="true">
+            <img src="images/gallery-7.jpeg" alt="Locker Prototype">
+            <div class="gallery-copy">
+              <p>Locker Prototype</p>
+              
+            </div>
+          </article>
+          <article class="gallery-tile gallery-tile-tall" aria-hidden="true">
+            <img src="images/gallery-8.jpeg" alt="Hardware Development">
+            <div class="gallery-copy">
+              <p>Deeshan Wijesinghe</p>
+           
+            </div>
+          </article>
+          <article class="gallery-tile gallery-tile-square" aria-hidden="true">
+            <img src="images/gallery-9.jpeg" alt="ESP32 Testing">
+            <div class="gallery-copy">
+              <p>Milestone 1</p>
+              
+            </div>
+          </article>
+            <article class="gallery-tile gallery-tile-square" aria-hidden="true">
+            <img src="images/gallery-10.jpeg" alt="ESP32 Testing">
+            <div class="gallery-copy">
+              <p>Milestone 1</p>
+              
+            </div>
+          </article>
+          
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TEAM SECTION ================= -->
+  <section id="team" class="section team-section">
+    <div class="container">
+    
+      <h2>Our Team</h2>
+      <p class="section-text">Meet the people behind LOX.</p>
+
+      <div class="team-grid">
+        <div class="team-supervisor-row">
+          <article class="team-card team-card-supervisor">
+            <div class="team-photo team-photo-supervisor"><img src="images/isuru-nawinne.png" alt="Dr. Isuru Nawinna"></div>
+            <div class="team-copy">
+              <span class="team-badge">Supervisor</span>
+              <h3>Dr. Isuru Nawinna</h3>
+              <p>Project Supervisor</p>
+              
+              <div class="team-links">
+                <a href="#">LinkedIn</a>
+                <a href="#">Email</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="team-card team-card-supervisor">
+            <div class="team-photo team-photo-supervisor"><img src="images/yasodha-vimukthi.jpg" alt="Ms. Yashodha Vimukthi"></div>
+            <div class="team-copy">
+              <span class="team-badge">Supervisor</span>
+              <h3>Ms. Yasodha Vimukthi</h3>
+              <p>Project Supervisor</p>
+              
+              <div class="team-links">
+                <a href="#">LinkedIn</a>
+                <a href="#">Email</a>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <article class="team-card">
+          <div class="team-photo"><img src="images/chamika.png" alt="Chamika Uduwaka"></div>
+          <h3>Chamika Uduwaka</h3>
+          <p>Team Leader</p>
+          <div class="team-links">
+            <a href="https://github.com/Chamika-Uduwaka">GitHub</a>
+            <a href="https://www.linkedin.com/in/chamika-uduwaka-b62324331/">LinkedIn</a>
+            <a href="https://www.thecn.com/CU193">CN</a>
+          </div>
+        </article>
+
+        <article class="team-card">
+          <div class="team-photo"><img src="images/deeshanw.png" alt="Deeshan Wijesinghe"></div>
+          <h3>Deeshan Wijesinghe</h3>
+          <p>Team Member</p>
+          <div class="team-links">
+            <a href="#">GitHub</a>
+            <a href="#">LinkedIn</a>
+            <a href="#">CN</a>
+          </div>
+        </article>
+
+        <article class="team-card">
+          <div class="team-photo"><img src="images/shaneb.png" alt="Shane Baines"></div>
+          <h3>Shane Baines</h3>
+          <p>Team Member</p>
+          <div class="team-links">
+            <a href="#">GitHub</a>
+            <a href="#">LinkedIn</a>
+            <a href="#">CN</a>
+          </div>
+        </article>
+
+        <article class="team-card">
+          <div class="team-photo"><img src="images/shehand.png" alt="Shehan Dewnith"></div>
+          <h3>Shehan Dewnith</h3>
+          <p>Team Member</p>
+          <div class="team-links">
+            <a href="#">GitHub</a>
+            <a href="#">LinkedIn</a>
+            <a href="#">CN</a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CONTACT SECTION ================= -->
+  <section id="contact" class="section light-section">
+    <div class="container two-column">
+      <div>
+       
+        <h2>Contact Us</h2>
+        <p class="section-text">Use this form layout for the website. Since this is a static page, the form does not send data yet.</p>
+        <form class="contact-form">
+          <input type="text" placeholder="Name">
+          <input type="email" placeholder="Email">
+          <input type="text" placeholder="Subject">
+          <textarea placeholder="Message"></textarea>
+          <button type="button" class="btn primary-btn">Send Message</button>
+        </form>
+      </div>
+      <div class="map-placeholder">
+        Google Map Placeholder
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <h2>LOX</h2>
+        <p>IoT Smart Locker System</p>
+        <p>University of Peradeniya</p>
+      </div>
+      <div>
+        <h3>Quick Links</h3>
+        <a href="#home">Home</a>
+        <a href="#features">Features</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#contact">Contact</a>
+      </div>
+      <div>
+        <h3>Project Links</h3>
+        <a href="https://github.com/cepdnaclk/e21-3yp-LOX">GitHub</a>
+        <a href="https://projects.ce.pdn.ac.lk/3yp/e21/LOX/">Project Page</a>
+      </div>
+    </div>
+    <div class="copyright">
+      © 2026 LOX Smart Locker Project. All rights reserved.
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
