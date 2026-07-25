@@ -91,11 +91,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final hasCompare = widget.product.compareAtPrice > widget.product.price;
     final isOut = widget.product.stock <= 0;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: isDark ? theme.scaffoldBackgroundColor : AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
@@ -117,9 +119,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     height: 200,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: AppColors.fieldBackground.withOpacity(0.5),
+                      color: isDark ? Colors.white.withOpacity(0.04) : AppColors.fieldBackground.withOpacity(0.5),
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.black.withOpacity(0.04)),
+                      border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04)),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(24),
@@ -152,7 +154,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: AppColors.olive,
+                            color: theme.primaryColor,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -247,9 +249,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         return GestureDetector(
                           onTap: () => setState(() => _selectedColor = color.name),
                           child: Chip(
-                            backgroundColor: isSel ? AppColors.fieldBackground : Colors.white,
+                            backgroundColor: isSel
+                                ? AppColors.fieldBackground
+                                : (isDark ? Colors.white.withOpacity(0.05) : Colors.white),
                             side: BorderSide(
-                              color: isSel ? AppColors.olive : Colors.black.withOpacity(0.06),
+                              color: isSel
+                                  ? theme.primaryColor
+                                  : (isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.06)),
                               width: isSel ? 2 : 1,
                             ),
                             avatar: CircleAvatar(
@@ -260,7 +266,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               color.name,
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
-                                color: isSel ? AppColors.textMain : AppColors.textLabel,
+                                color: isSel ? AppColors.textMain : (isDark ? Colors.white70 : AppColors.textLabel),
                               ),
                             ),
                           ),
@@ -380,9 +386,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppColors.fieldBackground.withOpacity(0.4),
+                      color: isDark ? Colors.white.withOpacity(0.04) : AppColors.fieldBackground.withOpacity(0.4),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.black.withOpacity(0.04)),
+                      border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04)),
                     ),
                     child: Row(
                       children: [
@@ -424,25 +430,26 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 10,
-                    offset: const Offset(0, -4),
+                color: isDark ? theme.colorScheme.surface : Colors.white,
+                border: Border(
+                  top: BorderSide(
+                    color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.05),
+                    width: 1,
                   ),
-                ],
+                ),
               ),
               child: SizedBox(
                 width: double.infinity,
-                height: 52,
+                height: 54,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.olive,
+                    backgroundColor: theme.primaryColor,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppColors.olive.withOpacity(0.5),
+                    disabledBackgroundColor: theme.primaryColor.withOpacity(0.5),
+                    elevation: 2,
+                    shadowColor: theme.primaryColor.withOpacity(0.3),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(28),
                     ),
                   ),
                   onPressed: isOut || _submitting ? null : _proceedToCheckout,

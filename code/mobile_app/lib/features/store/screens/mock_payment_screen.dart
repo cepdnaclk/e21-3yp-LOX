@@ -126,7 +126,7 @@ class _MockPaymentScreenState extends State<MockPaymentScreen> {
       backgroundColor: isDark ? theme.scaffoldBackgroundColor : AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Mock Payment Gateway',
+          'Process Payment',
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
         ),
         iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
@@ -139,6 +139,7 @@ class _MockPaymentScreenState extends State<MockPaymentScreen> {
           children: [
             // Main content
             Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
                   child: SingleChildScrollView(
@@ -339,31 +340,39 @@ class _MockPaymentScreenState extends State<MockPaymentScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   decoration: BoxDecoration(
                     color: isDark ? theme.colorScheme.surface : Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 8,
-                        offset: const Offset(0, -4),
+                    border: Border(
+                      top: BorderSide(
+                        color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.05),
+                        width: 1,
                       ),
-                    ],
-                  ),
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.olive,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 0,
                     ),
-                    onPressed: _handlePayment,
-                    child: Text(
-                      'PAY RS. ${widget.amount.round()}',
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.0,
+                  ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.primaryColor,
+                        foregroundColor: Colors.white,
+                        elevation: 2,
+                        shadowColor: theme.primaryColor.withOpacity(0.3),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                      ),
+                      onPressed: _handlePayment,
+                      icon: const Icon(
+                        Icons.security_rounded,
+                        size: 20,
+                        color: Colors.white,
+                      ),
+                      label: Text(
+                        'Pay Rs. ${widget.amount.round()}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
                   ),

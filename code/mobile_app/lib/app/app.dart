@@ -158,13 +158,13 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
       default:
         primary = const Color(0xFF5C5F3E);
         primaryDark = const Color(0xFF6B6E50);
-        background = const Color(0xFFF0EFEB);
-        fieldBackground = const Color(0xFFE8E7E3);
-        textMain = const Color(0xFF1A1A1A);
-        textField = const Color(0xFF2A2A2A);
-        textLabel = const Color(0xFF9A9A86);
-        textHint = const Color(0xFFBDBDA8);
-        textMuted = const Color(0xFFADAD98);
+        background = isLight ? const Color(0xFFF0EFEB) : const Color(0xFF23251E);
+        fieldBackground = isLight ? const Color(0xFFE8E7E3) : const Color(0xFF2F3227);
+        textMain = isLight ? const Color(0xFF1A1A1A) : const Color(0xFFE5E7EB);
+        textField = isLight ? const Color(0xFF2A2A2A) : const Color(0xFFE5E7EB);
+        textLabel = isLight ? const Color(0xFF9A9A86) : const Color(0xFFADAD98);
+        textHint = isLight ? const Color(0xFFBDBDA8) : const Color(0xFF7A7A6D);
+        textMuted = isLight ? const Color(0xFFADAD98) : const Color(0xFF7A7A6D);
         break;
     }
 

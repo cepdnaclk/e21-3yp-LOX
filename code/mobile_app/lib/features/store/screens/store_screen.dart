@@ -286,22 +286,28 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildProductCard(Product product) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardBg = isDark ? (theme.cardTheme.color ?? const Color(0xFF31332B)) : Colors.white;
+    final borderColor = isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05);
     final hasComparePrice = product.compareAtPrice > product.price;
 
     return GestureDetector(
       onTap: () => _openProduct(product),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardBg,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.black.withOpacity(0.05)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          border: Border.all(color: borderColor),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,7 +318,7 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: AppColors.fieldBackground.withOpacity(0.4),
+                    color: isDark ? Colors.white.withOpacity(0.04) : AppColors.fieldBackground.withOpacity(0.4),
                   ),
                   child: Stack(
                     children: [
@@ -326,7 +332,7 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: AppColors.olive,
+                              color: theme.primaryColor,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -355,7 +361,7 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textLabel,
+                      color: isDark ? Colors.white60 : AppColors.textLabel,
                       letterSpacing: 1.2,
                     ),
                   ),
@@ -367,7 +373,7 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w900,
-                      color: AppColors.textMain,
+                      color: isDark ? Colors.white : AppColors.textMain,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -382,7 +388,7 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w900,
-                              color: AppColors.olive,
+                              color: isDark ? theme.colorScheme.primary : AppColors.olive,
                             ),
                           ),
                           if (hasComparePrice)
@@ -391,7 +397,7 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
                               style: TextStyle(
                                 fontSize: 11,
                                 decoration: TextDecoration.lineThrough,
-                                color: AppColors.textMuted,
+                                color: isDark ? Colors.white38 : AppColors.textMuted,
                               ),
                             ),
                         ],
@@ -405,7 +411,7 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.textMain,
+                              color: isDark ? Colors.white70 : AppColors.textMain,
                             ),
                           ),
                         ],
