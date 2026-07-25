@@ -84,7 +84,65 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
     }
   }
 
+  Future<bool> _showConfirmDialog({
+    required String title,
+    required String message,
+    required String confirmLabel,
+    bool isDestructive = false,
+  }) async {
+    final theme = Theme.of(context);
+    final themeStyle = theme.extension<AppThemeStyle>();
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(themeStyle?.cardRadius ?? 20),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+        content: Text(
+          message,
+          style: TextStyle(
+            fontSize: 15,
+            color: theme.brightness == Brightness.dark
+                ? Colors.white.withOpacity(0.8)
+                : Colors.black.withOpacity(0.8),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: isDestructive
+                  ? (themeStyle?.statusRed ?? Colors.red)
+                  : theme.colorScheme.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(themeStyle?.buttonRadius ?? 16),
+              ),
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(confirmLabel),
+          ),
+        ],
+      ),
+    );
+    return result == true;
+  }
+
   Future<void> _onUnlockPressed() async {
+    final confirmed = await _showConfirmDialog(
+      title: 'Unlock Locker',
+      message: 'Are you sure you want to unlock locker ${widget.locker.code}?',
+      confirmLabel: 'Unlock',
+    );
+    if (!confirmed) return;
+
     final isEnabled = await BiometricService.instance.isBiometricEnabled();
     if (isEnabled) {
       final authenticated = await BiometricService.instance.authenticate(
@@ -99,6 +157,21 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
     _runCommand(
       () => widget.client.unlockLocker(widget.locker.id),
       'Locker unlocked successfully.',
+    );
+  }
+
+  Future<void> _onReleasePressed() async {
+    final confirmed = await _showConfirmDialog(
+      title: 'Release Booking',
+      message: 'Are you sure you want to release your booking for locker ${widget.locker.code}? This action cannot be undone and will free the locker for others.',
+      confirmLabel: 'Release',
+      isDestructive: true,
+    );
+    if (!confirmed) return;
+
+    _runCommand(
+      () => widget.client.releaseLocker(widget.locker.id),
+      'Locker reservation released.',
     );
   }
 
@@ -459,12 +532,7 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
                   side: BorderSide(color: isLuxuryGreen ? const Color(0xFFBB8A52) : const Color(0xFFC95454), width: isLuxuryGreen ? 1.5 : 1.0),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(themeStyle.buttonRadius)),
                 ),
-                onPressed: _busy
-                    ? null
-                    : () => _runCommand(
-                          () => widget.client.releaseLocker(widget.locker.id),
-                          'Locker reservation released.',
-                        ),
+                onPressed: _busy ? null : _onReleasePressed,
                 icon: const Icon(Icons.close, size: 18),
                 label: const Text('Release', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
@@ -530,12 +598,7 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
             side: BorderSide(color: isLuxuryGreen ? const Color(0xFFBB8A52) : const Color(0xFFC95454), width: isLuxuryGreen ? 1.5 : 1.0),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(themeStyle.buttonRadius)),
           ),
-          onPressed: _busy
-              ? null
-              : () => _runCommand(
-                    () => widget.client.releaseLocker(widget.locker.id),
-                    'Locker reservation released.',
-                  ),
+          onPressed: _busy ? null : _onReleasePressed,
           icon: const Icon(Icons.close, size: 18),
           label: const Text('Release Booking', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
