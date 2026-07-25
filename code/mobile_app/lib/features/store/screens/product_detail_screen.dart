@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../../data/models/product.dart';
+import '../../../../../data/models/order.dart';
 import '../../../../../data/models/user_profile.dart';
 import '../../../../../data/remote/api_client.dart';
 import '../../../../../core/theme/app_colors.dart';
@@ -49,20 +50,42 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     setState(() => _submitting = true);
     try {
-      final res = await widget.client.createCheckoutSession(
-        widget.product.id,
-        _quantity,
-        _selectedColor,
-      );
-
-      final sessionId = res['sessionId']?.toString() ?? '';
-      if (sessionId.isEmpty) {
-        throw Exception('Server failed to return checkout session ID');
+      // Fetch user's orders to check if a pending payment already exists for this product
+      final orders = await widget.client.fetchOrders();
+      Order? existingPendingOrder;
+      
+      for (final order in orders) {
+        if (order.productId == widget.product.id &&
+            order.status.toUpperCase() == 'PENDING' &&
+            order.stripeSessionId.isNotEmpty) {
+          existingPendingOrder = order;
+          break;
+        }
       }
 
-      final orderMap = res['order'] as Map<String, dynamic>?;
-      final amount = (orderMap?['amount'] as num?)?.toDouble() ?? 
-          ((widget.product.price * _quantity) + widget.product.deliveryFee);
+      String sessionId;
+      double amount;
+
+      if (existingPendingOrder != null) {
+        sessionId = existingPendingOrder.stripeSessionId;
+        amount = existingPendingOrder.amount;
+        _show('Resuming your pending checkout session...');
+      } else {
+        final res = await widget.client.createCheckoutSession(
+          widget.product.id,
+          _quantity,
+          _selectedColor,
+        );
+
+        sessionId = res['sessionId']?.toString() ?? '';
+        if (sessionId.isEmpty) {
+          throw Exception('Server failed to return checkout session ID');
+        }
+
+        final orderMap = res['order'] as Map<String, dynamic>?;
+        amount = (orderMap?['amount'] as num?)?.toDouble() ?? 
+            ((widget.product.price * _quantity) + widget.product.deliveryFee);
+      }
 
       if (!mounted) return;
 
