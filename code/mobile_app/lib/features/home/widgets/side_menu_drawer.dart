@@ -7,6 +7,8 @@ import '../screens/payment_history_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/themes_screen.dart';
 import '../../../core/theme/theme_style.dart';
+import '../../store/screens/store_screen.dart';
+import '../../store/screens/my_purchases_screen.dart';
 
 class SideMenuDrawer extends StatelessWidget {
   const SideMenuDrawer({
@@ -130,6 +132,40 @@ class SideMenuDrawer extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) => PaymentHistoryScreen(client: client),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.storefront_outlined,
+                    label: 'Store',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => StoreScreen(
+                            client: client,
+                            user: user,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.shopping_bag_outlined,
+                    label: 'My Purchases',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MyPurchasesScreen(
+                            client: client,
+                            user: user,
+                          ),
                         ),
                       );
                     },

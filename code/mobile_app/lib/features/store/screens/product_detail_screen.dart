@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../../../data/models/product.dart';
 import '../../../../../data/models/user_profile.dart';
 import '../../../../../data/remote/api_client.dart';
 import '../../../../../core/theme/app_colors.dart';
+import 'mock_payment_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   const ProductDetailScreen({
@@ -55,19 +55,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         _selectedColor,
       );
 
-      final urlStr = res['checkoutUrl']?.toString() ?? '';
-      if (urlStr.isEmpty) {
-        throw Exception('Server failed to return Stripe checkout URL');
+      final sessionId = res['sessionId']?.toString() ?? '';
+      if (sessionId.isEmpty) {
+        throw Exception('Server failed to return checkout session ID');
       }
 
-      final uri = Uri.parse(urlStr);
-      if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      final orderMap = res['order'] as Map<String, dynamic>?;
+      final amount = (orderMap?['amount'] as num?)?.toDouble() ?? 
+          ((widget.product.price * _quantity) + widget.product.deliveryFee);
+
+      if (!mounted) return;
+
+      final success = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => MockPaymentScreen(
+            client: widget.client,
+            sessionId: sessionId,
+            amount: amount,
+            productName: widget.product.name,
+          ),
+        ),
+      );
+
+      if (success == true) {
         if (mounted) {
-          _show('Opening Stripe checkout page...');
           Navigator.of(context).pop(true);
         }
-      } else {
-        throw Exception('Could not launch browser for Stripe checkout');
       }
     } catch (e) {
       _show(e.toString());
@@ -86,10 +99,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textMain),
+        iconTheme: IconThemeData(color: AppColors.textMain),
         title: Text(
           widget.product.category,
-          style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.textMain),
+          style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.textMain),
         ),
       ),
       body: SafeArea(
@@ -128,7 +141,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       Expanded(
                         child: Text(
                           widget.product.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
                             color: AppColors.textMain,
@@ -162,7 +175,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       const SizedBox(width: 4),
                       Text(
                         '${widget.product.rating} (${widget.product.reviews} reviews)',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textMain,
@@ -197,7 +210,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         const SizedBox(width: 10),
                         Text(
                           'Rs. ${widget.product.compareAtPrice.round()}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             decoration: TextDecoration.lineThrough,
                             color: AppColors.textMuted,
@@ -211,7 +224,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                   // Colors list bubble selectors
                   if (widget.product.colors.isNotEmpty) ...[
-                    const Text(
+                    Text(
                       'CHOOSE COLOR',
                       style: TextStyle(
                         fontSize: 11,
@@ -258,7 +271,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ],
 
                   // Quantity adjust counters
-                  const Text(
+                  Text(
                     'QUANTITY',
                     style: TextStyle(
                       fontSize: 11,
@@ -308,7 +321,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   const SizedBox(height: 24),
 
                   // Description
-                  const Text(
+                  Text(
                     'DESCRIPTION',
                     style: TextStyle(
                       fontSize: 11,
@@ -320,7 +333,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   const SizedBox(height: 8),
                   Text(
                     widget.product.description,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textMain,
@@ -330,7 +343,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                   if (widget.product.features.isNotEmpty) ...[
                     const SizedBox(height: 20),
-                    const Text(
+                    Text(
                       'KEY FEATURES',
                       style: TextStyle(
                         fontSize: 11,
@@ -349,7 +362,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             const SizedBox(width: 8),
                             Text(
                               f,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textMain,
@@ -381,7 +394,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             children: [
                               Text(
                                 widget.product.deliveryLabel,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.textMain,
@@ -389,7 +402,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                               Text(
                                 'Est. Delivery: ${widget.product.deliveryDays} Days • Fee: Rs. ${widget.product.deliveryFee.round()}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
                                   color: AppColors.textLabel,
                                   fontWeight: FontWeight.w700,

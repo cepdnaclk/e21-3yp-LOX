@@ -7,7 +7,8 @@ const {
   stripeWebhookHandler,
   getMobileSuccessPage,
   getMobileCancelPage,
-  getWebSuccessPage
+  getWebSuccessPage,
+  mockFulfillHandler
 } = require('../controllers/paymentController');
 
 const router = express.Router();
@@ -19,5 +20,6 @@ router.post('/webhook', stripeWebhookHandler);
 router.use(requireAuth);
 router.post('/checkout-session', allowRoles([Roles.USER, Roles.SUB_ADMIN, Roles.SUPER_ADMIN]), createCheckoutSessionHandler);
 router.post('/overdue-checkout', allowRoles([Roles.USER]), createOverdueCheckoutSessionHandler);
+router.post('/mock-fulfill', allowRoles([Roles.USER, Roles.SUB_ADMIN, Roles.SUPER_ADMIN]), mockFulfillHandler);
 
 module.exports = router;

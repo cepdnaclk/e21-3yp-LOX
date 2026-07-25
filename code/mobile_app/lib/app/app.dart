@@ -636,6 +636,26 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
             _homeKey.currentState?.refreshData();
           },
         );
+      } else if (payment == 'store_success') {
+        _showPaymentResult(
+          ctx,
+          success: true,
+          title: 'Purchase Successful',
+          message: 'Your locker has been purchased successfully! Go to My Purchases to see details.',
+          onDismiss: () {
+            _homeKey.currentState?.refreshData();
+          },
+        );
+      } else if (payment == 'store_cancel') {
+        _showPaymentResult(
+          ctx,
+          success: false,
+          title: 'Purchase Cancelled',
+          message: 'The checkout session was cancelled. No payment was processed.',
+          onDismiss: () {
+            _homeKey.currentState?.refreshData();
+          },
+        );
       }
     });
   }

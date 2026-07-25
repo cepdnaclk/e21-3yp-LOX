@@ -8,6 +8,7 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/theme_style.dart';
 import '../../../../../core/services/biometric_service.dart';
 import '../../../../../core/utils/reservation_phase.dart';
+import '../../../../store/screens/mock_payment_screen.dart';
 import 'free_countdown_badge.dart';
 
 class ActiveLockerCard extends StatefulWidget {
@@ -184,17 +185,29 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
     setState(() => _busy = true);
     try {
       final result = await widget.client.createOverdueCheckout(widget.locker.id);
-      final checkoutUrl = result['checkoutUrl']?.toString() ?? '';
-      if (checkoutUrl.isEmpty) throw Exception('No checkout URL received');
+      final sessionId = result['sessionId']?.toString() ?? '';
+      if (sessionId.isEmpty) throw Exception('No checkout session ID received');
 
-      final uri = Uri.parse(checkoutUrl);
-      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-        throw Exception('Could not launch browser for Stripe checkout');
-      }
-      // Show a dismissible banner while the user is in the browser.
-      // The app refreshes automatically when it resumes via deep link.
-      if (mounted) {
-        _show('Stripe checkout opened. Complete payment and return to the app.');
+      final amount = (result['chargeAmount'] as num?)?.toDouble() ?? 
+          (result['order']?['amount'] as num?)?.toDouble() ?? 0.0;
+
+      if (!mounted) return;
+
+      final success = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => MockPaymentScreen(
+            client: widget.client,
+            sessionId: sessionId,
+            amount: amount,
+            productName: 'Overdue Fee – Locker ${widget.locker.code}',
+            isOverdue: true,
+          ),
+        ),
+      );
+
+      if (success == true) {
+        _show('Payment confirmed! Synchronizing locker state...');
+        widget.onRefresh();
       }
     } catch (e) {
       _show('Payment error: ${e.toString()}');

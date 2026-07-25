@@ -547,6 +547,16 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> mockFulfillPayment(String sessionId) async {
+    return await _request(
+      'POST',
+      '/payments/mock-fulfill',
+      body: {
+        'sessionId': sessionId,
+      },
+    );
+  }
+
   Future<Product> createProduct(Map<String, dynamic> data) async {
     final payload = await _request('POST', '/products', body: data);
     return Product.fromJson(
