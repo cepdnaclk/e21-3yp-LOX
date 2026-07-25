@@ -90,7 +90,7 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
           icon: Icons.warning_amber_rounded,
           label: 'OVERDUE',
           value: formatOverdueDuration(_status.overdueMs),
-          subtext: 'Fee: \$${_status.chargeAmount.toStringAsFixed(2)}',
+          subtext: 'Fee: \Rs. ${_status.chargeAmount.toStringAsFixed(2)}',
           themeStyle: themeStyle,
         );
 
