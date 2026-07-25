@@ -94,7 +94,9 @@ class LockerChip extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            locker.isBooked ? 'RESERVED' : 'AVAILABLE',
+            locker.securityAlertActive
+                ? 'UNAVAILABLE'
+                : (locker.isBooked ? 'RESERVED' : 'AVAILABLE'),
             style: TextStyle(
               fontWeight: FontWeight.w800,
               fontSize: 10,

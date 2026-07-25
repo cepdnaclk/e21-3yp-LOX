@@ -136,9 +136,9 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
         ? const Color(0xFFBB8A52)
         : theme.colorScheme.outlineVariant.withOpacity(0.3);
 
-    final freeCount = _lockers.where((l) => !l.isBooked).length;
+    final freeCount = _lockers.where((l) => !l.isBooked && !l.securityAlertActive).length;
     final reservedCount = _lockers.length - freeCount;
-    final canRequest = _activeRequest == null;
+    final canRequest = _activeRequest == null && freeCount > 0;
 
     final Color statusColor;
     if (freeCount > 0) {
@@ -318,9 +318,9 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
                               ),
                             )
                           : Text(
-                              canRequest
-                                  ? 'Request Locker'
-                                  : 'Request ${_activeRequest!.status}',
+                              _activeRequest != null
+                                  ? 'Request ${_activeRequest!.status}'
+                                  : (freeCount > 0 ? 'Request Locker' : 'No Lockers Available'),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 15,

@@ -218,7 +218,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// Calculates the number of unbooked lockers for a given [stationId].
   int _freeCountForStation(String stationId) {
     return (_lockersByStation[stationId] ?? const [])
-        .where((l) => !l.isBooked)
+        .where((l) => !l.isBooked && !l.securityAlertActive)
         .length;
   }
 
