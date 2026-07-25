@@ -727,6 +727,7 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
 
       // the user might have closed the app or navigated away before the server responds
       if (!mounted) return;
+      await LocalStore.setCurrentUserEmail(user.email);
       setState(() {
         _session = SessionData(client: client, user: user);
         _loading = false;
@@ -760,6 +761,7 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
       await LocalStore.saveBootstrap(baseUrl: _baseUrl, token: result.token);
 
       if (!mounted) return;
+      await LocalStore.setCurrentUserEmail(result.user.email);
       setState(() {
         _session = SessionData(client: client, user: result.user);
         _loading = false;
@@ -784,6 +786,7 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
       }
     }
     await LocalStore.clearToken();
+    await LocalStore.clearCurrentUserEmail();
     if (!mounted) return;
     setState(() {
       _session = null;

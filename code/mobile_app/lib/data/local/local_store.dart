@@ -122,12 +122,41 @@ class LocalStore {
 
   static const _keyNotifications = 'user_notifications';
   static const _keyDismissedNotifications = 'dismissed_notification_ids';
+  static const _keyCurrentUserEmail = 'current_user_email';
+
+  static Future<String> _getNotificationsKey(SharedPreferences prefs) async {
+    final email = prefs.getString(_keyCurrentUserEmail) ?? '';
+    return email.isNotEmpty ? '${_keyNotifications}_$email' : _keyNotifications;
+  }
+
+  static Future<String> _getDismissedNotificationsKey(SharedPreferences prefs) async {
+    final email = prefs.getString(_keyCurrentUserEmail) ?? '';
+    return email.isNotEmpty ? '${_keyDismissedNotifications}_$email' : _keyDismissedNotifications;
+  }
+
+  static Future<String> getCurrentUserEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyCurrentUserEmail) ?? '';
+  }
+
+  static Future<void> setCurrentUserEmail(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyCurrentUserEmail, email);
+    await refreshUnreadCount();
+  }
+
+  static Future<void> clearCurrentUserEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyCurrentUserEmail, '');
+    await refreshUnreadCount();
+  }
 
   /// Returns the set of notification IDs the user has dismissed locally.
   /// Data is preserved in storage; only the visibility is affected.
   static Future<Set<String>> getDismissedNotificationIds() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_keyDismissedNotifications);
+    final key = await _getDismissedNotificationsKey(prefs);
+    final jsonStr = prefs.getString(key);
     if (jsonStr == null || jsonStr.isEmpty) return {};
     try {
       final List<dynamic> decoded = json.decode(jsonStr);
@@ -139,7 +168,8 @@ class LocalStore {
 
   static Future<List<Map<String, dynamic>>> getNotifications() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_keyNotifications);
+    final notifKey = await _getNotificationsKey(prefs);
+    final jsonStr = prefs.getString(notifKey);
     if (jsonStr == null || jsonStr.isEmpty) {
       // Pre-populate with premium default notifications
       final defaultList = [
@@ -157,15 +187,8 @@ class LocalStore {
           'timestamp': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
           'read': false,
         },
-        {
-          'id': 'welcome_store',
-          'title': 'Introducing the LOX Locker Store',
-          'body': 'Need extra storage accessories, padlocks, RFID tags, or keycards? Get premium security items delivered directly to your locker. Visit the web app to browse.',
-          'timestamp': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
-          'read': false,
-        },
       ];
-      await prefs.setString(_keyNotifications, json.encode(defaultList));
+      await prefs.setString(notifKey, json.encode(defaultList));
       return defaultList;
     }
     try {
@@ -181,8 +204,9 @@ class LocalStore {
 
   static Future<void> addNotification(String title, String body) async {
     final prefs = await SharedPreferences.getInstance();
+    final notifKey = await _getNotificationsKey(prefs);
     // Load raw list (without filtering dismissed) to avoid duplicating entries
-    final jsonStr = prefs.getString(_keyNotifications);
+    final jsonStr = prefs.getString(notifKey);
     List<Map<String, dynamic>> notifications = [];
     if (jsonStr != null && jsonStr.isNotEmpty) {
       try {
@@ -202,7 +226,7 @@ class LocalStore {
     if (notifications.length > 50) {
       notifications.removeRange(50, notifications.length);
     }
-    await prefs.setString(_keyNotifications, json.encode(notifications));
+    await prefs.setString(notifKey, json.encode(notifications));
     await refreshUnreadCount();
   }
 
@@ -210,7 +234,8 @@ class LocalStore {
   /// Used for locker status events derived from request history.
   static Future<void> addNotificationIfNew(String dedupeId, String title, String body, DateTime timestamp) async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_keyNotifications);
+    final notifKey = await _getNotificationsKey(prefs);
+    final jsonStr = prefs.getString(notifKey);
     List<Map<String, dynamic>> notifications = [];
     if (jsonStr != null && jsonStr.isNotEmpty) {
       try {
@@ -231,7 +256,7 @@ class LocalStore {
     if (notifications.length > 50) {
       notifications.removeRange(50, notifications.length);
     }
-    await prefs.setString(_keyNotifications, json.encode(notifications));
+    await prefs.setString(notifKey, json.encode(notifications));
     await refreshUnreadCount();
   }
 
@@ -239,9 +264,10 @@ class LocalStore {
   /// The underlying data is kept in storage; it is only hidden from the user's view.
   static Future<void> dismissNotification(String id) async {
     final prefs = await SharedPreferences.getInstance();
+    final dismissedKey = await _getDismissedNotificationsKey(prefs);
     final dismissed = await getDismissedNotificationIds();
     dismissed.add(id);
-    await prefs.setString(_keyDismissedNotifications, json.encode(dismissed.toList()));
+    await prefs.setString(dismissedKey, json.encode(dismissed.toList()));
     await refreshUnreadCount();
   }
 
@@ -249,7 +275,9 @@ class LocalStore {
   /// Data is preserved in storage; only the user's visibility is affected.
   static Future<void> dismissAllNotifications() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_keyNotifications);
+    final notifKey = await _getNotificationsKey(prefs);
+    final dismissedKey = await _getDismissedNotificationsKey(prefs);
+    final jsonStr = prefs.getString(notifKey);
     if (jsonStr == null || jsonStr.isEmpty) return;
     try {
       final List<dynamic> decoded = json.decode(jsonStr);
@@ -259,7 +287,7 @@ class LocalStore {
           .toSet();
       final dismissed = await getDismissedNotificationIds();
       dismissed.addAll(allIds);
-      await prefs.setString(_keyDismissedNotifications, json.encode(dismissed.toList()));
+      await prefs.setString(dismissedKey, json.encode(dismissed.toList()));
       await refreshUnreadCount();
     } catch (_) {}
   }
@@ -271,7 +299,8 @@ class LocalStore {
 
   static Future<void> markAllNotificationsAsRead() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_keyNotifications);
+    final notifKey = await _getNotificationsKey(prefs);
+    final jsonStr = prefs.getString(notifKey);
     if (jsonStr == null || jsonStr.isEmpty) return;
     try {
       final List<dynamic> decoded = json.decode(jsonStr);
@@ -279,7 +308,7 @@ class LocalStore {
       for (var item in list) {
         item['read'] = true;
       }
-      await prefs.setString(_keyNotifications, json.encode(list));
+      await prefs.setString(notifKey, json.encode(list));
       await refreshUnreadCount();
     } catch (_) {}
   }

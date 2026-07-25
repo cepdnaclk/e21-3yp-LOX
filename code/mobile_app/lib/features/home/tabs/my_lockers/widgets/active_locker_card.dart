@@ -460,7 +460,7 @@ class _ActiveLockerCardState extends State<ActiveLockerCard> {
           onPressed: _busy ? null : _onPayOverduePressed,
           icon: const Icon(Icons.credit_card_rounded, size: 20),
           label: Text(
-            charge > 0 ? 'Pay \$${charge.toStringAsFixed(2)} Overdue Fee' : 'Pay Overdue Fee',
+            charge > 0 ? 'Pay \$ Rs.{charge.toStringAsFixed(2)} Overdue Fee' : 'Pay Overdue Fee',
             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
           ),
         ),
