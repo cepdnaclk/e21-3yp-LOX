@@ -278,7 +278,10 @@ async function createOverdueCheckoutSession(user, lockerId, req) {
     sessionId: checkoutSession.id,
     chargeAmount,
     overdueMinutes
-  async function fulfillCheckoutSession(session) {
+  };
+}
+
+async function fulfillCheckoutSession(session) {
   console.log('[fulfillCheckoutSession] Starting fulfillment for session:', session.id);
   let order = await findOrderByStripeSessionId(session.id);
 

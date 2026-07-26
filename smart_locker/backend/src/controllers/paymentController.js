@@ -43,7 +43,6 @@ const stripeWebhookHandler = asyncHandler(async (req, res) => {
   return success(res, { received: true, order });
 });
 
-<<<<<<< HEAD
 const getMobileSuccessPage = asyncHandler(async (req, res) => {
   const { session_id, type, lockerId } = req.query || {};
   console.log('[getMobileSuccessPage] Redirect success query received:', { session_id, type, lockerId });

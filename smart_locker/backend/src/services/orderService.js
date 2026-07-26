@@ -19,6 +19,7 @@ function toOrderDTO(order) {
     amount: order.amount || 0,
     orderStatus: order.orderStatus,
     paymentStatus: order.paymentStatus,
+    status: order.paymentStatus || 'PENDING',
     messages: order.messages || [],
     stripeSessionId: order.stripeSessionId || '',
     stripePaymentIntentId: order.stripePaymentIntentId || '',
