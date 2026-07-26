@@ -14,9 +14,12 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppQueueRouteImport } from './routes/_app.queue'
+import { Route as AppOverdueRouteImport } from './routes/_app.overdue'
+import { Route as AppOrdersRouteImport } from './routes/_app.orders'
 import { Route as AppHelpRouteImport } from './routes/_app.help'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
+import { Route as AppActivationKeysRouteImport } from './routes/_app.activation-keys'
 import { Route as AppAccountRouteImport } from './routes/_app.account'
 import { Route as AppStoreIndexRouteImport } from './routes/_app.store.index'
 import { Route as AppStoreIdRouteImport } from './routes/_app.store.$id'
@@ -45,6 +48,16 @@ const AppQueueRoute = AppQueueRouteImport.update({
   path: '/queue',
   getParentRoute: () => AppRoute,
 } as any)
+const AppOverdueRoute = AppOverdueRouteImport.update({
+  id: '/overdue',
+  path: '/overdue',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOrdersRoute = AppOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppHelpRoute = AppHelpRouteImport.update({
   id: '/help',
   path: '/help',
@@ -58,6 +71,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
 const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppActivationKeysRoute = AppActivationKeysRouteImport.update({
+  id: '/activation-keys',
+  path: '/activation-keys',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAccountRoute = AppAccountRouteImport.update({
@@ -80,9 +98,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/register': typeof RegisterRoute
   '/account': typeof AppAccountRoute
+  '/activation-keys': typeof AppActivationKeysRoute
   '/analytics': typeof AppAnalyticsRoute
   '/dashboard': typeof AppDashboardRoute
   '/help': typeof AppHelpRoute
+  '/orders': typeof AppOrdersRoute
+  '/overdue': typeof AppOverdueRoute
   '/queue': typeof AppQueueRoute
   '/settings': typeof AppSettingsRoute
   '/store/$id': typeof AppStoreIdRoute
@@ -92,9 +113,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/register': typeof RegisterRoute
   '/account': typeof AppAccountRoute
+  '/activation-keys': typeof AppActivationKeysRoute
   '/analytics': typeof AppAnalyticsRoute
   '/dashboard': typeof AppDashboardRoute
   '/help': typeof AppHelpRoute
+  '/orders': typeof AppOrdersRoute
+  '/overdue': typeof AppOverdueRoute
   '/queue': typeof AppQueueRoute
   '/settings': typeof AppSettingsRoute
   '/store/$id': typeof AppStoreIdRoute
@@ -106,9 +130,12 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/register': typeof RegisterRoute
   '/_app/account': typeof AppAccountRoute
+  '/_app/activation-keys': typeof AppActivationKeysRoute
   '/_app/analytics': typeof AppAnalyticsRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/help': typeof AppHelpRoute
+  '/_app/orders': typeof AppOrdersRoute
+  '/_app/overdue': typeof AppOverdueRoute
   '/_app/queue': typeof AppQueueRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/store/$id': typeof AppStoreIdRoute
@@ -120,9 +147,12 @@ export interface FileRouteTypes {
     | '/'
     | '/register'
     | '/account'
+    | '/activation-keys'
     | '/analytics'
     | '/dashboard'
     | '/help'
+    | '/orders'
+    | '/overdue'
     | '/queue'
     | '/settings'
     | '/store/$id'
@@ -132,9 +162,12 @@ export interface FileRouteTypes {
     | '/'
     | '/register'
     | '/account'
+    | '/activation-keys'
     | '/analytics'
     | '/dashboard'
     | '/help'
+    | '/orders'
+    | '/overdue'
     | '/queue'
     | '/settings'
     | '/store/$id'
@@ -145,9 +178,12 @@ export interface FileRouteTypes {
     | '/_app'
     | '/register'
     | '/_app/account'
+    | '/_app/activation-keys'
     | '/_app/analytics'
     | '/_app/dashboard'
     | '/_app/help'
+    | '/_app/orders'
+    | '/_app/overdue'
     | '/_app/queue'
     | '/_app/settings'
     | '/_app/store/$id'
@@ -197,6 +233,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppQueueRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/overdue': {
+      id: '/_app/overdue'
+      path: '/overdue'
+      fullPath: '/overdue'
+      preLoaderRoute: typeof AppOverdueRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/orders': {
+      id: '/_app/orders'
+      path: '/orders'
+      fullPath: '/orders'
+      preLoaderRoute: typeof AppOrdersRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/help': {
       id: '/_app/help'
       path: '/help'
@@ -216,6 +266,13 @@ declare module '@tanstack/react-router' {
       path: '/analytics'
       fullPath: '/analytics'
       preLoaderRoute: typeof AppAnalyticsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/activation-keys': {
+      id: '/_app/activation-keys'
+      path: '/activation-keys'
+      fullPath: '/activation-keys'
+      preLoaderRoute: typeof AppActivationKeysRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/account': {
@@ -244,9 +301,12 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAccountRoute: typeof AppAccountRoute
+  AppActivationKeysRoute: typeof AppActivationKeysRoute
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppHelpRoute: typeof AppHelpRoute
+  AppOrdersRoute: typeof AppOrdersRoute
+  AppOverdueRoute: typeof AppOverdueRoute
   AppQueueRoute: typeof AppQueueRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppStoreIdRoute: typeof AppStoreIdRoute
@@ -255,9 +315,12 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAccountRoute: AppAccountRoute,
+  AppActivationKeysRoute: AppActivationKeysRoute,
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppHelpRoute: AppHelpRoute,
+  AppOrdersRoute: AppOrdersRoute,
+  AppOverdueRoute: AppOverdueRoute,
   AppQueueRoute: AppQueueRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppStoreIdRoute: AppStoreIdRoute,

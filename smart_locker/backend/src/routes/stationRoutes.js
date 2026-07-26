@@ -7,7 +7,8 @@ const {
   emergencyUnlockHandler,
   lockAllHandler,
   updateFreeDurationHandler,
-  getOverdueLockersHandler
+  getOverdueLockersHandler,
+  updateOverdueSettingsHandler
 } = require('../controllers/stationController');
 const { requireAuth, allowRoles } = require('../middleware/authMiddleware');
 const { Roles } = require('../constants/enums');
@@ -23,5 +24,6 @@ router.post('/:stationId/emergency-unlock', allowRoles([Roles.SUPER_ADMIN, Roles
 router.post('/:stationId/lock-all', allowRoles([Roles.SUPER_ADMIN, Roles.SUB_ADMIN]), lockAllHandler);
 router.patch('/:stationId/free-duration', allowRoles([Roles.SUPER_ADMIN, Roles.SUB_ADMIN]), updateFreeDurationHandler);
 router.get('/:stationId/overdue-lockers', allowRoles([Roles.SUPER_ADMIN, Roles.SUB_ADMIN]), getOverdueLockersHandler);
+router.patch('/:stationId/overdue-settings', allowRoles([Roles.SUPER_ADMIN, Roles.SUB_ADMIN]), updateOverdueSettingsHandler);
 
 module.exports = router;

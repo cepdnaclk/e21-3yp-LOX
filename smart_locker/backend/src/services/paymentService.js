@@ -80,23 +80,27 @@ async function createCheckoutSession(user, payload, req) {
   const deliveryFee = Number(product.deliveryFee || 0);
   const subtotal = Number(product.price || 0) * quantity;
   const totalAmount = subtotal + deliveryFee;
-
-  const order = await createOrder({
-    userId: user._id,
-    productId: product._id,
-    productName: product.name,
-    productCategory: product.category,
-    selectedColor,
-    quantity,
-    unitPrice: Number(product.price || 0),
-    deliveryFee,
-    deliveryDays: Number(product.deliveryDays || 0),
-    currency,
-    amount: totalAmount,
-    status: 'PENDING'
-  });
-
   const isMobile = Boolean(payload.isMobile);
+
+  let order = null;
+  if (isMobile) {
+    order = await createOrder({
+      userId: user._id,
+      productId: product._id,
+      productName: product.name,
+      productCategory: product.category,
+      selectedColor,
+      quantity,
+      unitPrice: Number(product.price || 0),
+      deliveryFee,
+      deliveryDays: Number(product.deliveryDays || 0),
+      currency,
+      amount: totalAmount,
+      orderStatus: 'PENDING',
+      paymentStatus: 'PENDING'
+    });
+  }
+
   const stripe = getStripeClient();
   const origin = buildOrigin(req);
 
@@ -108,11 +112,8 @@ async function createCheckoutSession(user, payload, req) {
     successUrl = `${backendUrl}/mobile/success?session_id={CHECKOUT_SESSION_ID}&type=store`;
     cancelUrl = `${backendUrl}/mobile/cancel?session_id={CHECKOUT_SESSION_ID}&type=store`;
   } else {
-    const host = req && req.get ? req.get('host') : 'localhost:3001';
-    const protocol = (req && req.protocol) || 'http';
-    const backendUrl = `${protocol}://${host}/api/payments`;
-    successUrl = `${backendUrl}/web/success?session_id={CHECKOUT_SESSION_ID}&type=store&origin=${encodeURIComponent(origin)}`;
-    cancelUrl = `${origin}/?payment=cancel&session_id={CHECKOUT_SESSION_ID}`;
+    successUrl = `${origin}/dashboard?session_id={CHECKOUT_SESSION_ID}`;
+    cancelUrl = `${origin}/dashboard?cancel=true`;
   }
 
   const checkoutSession = await stripe.checkout.sessions.create({
@@ -132,29 +133,31 @@ async function createCheckoutSession(user, payload, req) {
             description: `${product.category} - ${product.deliveryLabel || 'Delivery included'}`,
             metadata: {
               productId: String(product._id),
-              orderId: String(order.id)
+              ...(isMobile ? { orderId: String(order.id) } : {})
             }
           }
         }
       }
     ],
     metadata: {
-      orderId: String(order.id),
       productId: String(product._id),
       userId: String(user._id),
       selectedColor,
-      quantity: String(quantity)
+      quantity: String(quantity),
+      ...(isMobile ? { orderId: String(order.id) } : {})
     }
   });
 
-  const savedOrder = await updateOrderById(order.id, {
-    stripeSessionId: checkoutSession.id,
-    checkoutUrl: checkoutSession.url || '',
-    notes: 'Checkout session created'
-  });
+  if (isMobile && order) {
+    order = await updateOrderById(order.id, {
+      stripeSessionId: checkoutSession.id,
+      checkoutUrl: checkoutSession.url || '',
+      notes: 'Checkout session created'
+    });
+  }
 
   return {
-    order: savedOrder,
+    order,
     checkoutUrl: checkoutSession.url,
     sessionId: checkoutSession.id
   };
@@ -275,32 +278,73 @@ async function createOverdueCheckoutSession(user, lockerId, req) {
     sessionId: checkoutSession.id,
     chargeAmount,
     overdueMinutes
-  };
-}
-
-async function fulfillCheckoutSession(session) {
+  async function fulfillCheckoutSession(session) {
   console.log('[fulfillCheckoutSession] Starting fulfillment for session:', session.id);
-  const order = await findOrderByStripeSessionId(session.id);
-  if (!order) {
-    console.warn('[fulfillCheckoutSession] Order not found for stripeSessionId:', session.id);
-    return null;
-  }
+  let order = await findOrderByStripeSessionId(session.id);
 
-  // If already paid, don't repeat the fulfillment
-  if (order.status === 'PAID') {
-    console.log('[fulfillCheckoutSession] Order is already PAID. Skipping duplicate fulfillment.');
-    return order;
-  }
+  if (order) {
+    // If already paid, don't repeat the fulfillment
+    if (order.paymentStatus === 'PAID') {
+      console.log('[fulfillCheckoutSession] Order is already PAID. Skipping duplicate fulfillment.');
+      return order;
+    }
 
-  const updatedOrder = await updateOrderByStripeSessionId(session.id, {
-    status: 'PAID',
-    stripePaymentStatus: session.payment_status || 'paid',
-    stripePaymentIntentId: String(session.payment_intent || ''),
-    customerEmail: session.customer_details?.email || session.customer_email || order.customerEmail || '',
-    paidAt: new Date(),
-    notes: 'Payment confirmed by checkout completion'
-  });
-  console.log('[fulfillCheckoutSession] Order status updated to PAID for order:', updatedOrder._id);
+    order = await updateOrderByStripeSessionId(session.id, {
+      paymentStatus: 'PAID',
+      stripePaymentStatus: session.payment_status || 'paid',
+      stripePaymentIntentId: String(session.payment_intent || ''),
+      customerEmail: session.customer_details?.email || session.customer_email || order.customerEmail || '',
+      paidAt: new Date(),
+      notes: 'Payment confirmed by checkout completion'
+    });
+    console.log('[fulfillCheckoutSession] Existing order status updated to PAID for order:', order.id || order._id);
+  } else {
+    // Create new order (e.g. from web dashboard)
+    const meta = session.metadata || {};
+    const productId = meta.productId;
+    const userId = meta.userId;
+    const quantity = parseInt(meta.quantity, 10) || 1;
+    const selectedColor = meta.selectedColor || '';
+
+    if (!productId || !userId) {
+      console.warn('[fulfillCheckoutSession] Webhook missing metadata in session:', session.id);
+      return null;
+    }
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      console.error('[fulfillCheckoutSession] Webhook product not found:', productId);
+      return null;
+    }
+
+    const currency = String(session.currency || 'usd').toLowerCase();
+    const deliveryFee = Number(product.deliveryFee || 0);
+    const subtotal = Number(product.price || 0) * quantity;
+    const totalAmount = subtotal + deliveryFee;
+
+    order = await createOrder({
+      userId: userId,
+      productId: product._id,
+      productName: product.name,
+      productCategory: product.category,
+      selectedColor,
+      quantity,
+      unitPrice: Number(product.price || 0),
+      deliveryFee,
+      deliveryDays: Number(product.deliveryDays || 0),
+      currency,
+      amount: totalAmount,
+      orderStatus: 'PENDING',
+      paymentStatus: 'PAID',
+      stripeSessionId: session.id,
+      stripePaymentIntentId: String(session.payment_intent || ''),
+      stripePaymentStatus: session.payment_status || 'paid',
+      customerEmail: session.customer_details?.email || session.customer_email || '',
+      paidAt: new Date(),
+      notes: 'Order created and paid via Stripe checkout completion'
+    });
+    console.log('[fulfillCheckoutSession] Created new PAID order for web dashboard:', order.id || order._id);
+  }
 
   // --- Handle overdue fee payment ---
   const lockerId = session.metadata?.lockerId;
@@ -308,7 +352,7 @@ async function fulfillCheckoutSession(session) {
   if (isOverdueFee && lockerId) {
     try {
       console.log('[fulfillCheckoutSession] Processing overdue fee release for lockerId:', lockerId);
-      const locker = await markOverdueReleased(lockerId, updatedOrder._id);
+      const locker = await markOverdueReleased(lockerId, order.id || order._id);
       console.log('[fulfillCheckoutSession] Locker overdueReleasedAt marked as:', locker.overdueReleasedAt);
       sendPushNotification(
         locker.currentUserId,
@@ -325,7 +369,7 @@ async function fulfillCheckoutSession(session) {
     }
   }
 
-  return updatedOrder;
+  return order;
 }
 
 async function handleStripeWebhookEvent(event) {
@@ -342,7 +386,7 @@ async function handleStripeWebhookEvent(event) {
     }
 
     return updateOrderByStripeSessionId(sessionId, {
-      status: 'FAILED',
+      paymentStatus: 'FAILED',
       stripePaymentStatus: session.payment_status || 'unpaid',
       failedAt: new Date(),
       notes: 'Payment failed or checkout expired'
@@ -352,9 +396,25 @@ async function handleStripeWebhookEvent(event) {
   return null;
 }
 
+async function verifySession(sessionId) {
+  if (!sessionId) throw new Error('Session ID is required');
+  const stripe = getStripeClient();
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+  if (!session) throw new Error('Session not found');
+
+  if (session.payment_status === 'paid' || session.status === 'complete') {
+    const order = await fulfillCheckoutSession(session);
+    return { order, status: order ? order.paymentStatus : session.payment_status };
+  }
+
+  const existingOrder = await findOrderByStripeSessionId(sessionId);
+  return { order: existingOrder, status: existingOrder ? existingOrder.paymentStatus : session.payment_status };
+}
+
 module.exports = {
   createCheckoutSession,
   createOverdueCheckoutSession,
   fulfillCheckoutSession,
-  handleStripeWebhookEvent
+  handleStripeWebhookEvent,
+  verifySession
 };

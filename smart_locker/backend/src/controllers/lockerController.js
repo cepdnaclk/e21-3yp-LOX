@@ -186,6 +186,24 @@ const toggleMaintenanceHandler = asyncHandler(async (req, res) => {
   return success(res, { message: `Locker maintenance mode ${locker.isMaintenance ? 'enabled' : 'disabled'}` });
 });
 
+const deleteLockerHandler = asyncHandler(async (req, res) => {
+  const locker = await Locker.findById(req.params.lockerId);
+  if (!locker) {
+    return res.status(404).json({ message: 'Locker not found' });
+  }
+
+  if (!canAccessStation(req.user, locker.stationId)) {
+    return res.status(403).json({ message: 'Station access denied' });
+  }
+
+  if (locker.isBooked) {
+    return res.status(400).json({ message: 'Cannot delete a locker that is currently occupied. Release it first.' });
+  }
+
+  await locker.deleteOne();
+  return success(res, { message: `Locker ${locker.code} deleted successfully` });
+});
+
 module.exports = {
   listLockersHandler,
   createLockerHandler,
@@ -194,5 +212,6 @@ module.exports = {
   lockLockerHandler,
   releaseLockerHandler,
   ignoreSecurityAlertHandler,
-  toggleMaintenanceHandler
+  toggleMaintenanceHandler,
+  deleteLockerHandler
 };

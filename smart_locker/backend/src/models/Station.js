@@ -12,10 +12,13 @@ const stationSchema = new mongoose.Schema(
     },
     emergencyMode: { type: Boolean, default: false },
 
-    // Overdue / free-duration configuration
-    freeDurationMinutes: { type: Number, default: 60, min: 0 },
-    overdueRatePerHour: { type: Number, default: 1.00, min: 0 },
-    gracePeriodMinutes: { type: Number, default: 10, min: 1 },
+    // ── Overdue payment settings ─────────────────────────────────────────────
+    // Minutes a user can use the locker for free before overdue charges begin
+    freeDurationMinutes: { type: Number, default: 15, min: 0 },
+    // Minutes the user has after payment confirmation to remove goods and release locker
+    gracePeriodMinutes: { type: Number, default: 10, min: 0 },
+    // Overdue charge rate in LKR per hour (stored per-hour; converted to per-minute in business logic)
+    overdueRatePerHour: { type: Number, default: 300, min: 0 },
 
     location: {
       type: {
@@ -38,3 +41,4 @@ stationSchema.index(
 );
 
 module.exports = mongoose.model('Station', stationSchema);
+

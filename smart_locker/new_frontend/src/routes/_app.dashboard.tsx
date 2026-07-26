@@ -1,12 +1,22 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { motion } from "framer-motion";
-import { Battery, BatteryLow, DoorOpen, DoorClosed, LockKeyhole, Wrench, WifiOff, CheckCircle2, Unlock, LogOut } from "lucide-react";
-import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Battery, BatteryLow, DoorOpen, DoorClosed, LockKeyhole, Wrench, WifiOff, CheckCircle2, Unlock, LogOut, ShieldAlert, ShieldOff, Vibrate, BellRing, X, AlertTriangle, Clock, KeyRound, Plus, Trash2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { type LockerStatus } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { apiGet, apiMutate } from "@/lib/api";
@@ -23,14 +33,256 @@ const statusStyles: Record<LockerStatus, { dot: string; chip: string; ring: stri
   offline:     { dot: "bg-muted-foreground", chip: "bg-muted text-muted-foreground", ring: "ring-border",         label: "Offline",     icon: WifiOff },
 };
 
+// ─── Security Alert Types ────────────────────────────────────────────────────
+const ALERT_EVENT_TYPES = ['SECURITY_ALERT', 'UNEXPECTED_DOOR_OPEN', 'TAMPER_DETECTED', 'VIBRATION_ALERT'];
+
+interface SecurityEvent {
+  _id: string;
+  lockerId: string | null;      // raw ObjectId string from backend
+  stationId: string | null;     // raw ObjectId string from backend
+  eventType: string;
+  message: string;
+  metadata?: Record<string, any>;
+  createdAt: string;
+}
+
+const alertMeta: Record<string, { label: string; icon: any; border: string; bg: string; badge: string; iconColor: string }> = {
+  SECURITY_ALERT:      { label: 'Security Alert',        icon: ShieldAlert,   border: 'border-l-red-500',    bg: 'bg-red-500/5',    badge: 'bg-red-500/15 text-red-400',    iconColor: 'text-red-400' },
+  UNEXPECTED_DOOR_OPEN:{ label: 'Unexpected Door Open',  icon: DoorOpen,      border: 'border-l-orange-500', bg: 'bg-orange-500/5', badge: 'bg-orange-500/15 text-orange-400', iconColor: 'text-orange-400' },
+  TAMPER_DETECTED:     { label: 'Tamper Detected',       icon: ShieldOff,     border: 'border-l-rose-500',   bg: 'bg-rose-500/5',   badge: 'bg-rose-500/15 text-rose-400',   iconColor: 'text-rose-400' },
+  VIBRATION_ALERT:     { label: 'Vibration Detected',    icon: Vibrate,       border: 'border-l-amber-500',  bg: 'bg-amber-500/5',  badge: 'bg-amber-500/15 text-amber-400', iconColor: 'text-amber-400' },
+  DEFAULT:             { label: 'Security Event',         icon: AlertTriangle, border: 'border-l-yellow-500', bg: 'bg-yellow-500/5', badge: 'bg-yellow-500/15 text-yellow-400', iconColor: 'text-yellow-400' },
+};
+
+function getAlertMeta(eventType: string) {
+  return alertMeta[eventType] ?? alertMeta.DEFAULT;
+}
+
+function formatAlertDate(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+function formatAlertTime(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+// ─── Alert Card Component ────────────────────────────────────────────────────
+function SecurityAlertCard({
+  event,
+  isNew,
+  onIgnore,
+  onDismiss,
+  isSubAdmin,
+  lockerMap,
+  stationMap,
+}: {
+  event: SecurityEvent;
+  isNew: boolean;
+  onIgnore: (lockerId: string, eventId: string) => void;
+  onDismiss: (id: string) => void;
+  isSubAdmin: boolean;
+  lockerMap: Record<string, string>;   // lockerId → locker code
+  stationMap: Record<string, string>;  // stationId → station name/code
+}) {
+  const meta = getAlertMeta(event.eventType);
+  const Icon = meta.icon;
+  // Resolve from frontend lookup maps (no backend populate needed)
+  const lockerCode = (event.lockerId && lockerMap[event.lockerId]) ?? event.lockerId ?? 'Unknown Locker';
+  const stationName = (event.stationId && stationMap[event.stationId]) ?? event.stationId ?? 'Unknown Station';
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: -24, scale: 0.97 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 24, scale: 0.96, transition: { duration: 0.2 } }}
+      transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+      className={cn(
+        'relative flex gap-4 p-4 rounded-2xl border border-border border-l-4 shadow-sm',
+        'hover:shadow-md transition-shadow duration-200 group',
+        meta.border,
+        meta.bg
+      )}
+    >
+      {/* Pulse indicator for new alerts */}
+      {isNew && (
+        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+        </span>
+      )}
+
+      {/* Icon */}
+      <div className={cn('flex-shrink-0 mt-0.5', meta.iconColor)}>
+        <Icon className="w-5 h-5" />
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-2 mb-1">
+          <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-full', meta.badge)}>
+            {meta.label}
+          </span>
+          <span className="text-xs font-bold text-foreground bg-muted px-2 py-0.5 rounded-full">
+            🔒 {lockerCode}
+          </span>
+          <span className="text-xs text-muted-foreground">{stationName}</span>
+        </div>
+
+        <p className="text-sm font-medium text-foreground leading-snug">{event.message || 'Security event detected.'}</p>
+
+        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            {formatAlertDate(event.createdAt)}
+          </span>
+          <span>·</span>
+          <span>{formatAlertTime(event.createdAt)}</span>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex flex-col gap-2 flex-shrink-0 justify-center">
+        {isSubAdmin && event.lockerId && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs px-3 border-green-500/30 text-green-500 hover:bg-green-500/10 hover:text-green-400 transition-colors"
+            onClick={() => onIgnore(event.lockerId!, event._id)}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+            Ignore Alert
+          </Button>
+        )}
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 text-xs px-3 text-muted-foreground hover:text-foreground"
+          onClick={() => onDismiss(event._id)}
+        >
+          <X className="w-3.5 h-3.5 mr-1" />
+          Dismiss
+        </Button>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Security Alerts Panel ────────────────────────────────────────────────────
+function SecurityAlertsPanel({
+  alerts,
+  newAlertIds,
+  onIgnore,
+  onDismiss,
+  isSubAdmin,
+  lockerMap,
+  stationMap,
+}: {
+  alerts: SecurityEvent[];
+  newAlertIds: Set<string>;
+  onIgnore: (lockerId: string, eventId: string) => void;
+  onDismiss: (id: string) => void;
+  isSubAdmin: boolean;
+  lockerMap: Record<string, string>;
+  stationMap: Record<string, string>;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const hasAlerts = alerts.length > 0;
+
+  return (
+    <div
+      className={cn(
+        'card-soft overflow-hidden transition-all duration-300',
+        hasAlerts && 'border border-red-500/25'
+      )}
+      style={hasAlerts ? { boxShadow: '0 0 0 1px rgba(239,68,68,0.10), 0 4px 24px rgba(239,68,68,0.08)' } : undefined}
+    >
+      {/* ── Header ── */}
+      <div
+        className={cn(
+          'flex items-center gap-3 px-6 py-4',
+          hasAlerts && 'cursor-pointer hover:bg-red-500/5 transition-colors border-b border-red-500/10 bg-red-500/5'
+        )}
+        onClick={hasAlerts ? () => setCollapsed(c => !c) : undefined}
+      >
+        <span className="flex items-center gap-2 flex-1">
+          {hasAlerts ? (
+            /* Live pulsing dot when alerts are active */
+            <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+            </span>
+          ) : (
+            /* Static green dot when all clear */
+            <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+            </span>
+          )}
+          <BellRing className={cn('w-4 h-4', hasAlerts ? 'text-red-400' : 'text-muted-foreground')} />
+          <span className="font-semibold text-lg">Security Alert Notifications</span>
+          {hasAlerts && (
+            <span className="ml-1 text-xs font-bold bg-red-500 text-white px-2 py-0.5 rounded-full">
+              {alerts.length}
+            </span>
+          )}
+        </span>
+        {hasAlerts && (
+          <span className="text-xs text-muted-foreground select-none">{collapsed ? 'Show' : 'Hide'}</span>
+        )}
+      </div>
+
+      {/* ── Body ── */}
+      {!hasAlerts ? (
+        /* All-clear state — always visible */
+        <div className="px-6 py-4">
+          <p className="text-sm text-muted-foreground">No active security alerts.</p>
+        </div>
+      ) : (
+        /* Alert cards — collapsible */
+        <AnimatePresence initial={false}>
+          {!collapsed && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="overflow-hidden"
+            >
+              <div className="p-4 space-y-3">
+                <AnimatePresence mode="popLayout">
+                  {alerts.map(event => (
+                    <SecurityAlertCard
+                      key={event._id}
+                      event={event}
+                      isNew={newAlertIds.has(event._id)}
+                      onIgnore={onIgnore}
+                      onDismiss={onDismiss}
+                      isSubAdmin={isSubAdmin}
+                      lockerMap={lockerMap}
+                      stationMap={stationMap}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
+    </div>
+  );
+}
+
 function Dashboard() {
   const [purpose, setPurpose] = useState("");
   const [user, setUser] = useState<any>(null);
   const [token, setToken] = useState("");
   
-  const [lockers, setLockers] = useState<any[]>([]); // ST001 general lockers
+  const [lockers, setLockers] = useState<any[]>([]); // lockers for selected station
+  const [allLockers, setAllLockers] = useState<any[]>([]); // full locker list for ID→code lookup
   const [stationsList, setStationsList] = useState<any[]>([]);
-  const [stationId, setStationId] = useState("");
+  const [stationId, setStationId] = useState(""); // for request form (USER role)
+  const [selectedGridStation, setSelectedGridStation] = useState<string>(""); // for locker grid filter (SUPER_ADMIN)
   
   // User specific state
   const [myRequests, setMyRequests] = useState<any[]>([]);
@@ -38,8 +290,104 @@ function Dashboard() {
   
   // Sub-admin specific state
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [activeRequests, setActiveRequests] = useState<any[]>([]);
+
+  // Security alert notifications
+  const [securityAlerts, setSecurityAlerts] = useState<SecurityEvent[]>([]);
+  const [newAlertIds, setNewAlertIds] = useState<Set<string>>(new Set());
+  const dismissedIdsRef = useRef<Set<string>>(new Set(
+    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('dismissedAlerts') || '[]') : []
+  ));
+  const prevAlertIdsRef = useRef<Set<string>>(new Set());
+
+  // Add Locker modal state (SUB_ADMIN)
+  const [addLockerOpen, setAddLockerOpen] = useState(false);
+  const [addLockerStep, setAddLockerStep] = useState<1 | 2>(1);
+  const [addLockerKey, setAddLockerKey] = useState("");
+  const [addLockerKeyError, setAddLockerKeyError] = useState("");
+  const [addLockerCode, setAddLockerCode] = useState("");
+  const [addLockerStation, setAddLockerStation] = useState("");
+  const [addLockerLoading, setAddLockerLoading] = useState(false);
+
+  // Confirmation dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+    actionLabel: string;
+    variant: 'default' | 'destructive' | 'success';
+  }>({
+    isOpen: false,
+    title: "",
+    description: "",
+    onConfirm: () => {},
+    actionLabel: "Confirm",
+    variant: 'default'
+  });
 
   const navigate = useNavigate();
+
+  const openAddLockerModal = () => {
+    setAddLockerStep(1);
+    setAddLockerKey("");
+    setAddLockerKeyError("");
+    setAddLockerCode("");
+    setAddLockerStation(stationsList[0]?._id || "");
+    setAddLockerOpen(true);
+  };
+
+  const handleAddLockerKeyNext = () => {
+    const trimmed = addLockerKey.trim().toUpperCase();
+    const keyPattern = /^LOXA-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+    if (!trimmed) {
+      setAddLockerKeyError("Please enter an activation key.");
+      return;
+    }
+    if (!keyPattern.test(trimmed)) {
+      setAddLockerKeyError("Invalid format. Key must be: LOXA-XXXX-XXXX-XXXX");
+      return;
+    }
+    setAddLockerKeyError("");
+    setAddLockerStep(2);
+  };
+
+  const handleCreateLockerWithKey = async () => {
+    if (!addLockerCode.trim()) {
+      toast.error("Please enter a locker code");
+      return;
+    }
+    if (!addLockerStation) {
+      toast.error("Please select a station");
+      return;
+    }
+    setAddLockerLoading(true);
+    try {
+      await apiMutate("/activation-keys/use", "POST", {
+        activationKey: addLockerKey.trim().toUpperCase(),
+        stationId: addLockerStation,
+        code: addLockerCode.trim(),
+      }, ["/lockers", "/activation-keys"]);
+      toast.success(`Locker "${addLockerCode.trim().toUpperCase()}" created successfully!`);
+      setAddLockerOpen(false);
+      fetchAll(token, user, true);
+      if (selectedGridStation === addLockerStation || user?.role === 'SUB_ADMIN') {
+        fetchLockersForStation(addLockerStation, true);
+      }
+    } catch (err: any) {
+      const msg = err.message || "Failed to create locker";
+      // If error is about already-used key, go back to step 1 with error
+      if (msg.toLowerCase().includes("already been used") || msg.toLowerCase().includes("already used")) {
+        setAddLockerStep(1);
+        setAddLockerKey("");
+        setAddLockerKeyError(msg);
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setAddLockerLoading(false);
+    }
+  };
 
   const fetchAll = async (t: string, u: any, skipCache = false) => {
     try {
@@ -50,6 +398,8 @@ function Dashboard() {
       let lockersPromise: Promise<any> | null = null;
       let pendingPromise: Promise<any> | null = null;
 
+      let activePromise: Promise<any> | null = null;
+
       if (u.role === 'USER') {
         requestsPromise = apiGet('/requests', { skipCache });
         lockersPromise = apiGet('/lockers', { skipCache });
@@ -57,32 +407,79 @@ function Dashboard() {
 
       if (u.role === 'SUB_ADMIN' || u.role === 'SUPER_ADMIN') {
         pendingPromise = apiGet('/requests?status=PENDING', { skipCache });
+        activePromise = apiGet('/requests?status=APPROVED', { skipCache });
       }
 
       // Await all in parallel
-      const [stData, reqData, lockData, pReqData] = await Promise.all([
+      const [stData, reqData, lockData, pReqData, aReqData] = await Promise.all([
         stationsPromise,
         requestsPromise,
         lockersPromise,
-        pendingPromise
+        pendingPromise,
+        activePromise
       ]);
 
       if (reqData) setMyRequests(reqData.requests || []);
       if (lockData) setMyLockers(lockData.lockers || []);
       if (pReqData) setPendingRequests(pReqData.requests || []);
+      if (aReqData) setActiveRequests(aReqData.requests || []);
 
       const stList = stData.stations || [];
       setStationsList(stList);
       if (stList.length > 0 && !stationId) setStationId(stList[0]._id);
 
-      // This depends on stations data, so it runs after
-      const st001 = stList.find((s: any) => s.code === 'ST001');
-      const fetchLockersId = st001 ? st001._id : (stList[0]?._id || '');
-
-      if (fetchLockersId) {
-        const genLockData = await apiGet(`/lockers?stationId=${fetchLockersId}`, { skipCache });
-        setLockers(genLockData.lockers || []);
+      // For Super Admin: don't auto-load lockers here; the grid filter drives it
+      if (u.role === 'SUPER_ADMIN') {
+        // selectedGridStation will trigger its own effect
+        if (stList.length > 0) {
+          setSelectedGridStation(prev => prev || stList[0]._id);
+        }
+      } else {
+        // Sub Admin / User: load ST001 or first station lockers
+        const st001 = stList.find((s: any) => s.code === 'ST001');
+        const fetchLockersId = st001 ? st001._id : (stList[0]?._id || '');
+        if (fetchLockersId) {
+          const genLockData = await apiGet(`/lockers?stationId=${fetchLockersId}`, { skipCache });
+          setLockers(genLockData.lockers || []);
+        }
       }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchSecurityAlerts = async (skipCache = false) => {
+    try {
+      // Also keep allLockers up-to-date for the ID→code lookup map
+      const [data, lockersData] = await Promise.all([
+        apiGet<{ events: SecurityEvent[] }>('/events?limit=50', { skipCache }),
+        apiGet<{ lockers: any[] }>('/lockers', { skipCache }),
+      ]);
+      setAllLockers(lockersData.lockers || []);
+
+      const allEvents: SecurityEvent[] = data.events || [];
+      const alertEvents = allEvents.filter(e => ALERT_EVENT_TYPES.includes(e.eventType));
+      const incoming = new Set(alertEvents.map(e => e._id));
+      const fresh: Set<string> = new Set();
+      for (const id of incoming) {
+        if (!prevAlertIdsRef.current.has(id)) fresh.add(id);
+      }
+      prevAlertIdsRef.current = incoming;
+      if (fresh.size > 0) {
+        setNewAlertIds(fresh);
+        setTimeout(() => setNewAlertIds(new Set()), 6000);
+      }
+      setSecurityAlerts(alertEvents.filter(e => !dismissedIdsRef.current.has(e._id)));
+    } catch (e) {
+      console.error('Failed to fetch security alerts', e);
+    }
+  };
+
+  const fetchLockersForStation = async (sid: string, skipCache = false) => {
+    if (!sid) return;
+    try {
+      const data = await apiGet(`/lockers?stationId=${sid}`, { skipCache });
+      setLockers(data.lockers || []);
     } catch (e) {
       console.error(e);
     }
@@ -100,11 +497,28 @@ function Dashboard() {
     setToken(t);
     fetchAll(t, u);
 
+    fetchSecurityAlerts();
+
     const intervalId = setInterval(() => {
       fetchAll(t, u, true);
     }, 5000);
-    return () => clearInterval(intervalId);
+    const alertIntervalId = setInterval(() => fetchSecurityAlerts(true), 7000);
+    return () => { clearInterval(intervalId); clearInterval(alertIntervalId); };
   }, [navigate]);
+
+  // When Super Admin changes the grid station, reload lockers
+  useEffect(() => {
+    if (selectedGridStation) {
+      fetchLockersForStation(selectedGridStation);
+    }
+  }, [selectedGridStation]);
+
+  // Live refresh lockers for the selected grid station (Super Admin)
+  useEffect(() => {
+    if (!user || user.role !== 'SUPER_ADMIN' || !selectedGridStation) return;
+    const id = setInterval(() => fetchLockersForStation(selectedGridStation, true), 5000);
+    return () => clearInterval(id);
+  }, [user, selectedGridStation]);
 
   const submitRequest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,6 +565,31 @@ function Dashboard() {
     }
   };
 
+  const ignoreAlertAndDismiss = async (lockerId: string, eventId: string) => {
+    try {
+      await apiMutate(`/lockers/${lockerId}/security-ignore`, 'POST', undefined, ['/lockers']);
+      toast.success('Security alert ignored');
+      
+      setSecurityAlerts(prev => {
+        const remaining = prev.filter(e => e.lockerId !== lockerId);
+        const removed = prev.filter(e => e.lockerId === lockerId);
+        removed.forEach(e => dismissedIdsRef.current.add(e._id));
+        localStorage.setItem('dismissedAlerts', JSON.stringify(Array.from(dismissedIdsRef.current)));
+        return remaining;
+      });
+
+      fetchAll(token, user, true);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const dismissAlert = (eventId: string) => {
+    dismissedIdsRef.current.add(eventId);
+    localStorage.setItem('dismissedAlerts', JSON.stringify(Array.from(dismissedIdsRef.current)));
+    setSecurityAlerts(prev => prev.filter(e => e._id !== eventId));
+  };
+
   const commandLocker = async (id: string, action: string) => {
     try {
       await apiMutate(`/lockers/${id}/${action}`, 'POST', undefined, ['/lockers']);
@@ -159,6 +598,108 @@ function Dashboard() {
     } catch (err: any) {
       toast.error(err.message);
     }
+  };
+
+  const deleteLocker = async (id: string, code: string) => {
+    try {
+      await apiMutate(`/lockers/${id}`, 'DELETE', undefined, ['/lockers']);
+      toast.success(`Locker ${code} deleted successfully`);
+      fetchAll(token, user, true);
+      if (selectedGridStation) fetchLockersForStation(selectedGridStation, true);
+      else if (stationsList.length > 0) fetchLockersForStation(stationsList[0]._id, true);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const confirmDeleteLocker = (id: string, code: string, isBooked: boolean) => {
+    if (isBooked) {
+      toast.error('Cannot delete an occupied locker. Release the user first.');
+      return;
+    }
+    setConfirmDialog({
+      isOpen: true,
+      title: `Delete Locker ${code}?`,
+      description: `Are you sure you want to permanently delete locker ${code}? This action cannot be undone.`,
+      onConfirm: () => deleteLocker(id, code),
+      actionLabel: 'Delete',
+      variant: 'destructive',
+    });
+  };
+
+  const confirmApproveRequest = (id: string, userName: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Approve Request?",
+      description: `Are you sure you want to approve the locker request for ${userName}?`,
+      onConfirm: () => approveRequest(id),
+      actionLabel: "Approve",
+      variant: 'success'
+    });
+  };
+
+  const confirmRejectRequest = (id: string, userName: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Reject Request?",
+      description: `Are you sure you want to reject the locker request for ${userName}?`,
+      onConfirm: () => rejectRequest(id),
+      actionLabel: "Reject",
+      variant: 'destructive'
+    });
+  };
+
+  const confirmCommandLocker = (id: string, action: string, code: string, isMaintenance?: boolean) => {
+    let title = "";
+    let description = "";
+    let variant: 'default' | 'destructive' | 'success' = 'default';
+    let actionLabel = "Confirm";
+
+    switch(action) {
+      case 'unlock':
+        title = `Unlock Locker ${code}?`;
+        description = `Are you sure you want to unlock locker ${code}?`;
+        variant = 'success';
+        actionLabel = "Unlock";
+        break;
+      case 'lock':
+        title = `Lock Locker ${code}?`;
+        description = `Are you sure you want to lock locker ${code}?`;
+        variant = 'default';
+        actionLabel = "Lock";
+        break;
+      case 'release':
+        title = `Release Locker ${code}?`;
+        description = `Are you sure you want to release locker ${code}? The user will lose access.`;
+        variant = 'destructive';
+        actionLabel = "Release";
+        break;
+      case 'maintenance':
+        if (isMaintenance) {
+          title = `Mark Locker ${code} Ready?`;
+          description = `Are you sure you want to mark locker ${code} as ready for use?`;
+          variant = 'success';
+          actionLabel = "Mark Ready";
+        } else {
+          title = `Set Locker ${code} to Maintenance?`;
+          description = `Are you sure you want to set locker ${code} to maintenance mode? It will not be available for new requests.`;
+          variant = 'destructive';
+          actionLabel = "Set Maintenance";
+        }
+        break;
+      default:
+        commandLocker(id, action);
+        return;
+    }
+
+    setConfirmDialog({
+      isOpen: true,
+      title,
+      description,
+      onConfirm: () => commandLocker(id, action),
+      actionLabel,
+      variant
+    });
   };
 
   const getLockerStatus = (l: any): LockerStatus => {
@@ -172,11 +713,31 @@ function Dashboard() {
   const isUser = user.role === 'USER';
   const isSubAdmin = user.role === 'SUB_ADMIN' || user.role === 'SUPER_ADMIN';
 
+  // Build lookup maps entirely on the frontend — no backend populate needed
+  const lockerMap: Record<string, string> = {};
+  for (const l of allLockers) { lockerMap[l._id] = l.code; }
+
+  const stationMap: Record<string, string> = {};
+  for (const s of stationsList) { stationMap[s._id] = s.name || s.code; }
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight mt-1">Hi {user.name}:</h1>
       </div>
+
+      {/* ── Security Alert Notifications (sub-admin & super-admin) ── */}
+      {isSubAdmin && (
+        <SecurityAlertsPanel
+          alerts={securityAlerts}
+          newAlertIds={newAlertIds}
+          onIgnore={ignoreAlertAndDismiss}
+          onDismiss={dismissAlert}
+          isSubAdmin={isSubAdmin}
+          lockerMap={lockerMap}
+          stationMap={stationMap}
+        />
+      )}
 
       {isUser && myRequests.filter(r => r.status === 'PENDING' || r.status === 'QUEUED').map(req => (
         <div key={req._id} className="card-soft p-6 border border-warning/30 bg-warning/5">
@@ -200,21 +761,80 @@ function Dashboard() {
           {pendingRequests.length === 0 ? (
             <p className="text-sm text-muted-foreground">No pending requests.</p>
           ) : (
-            <div className="space-y-4">
-              {pendingRequests.map(req => (
-                <div key={req._id} className="p-4 rounded-xl border border-border bg-card flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
-                  <div>
-                    <p className="font-semibold">{req.userId?.name}</p>
-                    <p className="text-sm">Status: <span className="font-bold text-warning">{req.status}</span></p>
-                    <p className="text-sm">Sub-admin station: {req.stationId?.code}</p>
-                    {req.note && <p className="text-sm text-muted-foreground mt-1">Note: {req.note}</p>}
+            <div className="space-y-3">
+              {pendingRequests.map(req => {
+                const submittedAt = req.createdAt ? new Date(req.createdAt) : null;
+                const dateStr = submittedAt
+                  ? submittedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                  : '—';
+                const timeStr = submittedAt
+                  ? submittedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                  : '—';
+
+                return (
+                  <div
+                    key={req._id}
+                    className="relative p-4 rounded-2xl border border-border border-l-4 border-l-warning bg-warning/5 hover:shadow-md transition-shadow duration-200"
+                  >
+                    <div className="flex flex-col sm:flex-row gap-4 sm:items-start justify-between">
+                      {/* Left: user & request info */}
+                      <div className="flex-1 min-w-0 space-y-2">
+
+                        {/* Row 1: User name + status badge */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center gap-1.5 text-base font-bold text-foreground">
+                            <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-warning/20 text-warning text-xs font-bold flex-shrink-0">
+                              {req.userId?.name?.[0]?.toUpperCase() ?? '?'}
+                            </span>
+                            {req.userId?.name ?? 'Unknown User'}
+                          </span>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-warning/15 text-warning">
+                            {req.status}
+                          </span>
+                        </div>
+
+                        {/* Row 2: Station */}
+                        <p className="text-sm text-muted-foreground">
+                          Station: <span className="font-semibold text-foreground">{req.stationId?.name || req.stationId?.code || '—'}</span>
+                        </p>
+
+                        {/* Row 3: Note */}
+                        {req.note && (
+                          <p className="text-sm text-muted-foreground italic">"{req.note}"</p>
+                        )}
+
+                        {/* Row 4: Date & Time */}
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+                          <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span>Requested on <span className="font-semibold text-foreground">{dateStr}</span></span>
+                          <span>·</span>
+                          <span className="font-semibold text-foreground">{timeStr}</span>
+                        </div>
+                      </div>
+
+                      {/* Right: action buttons */}
+                      <div className="flex sm:flex-col gap-2 sm:items-end justify-end flex-shrink-0">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="bg-success hover:bg-success/90 text-success-foreground rounded-xl px-4"
+                          onClick={() => confirmApproveRequest(req._id, req.userId?.name ?? 'Unknown User')}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="rounded-xl px-4"
+                          onClick={() => confirmRejectRequest(req._id, req.userId?.name ?? 'Unknown User')}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="default" className="bg-success hover:bg-success/90 text-success-foreground" onClick={() => approveRequest(req._id)}>Approve</Button>
-                    <Button variant="destructive" onClick={() => rejectRequest(req._id)}>Reject</Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -235,9 +855,9 @@ function Dashboard() {
                 <p className="text-sm mb-1">Door: <span className="font-semibold">{l.doorState}</span></p>
                 <p className="text-sm mb-4">Booked: <span className="font-semibold">{l.isBooked ? 'Yes' : 'No'}</span></p>
                 <div className="flex gap-2 flex-wrap">
-                  <Button size="sm" variant="outline" onClick={() => commandLocker(l._id, 'unlock')}><Unlock className="w-4 h-4 mr-1" /> Unlock</Button>
-                  <Button size="sm" variant="outline" onClick={() => commandLocker(l._id, 'lock')}><LockKeyhole className="w-4 h-4 mr-1" /> Lock</Button>
-                  <Button size="sm" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => commandLocker(l._id, 'release')}><LogOut className="w-4 h-4 mr-1" /> Release</Button>
+                  <Button size="sm" variant="outline" onClick={() => confirmCommandLocker(l._id, 'unlock', l.code)}><Unlock className="w-4 h-4 mr-1" /> Unlock</Button>
+                  <Button size="sm" variant="outline" onClick={() => confirmCommandLocker(l._id, 'lock', l.code)}><LockKeyhole className="w-4 h-4 mr-1" /> Lock</Button>
+                  <Button size="sm" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => confirmCommandLocker(l._id, 'release', l.code)}><LogOut className="w-4 h-4 mr-1" /> Release</Button>
                 </div>
               </div>
             ))}
@@ -248,17 +868,54 @@ function Dashboard() {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Locker grid */}
         <div className="lg:col-span-3 card-soft p-6">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
             <div>
               <h2 className="text-lg font-semibold">Locker Grid</h2>
+              {user.role === 'SUPER_ADMIN' && selectedGridStation && (() => {
+                const st = stationsList.find(s => s._id === selectedGridStation);
+                return st ? (
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Showing <span className="font-semibold text-foreground">{st.name || st.code}</span> — {lockers.length} locker{lockers.length !== 1 ? 's' : ''}
+                  </p>
+                ) : null;
+              })()}
             </div>
-            <div className="flex flex-wrap gap-2">
-              {(Object.keys(statusStyles) as LockerStatus[]).map((k) => (
-                <span key={k} className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium", statusStyles[k].chip)}>
-                  <span className={cn("h-1.5 w-1.5 rounded-full", statusStyles[k].dot)} />
-                  {statusStyles[k].label}
-                </span>
-              ))}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Station filter — Super Admin only */}
+              {user.role === 'SUPER_ADMIN' && (
+                <Select value={selectedGridStation} onValueChange={setSelectedGridStation}>
+                  <SelectTrigger className="h-9 w-[190px] rounded-xl bg-card border-border">
+                    <SelectValue placeholder="Select station" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stationsList.map(s => (
+                      <SelectItem key={s._id} value={s._id}>
+                        {s.name || s.code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {/* Add Locker button — SUB_ADMIN only */}
+              {user.role === 'SUB_ADMIN' && (
+                <Button
+                  size="sm"
+                  className="h-9 rounded-xl gap-2 gradient-primary hover:opacity-90 text-primary-foreground border-0 font-semibold"
+                  onClick={openAddLockerModal}
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Locker
+                </Button>
+              )}
+              {/* Status legend */}
+              <div className="flex flex-wrap gap-2">
+                {(Object.keys(statusStyles) as LockerStatus[]).map((k) => (
+                  <span key={k} className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium", statusStyles[k].chip)}>
+                    <span className={cn("h-1.5 w-1.5 rounded-full", statusStyles[k].dot)} />
+                    {statusStyles[k].label}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -267,6 +924,18 @@ function Dashboard() {
               const status = getLockerStatus(l);
               const s = statusStyles[status];
               const Icon = s.icon;
+              
+              let occupantName = null;
+              let bookedTime = null;
+              if (l.isBooked && l.activeRequestId) {
+                const req = activeRequests.find(r => r._id === l.activeRequestId);
+                if (req) {
+                  occupantName = req.userId?.name;
+                  const date = new Date(req.approvedAt || req.updatedAt || req.createdAt);
+                  bookedTime = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                }
+              }
+
               return (
                 <motion.div
                   key={l._id}
@@ -291,6 +960,13 @@ function Dashboard() {
                   <p className="mt-3 text-sm font-semibold">{l.code}</p>
                   <p className="text-xs text-muted-foreground">{s.label}</p>
                   
+                  {occupantName && (
+                    <div className="mt-2 space-y-0.5">
+                      <p className="text-[11px] font-medium text-foreground truncate" title={occupantName}>👤 {occupantName}</p>
+                      {bookedTime && <p className="text-[10px] text-muted-foreground">🕒 {bookedTime}</p>}
+                    </div>
+                  )}
+
                   {l.securityAlertActive && (
                     <div className="mt-3 p-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold flex items-center gap-1.5 shadow-sm">
                       <span className="relative flex h-2 w-2">
@@ -313,12 +989,27 @@ function Dashboard() {
                   {isSubAdmin && (
                     <div className="mt-4 pt-3 border-t border-border flex flex-col gap-2">
                       <div className="grid grid-cols-3 gap-2">
-                        <Button title="Unlock" size="sm" variant="outline" className="h-8 text-[11px] px-2" onClick={() => commandLocker(l._id, 'unlock')}><Unlock className="w-3 h-3" /></Button>
-                        <Button title="Lock" size="sm" variant="outline" className="h-8 text-[11px] px-2" onClick={() => commandLocker(l._id, 'lock')}><LockKeyhole className="w-3 h-3" /></Button>
-                        <Button title="Release User" size="sm" variant="outline" className="h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => commandLocker(l._id, 'release')}><LogOut className="w-3 h-3" /></Button>
+                        <Button title="Unlock" size="sm" variant="outline" className="h-8 text-[11px] px-2" onClick={() => confirmCommandLocker(l._id, 'unlock', l.code)}><Unlock className="w-3 h-3" /></Button>
+                        <Button title="Lock" size="sm" variant="outline" className="h-8 text-[11px] px-2" onClick={() => confirmCommandLocker(l._id, 'lock', l.code)}><LockKeyhole className="w-3 h-3" /></Button>
+                        <Button title="Release User" size="sm" variant="outline" className="h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => confirmCommandLocker(l._id, 'release', l.code)}><LogOut className="w-3 h-3" /></Button>
                       </div>
                       <div className="grid grid-cols-1 gap-2">
-                        <Button size="sm" variant="outline" className={cn("h-8 text-[11px] px-2", l.isMaintenance ? "border-success/30 text-success hover:bg-success/10" : "border-warning/30 text-warning hover:bg-warning/10")} onClick={() => commandLocker(l._id, 'maintenance')}><Wrench className="w-3 h-3 mr-1" /> {l.isMaintenance ? 'Mark Ready' : 'Maintenance'}</Button>
+                        <Button size="sm" variant="outline" className={cn("h-8 text-[11px] px-2", l.isMaintenance ? "border-success/30 text-success hover:bg-success/10" : "border-warning/30 text-warning hover:bg-warning/10")} onClick={() => confirmCommandLocker(l._id, 'maintenance', l.code, l.isMaintenance)}><Wrench className="w-3 h-3 mr-1" /> {l.isMaintenance ? 'Mark Ready' : 'Maintenance'}</Button>
+                        {user.role === 'SUB_ADMIN' && (
+                          <Button
+                            title={l.isBooked ? 'Release user before deleting' : 'Delete locker'}
+                            size="sm"
+                            variant="outline"
+                            disabled={l.isBooked}
+                            className={cn(
+                              "h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive/10",
+                              l.isBooked && "opacity-40 cursor-not-allowed"
+                            )}
+                            onClick={() => confirmDeleteLocker(l._id, l.code, l.isBooked)}
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" /> Delete
+                          </Button>
+                        )}
                         {l.securityAlertActive && (
                           <Button size="sm" variant="outline" className="h-8 text-[11px] px-2 bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20" onClick={() => commandLocker(l._id, 'security-ignore')}><CheckCircle2 className="w-3 h-3 mr-1" /> Ignore Alert</Button>
                         )}
@@ -359,6 +1050,192 @@ function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* ── Add Locker Modal (SUB_ADMIN) ── */}
+      <AnimatePresence>
+        {addLockerOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md"
+            onClick={(e) => { if (e.target === e.currentTarget) setAddLockerOpen(false); }}
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 24 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.92, y: 24 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              className="relative w-full max-w-md mx-4 bg-card border border-border rounded-3xl shadow-2xl overflow-hidden"
+            >
+              {/* Accent bar */}
+              <div className="h-1 w-full gradient-primary" />
+
+              <div className="p-7">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      {addLockerStep === 1 ? (
+                        <KeyRound className="h-5 w-5 text-primary" />
+                      ) : (
+                        <Plus className="h-5 w-5 text-primary" />
+                      )}
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold">
+                        {addLockerStep === 1 ? "Enter Activation Key" : "Set Locker Details"}
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        {addLockerStep === 1 ? "Step 1 of 2 — Key verification" : "Step 2 of 2 — Locker setup"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setAddLockerOpen(false)}
+                    className="h-8 w-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Step indicator */}
+                <div className="flex gap-2 mb-6">
+                  <div className={cn("flex-1 h-1 rounded-full transition-colors", addLockerStep >= 1 ? "bg-primary" : "bg-muted")} />
+                  <div className={cn("flex-1 h-1 rounded-full transition-colors", addLockerStep >= 2 ? "bg-primary" : "bg-muted")} />
+                </div>
+
+                {/* Step 1 — Activation key */}
+                {addLockerStep === 1 && (
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Activation Key
+                      </Label>
+                      <div className="relative">
+                        <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          value={addLockerKey}
+                          onChange={(e) => { setAddLockerKey(e.target.value.toUpperCase()); setAddLockerKeyError(""); }}
+                          placeholder="LOXA-XXXX-XXXX-XXXX"
+                          className={cn(
+                            "h-11 pl-10 rounded-xl font-mono tracking-widest",
+                            addLockerKeyError && "border-destructive focus-visible:ring-destructive"
+                          )}
+                          maxLength={19}
+                          onKeyDown={(e) => e.key === "Enter" && handleAddLockerKeyNext()}
+                        />
+                      </div>
+                      {addLockerKeyError && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-xs text-destructive font-medium flex items-center gap-1.5"
+                        >
+                          <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                          {addLockerKeyError}
+                        </motion.p>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Contact your super admin if you don't have an activation key.</p>
+                    <Button
+                      className="w-full h-11 rounded-xl gradient-primary hover:opacity-90 text-primary-foreground border-0 font-semibold"
+                      onClick={handleAddLockerKeyNext}
+                    >
+                      Verify Key & Continue
+                    </Button>
+                  </div>
+                )}
+
+                {/* Step 2 — Locker details */}
+                {addLockerStep === 2 && (
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Locker Code
+                      </Label>
+                      <Input
+                        value={addLockerCode}
+                        onChange={(e) => setAddLockerCode(e.target.value.toUpperCase())}
+                        placeholder="e.g. L1, L2, A1"
+                        className="h-11 rounded-xl font-mono font-bold tracking-widest"
+                        maxLength={10}
+                        onKeyDown={(e) => e.key === "Enter" && handleCreateLockerWithKey()}
+                        autoFocus
+                      />
+                      <p className="text-[11px] text-muted-foreground">A unique code to identify this locker (e.g. L1, A3, B2).</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Station
+                      </Label>
+                      <Select value={addLockerStation} onValueChange={setAddLockerStation}>
+                        <SelectTrigger className="h-11 rounded-xl">
+                          <SelectValue placeholder="Select station" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {stationsList
+                            .filter((s: any) => (user.stationIds || []).map(String).includes(String(s._id)))
+                            .map((s: any) => (
+                              <SelectItem key={s._id} value={s._id}>
+                                {s.name || s.code}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        className="flex-1 h-11 rounded-xl"
+                        onClick={() => setAddLockerStep(1)}
+                        disabled={addLockerLoading}
+                      >
+                        Back
+                      </Button>
+                      <Button
+                        className="flex-1 h-11 rounded-xl gradient-primary hover:opacity-90 text-primary-foreground border-0 font-semibold"
+                        onClick={handleCreateLockerWithKey}
+                        disabled={addLockerLoading}
+                      >
+                        {addLockerLoading ? "Creating…" : "Create Locker"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={confirmDialog.isOpen} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, isOpen: open }))}>
+        <AlertDialogContent className="rounded-2xl border-border bg-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold">{confirmDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground text-[15px]">
+              {confirmDialog.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 sm:space-x-4">
+            <AlertDialogCancel className="rounded-xl h-10 px-5">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDialog.onConfirm}
+              className={cn(
+                "rounded-xl h-10 px-5 text-white font-medium border-0",
+                confirmDialog.variant === 'destructive' && "bg-destructive hover:bg-destructive/90 text-destructive-foreground",
+                confirmDialog.variant === 'success' && "bg-success hover:bg-success/90 text-success-foreground",
+                confirmDialog.variant === 'default' && "bg-primary hover:bg-primary/90 text-primary-foreground"
+              )}
+            >
+              {confirmDialog.actionLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
