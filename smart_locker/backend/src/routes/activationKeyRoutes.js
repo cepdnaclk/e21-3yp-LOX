@@ -1,35 +1,23 @@
 const express = require('express');
+const {
+  listActivationKeysHandler,
+  createActivationKeyHandler,
+  deleteActivationKeyHandler,
+  useActivationKeyHandler
+} = require('../controllers/activationKeyController');
+const { requireAuth, allowRoles } = require('../middleware/authMiddleware');
+const { Roles } = require('../constants/enums');
+
 const router = express.Router();
 
-let mockKeys = [];
+router.use(requireAuth);
 
-// GET /activation-keys
-router.get('/', (req, res) => {
-  res.json({ success: true, activationKeys: mockKeys });
-});
+// SUPER_ADMIN routes
+router.get('/', allowRoles([Roles.SUPER_ADMIN]), listActivationKeysHandler);
+router.post('/', allowRoles([Roles.SUPER_ADMIN]), createActivationKeyHandler);
+router.delete('/:keyId', allowRoles([Roles.SUPER_ADMIN]), deleteActivationKeyHandler);
 
-// POST /activation-keys
-router.post('/', (req, res) => {
-  const { label, key } = req.body || {};
-  const newKey = {
-    _id: 'mock_key_' + Math.random().toString(36).substring(2, 9),
-    label: label || 'Unnamed Key',
-    key: key || 'LOXA-MOCK-KEY-1234',
-    isUsed: false,
-    usedAt: null,
-    usedBy: null,
-    usedForLocker: null,
-    createdAt: new Date().toISOString()
-  };
-  mockKeys.push(newKey);
-  res.status(201).json({ success: true, activationKey: newKey });
-});
-
-// DELETE /activation-keys/:id
-router.delete('/:id', (req, res) => {
-  const { id } = req.params;
-  mockKeys = mockKeys.filter(k => k._id !== id);
-  res.json({ success: true, message: 'Key deleted' });
-});
+// SUB_ADMIN: use a key to create a locker
+router.post('/use', allowRoles([Roles.SUB_ADMIN]), useActivationKeyHandler);
 
 module.exports = router;
