@@ -4,7 +4,7 @@ const { listLockers, createLocker, commandLocker } = require('../services/locker
 const Locker = require('../models/Locker');
 const Station = require('../models/Station');
 const { assignWaitingQueue } = require('../services/requestService');
-const { publishLockerBookingStatus, publishLockerSecurityIgnoreCommand, logEvent } = require('../services/mqttService');
+const { publishLockerBookingStatus, publishLockerMaintenanceStatus, publishLockerSecurityIgnoreCommand, logEvent } = require('../services/mqttService');
 const { Roles, ReservationPhase } = require('../constants/enums');
 const { sendPushNotification } = require('../services/notificationService');
 const { getReservationPhase } = require('../services/overdueService');
@@ -178,6 +178,8 @@ const toggleMaintenanceHandler = asyncHandler(async (req, res) => {
 
   locker.isMaintenance = !locker.isMaintenance;
   await locker.save();
+
+  await publishLockerMaintenanceStatus(locker);
 
   if (!locker.isMaintenance && !locker.isBooked) {
     await assignWaitingQueue(locker.stationId);
