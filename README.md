@@ -6,10 +6,10 @@
 
 ## Project Overview
 
-LOX smartLocker is a mobile app–based smart locker system that enables users to book, lock, and monitor lockers securely without physical keys. Using ESP32 hardware and cloud connectivity, it provides real-time status updates, door monitoring, and enhanced security, offering a scalable and convenient solution for modern smart storage.
+LOX Smart Locker is a mobile app–based smart locker system that enables users to book, lock, and monitor lockers securely without physical keys. Using ESP32 hardware and cloud connectivity, it provides real-time status updates, door monitoring, and enhanced security, offering a scalable and convenient solution for modern smart storage.
 
-![Overview](docs/images/overview.jpg)
-
+![Overview](docs/images/Overview.png)
+![Overview](docs/images/overview2.png)
 ---
 
 ## The Problem & Motivation
