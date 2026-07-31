@@ -1,7 +1,7 @@
 const asyncHandler = require('../utils/asyncHandler');
 const { success } = require('../presenters/apiPresenter');
 const { env } = require('../config/env');
-const { createCheckoutSession, createOverdueCheckoutSession, fulfillCheckoutSession, handleStripeWebhookEvent } = require('../services/paymentService');
+const { createCheckoutSession, createOverdueCheckoutSession, fulfillCheckoutSession, handleStripeWebhookEvent, verifySession } = require('../services/paymentService');
 
 const createCheckoutSessionHandler = asyncHandler(async (req, res) => {
   const result = await createCheckoutSession(req.user, req.body || {}, req);
@@ -291,11 +291,50 @@ const getWebSuccessPage = asyncHandler(async (req, res) => {
   return res.redirect(redirectUrl);
 });
 
+const mockFulfillHandler = asyncHandler(async (req, res) => {
+  const { sessionId } = req.body || {};
+  if (!sessionId) {
+    return res.status(400).json({ message: 'sessionId is required' });
+  }
+
+  const { findOrderByStripeSessionId } = require('../services/orderService');
+  const order = await findOrderByStripeSessionId(sessionId);
+  if (!order) {
+    return res.status(404).json({ message: 'Order not found' });
+  }
+
+  const mockSession = {
+    id: sessionId,
+    payment_status: 'paid',
+    status: 'complete',
+    payment_intent: 'mock_pi_' + Math.random().toString(36).substring(2, 10),
+    customer_email: req.user.email,
+    metadata: {
+      orderId: String(order._id),
+      productId: String(order.productId),
+      userId: String(req.user._id),
+      type: order.productCategory === 'OVERDUE_FEE' ? 'OVERDUE_FEE' : 'STORE_ITEM',
+      lockerId: order.productCategory === 'OVERDUE_FEE' ? String(order.productId) : undefined
+    }
+  };
+
+  const { fulfillCheckoutSession } = require('../services/paymentService');
+  const updatedOrder = await fulfillCheckoutSession(mockSession);
+  return success(res, { message: 'Mock payment fulfilled successfully', order: updatedOrder }, 200);
+});
+
+const verifySessionHandler = asyncHandler(async (req, res) => {
+  const result = await verifySession(req.query.session_id);
+  return success(res, result);
+});
+
 module.exports = {
   createCheckoutSessionHandler,
   createOverdueCheckoutSessionHandler,
   stripeWebhookHandler,
   getMobileSuccessPage,
   getMobileCancelPage,
-  getWebSuccessPage
+  getWebSuccessPage,
+  mockFulfillHandler,
+  verifySessionHandler
 };

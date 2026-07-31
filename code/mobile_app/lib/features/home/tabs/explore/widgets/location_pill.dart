@@ -39,9 +39,15 @@ class LocationPill extends StatelessWidget {
       statusRed: isDark ? const Color(0xFFEF4444) : const Color(0xFFB91C1C),
     );
 
+    final isLuxuryGreen = themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
+
     final primaryColor = theme.colorScheme.primary;
     final txtColor = theme.colorScheme.onSurface;
     final isLight = theme.brightness == Brightness.light;
+
+    final painterColor = isLuxuryGreen
+        ? (isLight ? const Color(0xFF6D9773) : const Color(0xFFBB8A52))
+        : primaryColor.withOpacity(isLight ? 0.12 : 0.18);
 
     return InkWell(
       borderRadius: BorderRadius.circular(themeStyle.fieldRadius),
@@ -50,25 +56,33 @@ class LocationPill extends StatelessWidget {
         height: 56,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              primaryColor.withOpacity(isLight ? 0.08 : 0.12),
-              primaryColor.withOpacity(isLight ? 0.03 : 0.05),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          gradient: isLuxuryGreen
+              ? LinearGradient(
+                  colors: isLight
+                      ? [const Color(0xFFFFFFFF), const Color(0xFFFFFFFF)]
+                      : [const Color(0xFF0C3B2E), const Color(0xFF0C3B2E)],
+                )
+              : LinearGradient(
+                  colors: [
+                    primaryColor.withOpacity(isLight ? 0.08 : 0.12),
+                    primaryColor.withOpacity(isLight ? 0.03 : 0.05),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
           borderRadius: BorderRadius.circular(themeStyle.fieldRadius),
-          border: themeStyle.cardBorder != null 
-              ? Border.all(color: primaryColor.withOpacity(0.3), width: 1.2) 
-              : null,
+          border: isLuxuryGreen
+              ? Border.all(color: const Color(0xFFBB8A52), width: 1.5)
+              : (themeStyle.cardBorder != null 
+                  ? Border.all(color: primaryColor.withOpacity(0.3), width: 1.2) 
+                  : null),
         ),
         child: Stack(
           children: [
             Positioned.fill(
               child: CustomPaint(
                 painter: MapBackgroundPainter(
-                  color: primaryColor.withOpacity(isLight ? 0.12 : 0.18),
+                  color: painterColor,
                 ),
               ),
             ),
@@ -79,8 +93,13 @@ class LocationPill extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     CircleAvatar(
-                      backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
-                      child: Icon(Icons.place_outlined, color: primaryColor),
+                      backgroundColor: isLuxuryGreen
+                          ? const Color(0xFF0C3B2E)
+                          : theme.colorScheme.primary.withOpacity(0.12),
+                      child: Icon(
+                        Icons.place_outlined,
+                        color: isLuxuryGreen ? const Color(0xFFFFBA00) : primaryColor,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     // Location Text Label
@@ -98,10 +117,16 @@ class LocationPill extends StatelessWidget {
                     if (loading)
                       SizedBox(
                         width: 18, height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: primaryColor),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: isLuxuryGreen ? const Color(0xFFFFBA00) : primaryColor,
+                        ),
                       )
                     else
-                      Icon(Icons.keyboard_arrow_down_rounded, color: primaryColor),
+                      Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: isLuxuryGreen ? const Color(0xFFBB8A52) : primaryColor,
+                      ),
                   ],
                 ),
               ),

@@ -10,6 +10,7 @@ import '../widgets/station_card.dart';
 import '../../../../../core/services/biometric_service.dart';
 import '../../../../../data/local/local_store.dart';
 import 'notification_screen.dart';
+import '../../../../../core/theme/theme_style.dart';
 
 /// Defines the available sorting strategies for the stations list.
 enum HomeStationSort { distance, availability }
@@ -282,13 +283,33 @@ class _StationsViewState extends State<StationsView> {
 
   /// Displays a bottom sheet allowing the user to opt into using their device location.
   void _showLocationSheet() {
+    final theme = Theme.of(context);
+    final themeStyle = theme.extension<AppThemeStyle>();
+    final isLuxuryGreen = themeStyle != null &&
+        themeStyle.statusGreen == const Color(0xFF6D9773) &&
+        themeStyle.statusYellow == const Color(0xFFFFBA00);
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: isLuxuryGreen
+              ? const Border(
+                  top: BorderSide(color: Color(0xFFBB8A52), width: 1.5),
+                  left: BorderSide(color: Color(0xFFBB8A52), width: 1.5),
+                  right: BorderSide(color: Color(0xFFBB8A52), width: 1.5),
+                )
+              : (themeStyle?.cardBorder != null
+                  ? Border(
+                      top: BorderSide(color: theme.colorScheme.primary.withOpacity(0.3), width: 1.2),
+                      left: BorderSide(color: theme.colorScheme.primary.withOpacity(0.3), width: 1.2),
+                      right: BorderSide(color: theme.colorScheme.primary.withOpacity(0.3), width: 1.2),
+                    )
+                  : null),
+          boxShadow: isLuxuryGreen ? null : themeStyle?.cardShadow,
         ),
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
         child: Column(
@@ -298,28 +319,48 @@ class _StationsViewState extends State<StationsView> {
             Container(
               width: 42, height: 5,
               decoration: BoxDecoration(
-                color: const Color(0xFFE1DED7),
+                color: isLuxuryGreen
+                    ? const Color(0xFFBB8A52).withOpacity(0.5)
+                    : theme.colorScheme.onSurface.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(99),
               ),
             ),
             const SizedBox(height: 14),
-            const Align(
+            Align(
               alignment: Alignment.centerLeft,
-              child: Text('Select location',
-                  style: TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w800)),
+              child: Text(
+                'Select location',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
             ),
             const SizedBox(height: 10),
             ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Color(0xFFE7E4DD),
-                child: Icon(Icons.my_location_rounded,
-                    color: Color(0xFF5B5A3D)),
+              leading: CircleAvatar(
+                backgroundColor: isLuxuryGreen
+                    ? const Color(0xFF0C3B2E)
+                    : theme.colorScheme.primary.withOpacity(0.12),
+                child: Icon(
+                  Icons.my_location_rounded,
+                  color: isLuxuryGreen ? const Color(0xFFFFBA00) : theme.colorScheme.primary,
+                ),
               ),
-              title: const Text('Use current location',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: const Text(
-                  'We will sort nearby stations by distance'),
+              title: Text(
+                'Use current location',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              subtitle: Text(
+                'We will sort nearby stations by distance',
+                style: TextStyle(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
               onTap: () async {
                 Navigator.pop(context); // Close sheet before starting async work
                 await _pickCurrentLocation();
@@ -391,30 +432,38 @@ class _StationsViewState extends State<StationsView> {
 
     final sorted = _sortedStations;
 
+    final themeStyle = theme.extension<AppThemeStyle>();
+    final isLuxuryGreen = themeStyle != null && themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
+
     return Container(
       color: Colors.transparent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            decoration: const BoxDecoration(
+              color: Colors.transparent,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+              child: SafeArea(
+                bottom: false,
+                child: LocationPill(
+                  label: _locLoading
+                      ? 'Detecting location…'
+                      : activeLocationText,
+                  loading: _locLoading,
+                  onTap: _locLoading ? null : _showLocationSheet,
+                ),
+              ),
+            ),
+          ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Location display and interactive trigger
-                SafeArea(
-                  bottom: false,
-                  child: LocationPill(
-                    label: _locLoading
-                        ? 'Detecting location…'
-                        : activeLocationText,
-                    loading: _locLoading,
-                    onTap: _locLoading ? null : _showLocationSheet,
-                  ),
-                ),
-                const SizedBox(height: 22),
-
                 // Title & controls section
                 Row(
                   children: [
@@ -560,7 +609,7 @@ class _StationsViewState extends State<StationsView> {
                 RefreshIndicator(
                   onRefresh: widget.onRefresh,
                   child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 180),
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 90),
                     itemCount: sorted.isEmpty ? 1 : sorted.length,
                     itemBuilder: (context, index) {
                       if (sorted.isEmpty) {

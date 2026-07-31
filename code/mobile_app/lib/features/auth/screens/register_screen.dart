@@ -198,7 +198,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
             ),
-            const Text(
+            Text(
               'Create Account',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -209,7 +209,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'JOIN THE SECURE LOCKER NETWORK',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -361,7 +361,7 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 11,
         fontWeight: FontWeight.w600,
         letterSpacing: 1.2,
@@ -458,7 +458,7 @@ class _LockerTextField extends StatelessWidget {
         textInputAction: textInputAction,
         onSubmitted: onSubmitted,
         autofillHints: autofillHints,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           color: AppColors.textField,
           fontWeight: FontWeight.w500,

@@ -9,13 +9,13 @@ class AppColors {
   static Color oliveDark = const Color(0xFF6B6E50);
   
   // Backgrounds
-  static const Color background = Color(0xFFF0EFEB);
-  static const Color fieldBackground = Color(0xFFE8E7E3);
+  static Color background = const Color(0xFFF0EFEB);
+  static Color fieldBackground = const Color(0xFFE8E7E3);
   
   // Typography
-  static const Color textMain = Color(0xFF1A1A1A);
-  static const Color textField = Color(0xFF2A2A2A);
-  static const Color textLabel = Color(0xFF9A9A86);
-  static const Color textHint = Color(0xFFBDBDA8);
-  static const Color textMuted = Color(0xFFADAD98);
+  static Color textMain = const Color(0xFF1A1A1A);
+  static Color textField = const Color(0xFF2A2A2A);
+  static Color textLabel = const Color(0xFF9A9A86);
+  static Color textHint = const Color(0xFFBDBDA8);
+  static Color textMuted = const Color(0xFFADAD98);
 }

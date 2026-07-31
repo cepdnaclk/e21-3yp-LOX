@@ -218,7 +218,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// Calculates the number of unbooked lockers for a given [stationId].
   int _freeCountForStation(String stationId) {
     return (_lockersByStation[stationId] ?? const [])
-        .where((l) => !l.isBooked)
+        .where((l) => !l.isBooked && !l.securityAlertActive)
         .length;
   }
 
@@ -346,162 +346,37 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
               ],
             ),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: 180,
-              child: IgnorePointer(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [
-                        Theme.of(context).scaffoldBackgroundColor,
-                        Theme.of(context).scaffoldBackgroundColor,
-                        Theme.of(context).scaffoldBackgroundColor.withOpacity(0.0),
-                      ],
-                      stops: const [
-                        0.0,
-                        0.6,
-                        1.0,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),
       bottomNavigationBar: Container(
-        height: 120,
-        color: Colors.transparent,
-        child: Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.bottomCenter,
-          children: [
-            Positioned(
-              left: 24,
-              right: 24,
-              bottom: 24,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(40),
-                  boxShadow: themeStyle.cardShadow ?? [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(40),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: themeStyle.navBarBlur, sigmaY: themeStyle.navBarBlur),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: themeStyle.navBarBg,
-                        borderRadius: BorderRadius.circular(40),
-                        border: themeStyle.navBarBorder ?? Border.all(
-                          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: SafeArea(
-                        top: false,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildNavItem(1, Icons.bookmark_outline, Icons.bookmark, 'BOOKINGS', themeStyle),
-                            const SizedBox(width: 96), // Spacer matching the larger floating explore button width
-                            _buildNavItem(2, Icons.menu, Icons.menu, 'MENU', themeStyle),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 11, // Perfectly aligns the larger EXPLORE text baseline with BOOKINGS and MENU labels
-              child: _buildExploreNavItem(0, Icons.explore_outlined, Icons.explore, 'EXPLORE', themeStyle),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExploreNavItem(int index, IconData outlineIcon, IconData solidIcon, String label, AppThemeStyle themeStyle) {
-    final isSelected = _tabIndex == index;
-    final theme = Theme.of(context);
-    
-    final bgColor = themeStyle.navBarBg;
-        
-    final iconColor = isSelected
-        ? themeStyle.navBarActiveColor 
-        : theme.colorScheme.onSurface.withOpacity(0.4);
-
-    final textColor = isSelected 
-        ? themeStyle.navBarActiveColor 
-        : theme.colorScheme.onSurface.withOpacity(0.4);
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () {
-        setState(() => _tabIndex = index);
-      },
-      child: Container(
-        width: 96,
-        height: 96,
         decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: bgColor,
-          border: Border.all(
-            color: isSelected 
-                ? themeStyle.navBarActiveColor 
-                : themeStyle.navBarActiveColor.withOpacity(0.4),
-            width: 2.5,
+          color: themeStyle.navBarBg,
+          border: Border(
+            top: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
+              width: 1.0,
+            ),
           ),
-          boxShadow: themeStyle.cardShadow ?? [
+          boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(48),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: themeStyle.navBarBlur, sigmaY: themeStyle.navBarBlur),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    isSelected ? solidIcon : outlineIcon,
-                    color: iconColor,
-                    size: 36, // Noticeably larger icon
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 11, // Larger label text
-                      fontWeight: FontWeight.w900, // Bolder
-                      letterSpacing: 0.9,
-                    ),
-                  ),
-                ],
-              ),
+        child: SafeArea(
+          child: Container(
+            height: 60,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(1, Icons.bookmark_outline, Icons.bookmark, 'BOOKINGS', themeStyle),
+                _buildNavItem(0, Icons.explore_outlined, Icons.explore, 'EXPLORE', themeStyle),
+                _buildNavItem(2, Icons.menu, Icons.menu, 'MENU', themeStyle),
+              ],
             ),
           ),
         ),
@@ -512,9 +387,13 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildNavItem(int index, IconData outlineIcon, IconData solidIcon, String label, AppThemeStyle themeStyle) {
     final isSelected = _tabIndex == index;
     final theme = Theme.of(context);
-    final color = isSelected 
-        ? themeStyle.navBarActiveColor 
-        : theme.colorScheme.onSurface.withOpacity(0.4);
+    final isLight = theme.brightness == Brightness.light;
+    final isLuxuryGreen = themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
+    final color = isLuxuryGreen && isLight
+        ? (isSelected ? const Color(0xFF0C3B2E) : const Color(0xFF6D9773))
+        : (isSelected 
+            ? themeStyle.navBarActiveColor 
+            : (isLuxuryGreen ? const Color(0xFFBB8A52) : theme.colorScheme.onSurface.withOpacity(0.4)));
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -525,25 +404,13 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           setState(() => _tabIndex = index);
         }
       },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isSelected ? solidIcon : outlineIcon,
-            color: color,
-            size: 24,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.8,
-            ),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+        child: Icon(
+          isSelected ? solidIcon : outlineIcon,
+          color: color,
+          size: 30,
+        ),
       ),
     );
   }

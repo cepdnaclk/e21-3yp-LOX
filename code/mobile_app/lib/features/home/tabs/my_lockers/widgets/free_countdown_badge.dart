@@ -71,11 +71,12 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
   }
 
   Widget _buildBadge(AppThemeStyle themeStyle) {
+    final isLuxuryGreen = themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
     switch (_status.phase) {
       case ReservationPhase.active:
         return _badge(
-          color: const Color(0xFF027A48),
-          bgColor: const Color(0xFF027A48),
+          color: isLuxuryGreen ? const Color(0xFF6D9773) : const Color(0xFF027A48),
+          bgColor: isLuxuryGreen ? const Color(0xFF0C3B2E) : const Color(0xFF027A48),
           icon: Icons.timer_outlined,
           label: 'FREE TIME REMAINING',
           value: formatCountdown(_status.timeRemainingMs),
@@ -84,19 +85,19 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
 
       case ReservationPhase.overdue:
         return _pulseBadge(
-          color: const Color(0xFFB42318),
-          bgColor: const Color(0xFFB42318),
+          color: isLuxuryGreen ? const Color(0xFFFFBA00) : const Color(0xFFB42318),
+          bgColor: isLuxuryGreen ? const Color(0xFF0C3B2E) : const Color(0xFFB42318),
           icon: Icons.warning_amber_rounded,
           label: 'OVERDUE',
           value: formatOverdueDuration(_status.overdueMs),
-          subtext: 'Fee: \$${_status.chargeAmount.toStringAsFixed(2)}',
+          subtext: 'Fee: \Rs. ${_status.chargeAmount.toStringAsFixed(2)}',
           themeStyle: themeStyle,
         );
 
       case ReservationPhase.overdueReleased:
         return _badge(
-          color: Theme.of(context).colorScheme.primary,
-          bgColor: Theme.of(context).colorScheme.primary,
+          color: isLuxuryGreen ? const Color(0xFFBB8A52) : Theme.of(context).colorScheme.primary,
+          bgColor: isLuxuryGreen ? const Color(0xFF0C3B2E) : Theme.of(context).colorScheme.primary,
           icon: Icons.check_circle_outline_rounded,
           label: 'GRACE PERIOD',
           value: formatCountdown(_status.timeRemainingMs),
@@ -115,12 +116,13 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
     required AppThemeStyle themeStyle,
     String? subtext,
   }) {
+    final isLuxuryGreen = themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: bgColor.withOpacity(0.08),
+        color: isLuxuryGreen ? const Color(0xFF0C3B2E) : bgColor.withOpacity(0.08),
         borderRadius: BorderRadius.circular(themeStyle.fieldRadius),
-        border: Border.all(color: bgColor.withOpacity(0.22)),
+        border: Border.all(color: isLuxuryGreen ? const Color(0xFFBB8A52) : bgColor.withOpacity(0.22), width: isLuxuryGreen ? 1.5 : 1.0),
       ),
       child: Row(
         children: [
@@ -136,7 +138,7 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
                     fontSize: 9,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.9,
-                    color: color.withOpacity(0.75),
+                    color: isLuxuryGreen ? const Color(0xFFBB8A52) : color.withOpacity(0.75),
                   ),
                 ),
                 Text(
@@ -144,7 +146,7 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
-                    color: color,
+                    color: isLuxuryGreen ? const Color(0xFFFFFFFF) : color,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
@@ -153,7 +155,7 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
                     subtext,
                     style: TextStyle(
                       fontSize: 11,
-                      color: color.withOpacity(0.75),
+                      color: isLuxuryGreen ? const Color(0xFFBB8A52) : color.withOpacity(0.75),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -174,6 +176,7 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
     required AppThemeStyle themeStyle,
     String? subtext,
   }) {
+    final isLuxuryGreen = themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
     // Use TweenAnimationBuilder for a pulsing alpha effect on overdue
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.08, end: 0.16),
@@ -182,9 +185,9 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
       builder: (_, alpha, child) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: bgColor.withOpacity(alpha),
+          color: isLuxuryGreen ? const Color(0xFF0C3B2E) : bgColor.withOpacity(alpha),
           borderRadius: BorderRadius.circular(themeStyle.fieldRadius),
-          border: Border.all(color: bgColor.withOpacity(0.3)),
+          border: Border.all(color: isLuxuryGreen ? const Color(0xFFFFBA00) : bgColor.withOpacity(0.3), width: isLuxuryGreen ? 1.5 : 1.0),
         ),
         child: child,
       ),
@@ -202,7 +205,7 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
                     fontSize: 9,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.9,
-                    color: color.withOpacity(0.75),
+                    color: isLuxuryGreen ? const Color(0xFFFFBA00) : color.withOpacity(0.75),
                   ),
                 ),
                 Text(
@@ -210,7 +213,7 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
-                    color: color,
+                    color: isLuxuryGreen ? const Color(0xFFFFFFFF) : color,
                   ),
                 ),
                 if (subtext != null)
@@ -218,7 +221,7 @@ class _FreeCountdownBadgeState extends State<FreeCountdownBadge> {
                     subtext,
                     style: TextStyle(
                       fontSize: 12,
-                      color: color,
+                      color: isLuxuryGreen ? const Color(0xFFFFBA00) : color,
                       fontWeight: FontWeight.w700,
                     ),
                   ),

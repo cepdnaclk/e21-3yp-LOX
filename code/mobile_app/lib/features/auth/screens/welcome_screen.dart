@@ -21,14 +21,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   int _currentPage = 0;
   Timer? _timer;
 
-  final List<Map<String, dynamic>> _slides = [
+  List<Map<String, dynamic>> get _slides => [
     {
       'label': 'SMART LOCKERS',
       'highlighted': 'MADE SIMPLE.',
       'subtitle': 'Experience next-generation locker security with advanced encryption and real-time monitoring.',
       'icon': Icons.lock_person_rounded,
-      'gradient': [const Color(0xFF5C5F3E), const Color(0xFF383A26)],
-      'image': 'assets/images/Locker-image-01.png',
+      'gradient': [AppColors.olive, AppColors.oliveDark],
     },
     {
       'label': 'INSTANT ACCESS',
@@ -120,81 +119,86 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       itemBuilder: (context, index) {
                         final slide = _slides[index];
                         final gradient = slide['gradient'] as List<Color>;
-                        final imagePath = slide['image'] as String?;
-                        return Container(
-                          decoration: BoxDecoration(
-                            gradient: imagePath == null
-                                ? LinearGradient(
+                        return Stack(
+                          children: [
+                            // Gradient Background
+                            Positioned.fill(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
                                     begin: Alignment.topCenter,
                                     end: Alignment.bottomCenter,
                                     colors: gradient,
-                                  )
-                                : null,
-                            image: imagePath != null
-                                ? DecorationImage(
-                                    image: AssetImage(imagePath),
-                                    fit: BoxFit.cover,
-                                    colorFilter: ColorFilter.mode(
-                                      Colors.black.withOpacity(0.55),
-                                      BlendMode.srcOver,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          child: SafeArea(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    slide['icon'] as IconData,
-                                    color: Colors.white.withOpacity(0.9),
-                                    size: 48,
                                   ),
-                                  const SizedBox(height: 24),
-                                  // Highlighted label blocks similar to bank app in the reference image
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    color: Colors.white.withOpacity(0.15),
-                                    child: Text(
-                                      slide['label'] as String,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 1.5,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    color: Colors.white,
-                                    child: Text(
-                                      slide['highlighted'] as String,
-                                      style: TextStyle(
-                                        color: gradient[0],
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 1.5,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  Text(
-                                    slide['subtitle'] as String,
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.85),
-                                      fontSize: 14,
-                                      height: 1.45,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
-                          ),
+                            // Security/Tech pattern background image
+                            Positioned.fill(
+                              child: Opacity(
+                                opacity: 0.15,
+                                child: Image.asset(
+                                  'assets/images/welcome_bg_pattern.png',
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            // Slide Content
+                            SafeArea(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      slide['icon'] as IconData,
+                                      color: Colors.white.withOpacity(0.9),
+                                      size: 48,
+                                    ),
+                                    const SizedBox(height: 24),
+                                    // Highlighted label blocks similar to bank app in the reference image
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      color: Colors.white.withOpacity(0.15),
+                                      child: Text(
+                                        slide['label'] as String,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 1.5,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      color: Colors.white,
+                                      child: Text(
+                                        slide['highlighted'] as String,
+                                        style: TextStyle(
+                                          color: gradient[0],
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 1.5,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Text(
+                                      slide['subtitle'] as String,
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.85),
+                                        fontSize: 14,
+                                        height: 1.45,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         );
                       },
                     ),

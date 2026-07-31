@@ -120,19 +120,25 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
       statusRed: isDark ? const Color(0xFFEF4444) : const Color(0xFFB91C1C),
     );
 
-    final primaryColor = theme.colorScheme.primary;
-    final cardBg = isLight 
-        ? Color.lerp(Colors.white, primaryColor, 0.03)! 
-        : theme.colorScheme.surface;
-    final txtColor = theme.colorScheme.onSurface;
-    final mutedColor = isDark 
-        ? theme.colorScheme.onSurfaceVariant 
-        : theme.colorScheme.onSurfaceVariant.withOpacity(0.7);
-    final trackColor = theme.colorScheme.outlineVariant.withOpacity(0.3);
+    final isLuxuryGreen = themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
 
-    final freeCount = _lockers.where((l) => !l.isBooked).length;
+    final primaryColor = theme.colorScheme.primary;
+    final cardBg = themeStyle.cardBg ?? (isLight 
+        ? Color.lerp(Colors.white, primaryColor, 0.03)! 
+        : theme.colorScheme.surface);
+    final txtColor = theme.colorScheme.onSurface;
+    final mutedColor = isLuxuryGreen
+        ? const Color(0xFFBB8A52)
+        : (isDark 
+            ? theme.colorScheme.onSurfaceVariant 
+            : theme.colorScheme.onSurfaceVariant.withOpacity(0.7));
+    final trackColor = isLuxuryGreen
+        ? const Color(0xFFBB8A52)
+        : theme.colorScheme.outlineVariant.withOpacity(0.3);
+
+    final freeCount = _lockers.where((l) => !l.isBooked && !l.securityAlertActive).length;
     final reservedCount = _lockers.length - freeCount;
-    final canRequest = _activeRequest == null;
+    final canRequest = _activeRequest == null && freeCount > 0;
 
     final Color statusColor;
     if (freeCount > 0) {
@@ -312,9 +318,9 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
                               ),
                             )
                           : Text(
-                              canRequest
-                                  ? 'Request Locker'
-                                  : 'Request ${_activeRequest!.status}',
+                              _activeRequest != null
+                                  ? 'Request ${_activeRequest!.status}'
+                                  : (freeCount > 0 ? 'Request Locker' : 'No Lockers Available'),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 15,

@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../../../data/models/product.dart';
+import '../../../../../data/models/order.dart';
 import '../../../../../data/models/user_profile.dart';
 import '../../../../../data/remote/api_client.dart';
 import '../../../../../core/theme/app_colors.dart';
+import 'mock_payment_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   const ProductDetailScreen({
@@ -49,25 +50,60 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     setState(() => _submitting = true);
     try {
-      final res = await widget.client.createCheckoutSession(
-        widget.product.id,
-        _quantity,
-        _selectedColor,
-      );
-
-      final urlStr = res['checkoutUrl']?.toString() ?? '';
-      if (urlStr.isEmpty) {
-        throw Exception('Server failed to return Stripe checkout URL');
+      // Fetch user's orders to check if a pending payment already exists for this product
+      final orders = await widget.client.fetchOrders();
+      Order? existingPendingOrder;
+      
+      for (final order in orders) {
+        if (order.productId == widget.product.id &&
+            order.status.toUpperCase() == 'PENDING' &&
+            order.stripeSessionId.isNotEmpty) {
+          existingPendingOrder = order;
+          break;
+        }
       }
 
-      final uri = Uri.parse(urlStr);
-      if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      String sessionId;
+      double amount;
+
+      if (existingPendingOrder != null) {
+        sessionId = existingPendingOrder.stripeSessionId;
+        amount = existingPendingOrder.amount;
+        _show('Resuming your pending checkout session...');
+      } else {
+        final res = await widget.client.createCheckoutSession(
+          widget.product.id,
+          _quantity,
+          _selectedColor,
+        );
+
+        sessionId = res['sessionId']?.toString() ?? '';
+        if (sessionId.isEmpty) {
+          throw Exception('Server failed to return checkout session ID');
+        }
+
+        final orderMap = res['order'] as Map<String, dynamic>?;
+        amount = (orderMap?['amount'] as num?)?.toDouble() ?? 
+            ((widget.product.price * _quantity) + widget.product.deliveryFee);
+      }
+
+      if (!mounted) return;
+
+      final success = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => MockPaymentScreen(
+            client: widget.client,
+            sessionId: sessionId,
+            amount: amount,
+            productName: widget.product.name,
+          ),
+        ),
+      );
+
+      if (success == true) {
         if (mounted) {
-          _show('Opening Stripe checkout page...');
           Navigator.of(context).pop(true);
         }
-      } else {
-        throw Exception('Could not launch browser for Stripe checkout');
       }
     } catch (e) {
       _show(e.toString());
@@ -78,18 +114,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final hasCompare = widget.product.compareAtPrice > widget.product.price;
     final isOut = widget.product.stock <= 0;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: isDark ? theme.scaffoldBackgroundColor : AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textMain),
+        iconTheme: IconThemeData(color: AppColors.textMain),
         title: Text(
           widget.product.category,
-          style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.textMain),
+          style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.textMain),
         ),
       ),
       body: SafeArea(
@@ -104,9 +142,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     height: 200,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: AppColors.fieldBackground.withOpacity(0.5),
+                      color: isDark ? Colors.white.withOpacity(0.04) : AppColors.fieldBackground.withOpacity(0.5),
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.black.withOpacity(0.04)),
+                      border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04)),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(24),
@@ -128,7 +166,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       Expanded(
                         child: Text(
                           widget.product.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
                             color: AppColors.textMain,
@@ -139,7 +177,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: AppColors.olive,
+                            color: theme.primaryColor,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -162,7 +200,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       const SizedBox(width: 4),
                       Text(
                         '${widget.product.rating} (${widget.product.reviews} reviews)',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textMain,
@@ -197,7 +235,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         const SizedBox(width: 10),
                         Text(
                           'Rs. ${widget.product.compareAtPrice.round()}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             decoration: TextDecoration.lineThrough,
                             color: AppColors.textMuted,
@@ -211,7 +249,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                   // Colors list bubble selectors
                   if (widget.product.colors.isNotEmpty) ...[
-                    const Text(
+                    Text(
                       'CHOOSE COLOR',
                       style: TextStyle(
                         fontSize: 11,
@@ -234,9 +272,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         return GestureDetector(
                           onTap: () => setState(() => _selectedColor = color.name),
                           child: Chip(
-                            backgroundColor: isSel ? AppColors.fieldBackground : Colors.white,
+                            backgroundColor: isSel
+                                ? AppColors.fieldBackground
+                                : (isDark ? Colors.white.withOpacity(0.05) : Colors.white),
                             side: BorderSide(
-                              color: isSel ? AppColors.olive : Colors.black.withOpacity(0.06),
+                              color: isSel
+                                  ? theme.primaryColor
+                                  : (isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.06)),
                               width: isSel ? 2 : 1,
                             ),
                             avatar: CircleAvatar(
@@ -247,7 +289,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               color.name,
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
-                                color: isSel ? AppColors.textMain : AppColors.textLabel,
+                                color: isSel ? AppColors.textMain : (isDark ? Colors.white70 : AppColors.textLabel),
                               ),
                             ),
                           ),
@@ -258,7 +300,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ],
 
                   // Quantity adjust counters
-                  const Text(
+                  Text(
                     'QUANTITY',
                     style: TextStyle(
                       fontSize: 11,
@@ -308,7 +350,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   const SizedBox(height: 24),
 
                   // Description
-                  const Text(
+                  Text(
                     'DESCRIPTION',
                     style: TextStyle(
                       fontSize: 11,
@@ -320,7 +362,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   const SizedBox(height: 8),
                   Text(
                     widget.product.description,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textMain,
@@ -330,7 +372,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                   if (widget.product.features.isNotEmpty) ...[
                     const SizedBox(height: 20),
-                    const Text(
+                    Text(
                       'KEY FEATURES',
                       style: TextStyle(
                         fontSize: 11,
@@ -349,7 +391,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             const SizedBox(width: 8),
                             Text(
                               f,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textMain,
@@ -367,9 +409,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppColors.fieldBackground.withOpacity(0.4),
+                      color: isDark ? Colors.white.withOpacity(0.04) : AppColors.fieldBackground.withOpacity(0.4),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.black.withOpacity(0.04)),
+                      border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04)),
                     ),
                     child: Row(
                       children: [
@@ -381,7 +423,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             children: [
                               Text(
                                 widget.product.deliveryLabel,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.textMain,
@@ -389,7 +431,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                               Text(
                                 'Est. Delivery: ${widget.product.deliveryDays} Days • Fee: Rs. ${widget.product.deliveryFee.round()}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
                                   color: AppColors.textLabel,
                                   fontWeight: FontWeight.w700,
@@ -411,25 +453,26 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 10,
-                    offset: const Offset(0, -4),
+                color: isDark ? theme.colorScheme.surface : Colors.white,
+                border: Border(
+                  top: BorderSide(
+                    color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.05),
+                    width: 1,
                   ),
-                ],
+                ),
               ),
               child: SizedBox(
                 width: double.infinity,
-                height: 52,
+                height: 54,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.olive,
+                    backgroundColor: theme.primaryColor,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppColors.olive.withOpacity(0.5),
+                    disabledBackgroundColor: theme.primaryColor.withOpacity(0.5),
+                    elevation: 2,
+                    shadowColor: theme.primaryColor.withOpacity(0.3),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(28),
                     ),
                   ),
                   onPressed: isOut || _submitting ? null : _proceedToCheckout,

@@ -1,6 +1,6 @@
 const asyncHandler = require('../utils/asyncHandler');
 const { success } = require('../presenters/apiPresenter');
-const { getStationsForUser, getAllStations, createStation } = require('../services/stationService');
+const { getStationsForUser, getAllStations, createStation, updateOverdueSettings } = require('../services/stationService');
 const { updateSchedule, commandAll, updateFreeDuration, getOverdueLockers } = require('../services/stationActionService');
 const { validateCreateStationPayload } = require('../validations/stationValidate');
 
@@ -61,6 +61,10 @@ const getOverdueLockersHandler = asyncHandler(async (req, res) => {
   return success(res, { overdueLockers });
 });
 
+const updateOverdueSettingsHandler = asyncHandler(async (req, res) => {
+  const station = await updateOverdueSettings(req.user, req.params.stationId, req.body);
+  return success(res, { station });
+});
 module.exports = {
   listStations,
   listAllStations,
@@ -69,5 +73,6 @@ module.exports = {
   emergencyUnlockHandler,
   lockAllHandler,
   updateFreeDurationHandler,
-  getOverdueLockersHandler
+  getOverdueLockersHandler,
+  updateOverdueSettingsHandler
 };

@@ -30,18 +30,36 @@ class LockerChip extends StatelessWidget {
     final Color cardBg;
     final Color borderCol;
 
-    if (alert) {
-      statusColor = themeStyle.statusRed;
-      cardBg = themeStyle.statusRed.withOpacity(isDark ? 0.15 : 0.08);
-      borderCol = themeStyle.statusRed.withOpacity(isDark ? 0.35 : 0.2);
-    } else if (locker.isBooked) {
-      statusColor = themeStyle.statusRed;
-      cardBg = themeStyle.statusRed.withOpacity(isDark ? 0.15 : 0.08);
-      borderCol = themeStyle.statusRed.withOpacity(isDark ? 0.35 : 0.2);
+    final isLuxuryGreen = themeStyle.statusGreen == const Color(0xFF6D9773) && themeStyle.statusYellow == const Color(0xFFFFBA00);
+
+    if (isLuxuryGreen) {
+      if (alert) {
+        statusColor = const Color(0xFFFFBA00); // Bright Gold
+        cardBg = isDark ? const Color(0xFF0C3B2E) : const Color(0xFFFFFFFF);
+        borderCol = const Color(0xFFFFBA00); // Bright Gold
+      } else if (locker.isBooked) {
+        statusColor = const Color(0xFFBB8A52); // Muted Gold
+        cardBg = isDark ? const Color(0xFF0C3B2E) : const Color(0xFFFFFFFF);
+        borderCol = const Color(0xFFBB8A52); // Muted Gold
+      } else {
+        statusColor = const Color(0xFF6D9773); // Sage Green
+        cardBg = isDark ? const Color(0xFF0C3B2E) : const Color(0xFFFFFFFF);
+        borderCol = const Color(0xFF6D9773); // Sage Green
+      }
     } else {
-      statusColor = themeStyle.statusGreen;
-      cardBg = themeStyle.statusGreen.withOpacity(isDark ? 0.15 : 0.08);
-      borderCol = themeStyle.statusGreen.withOpacity(isDark ? 0.35 : 0.2);
+      if (alert) {
+        statusColor = themeStyle.statusRed;
+        cardBg = themeStyle.statusRed.withOpacity(isDark ? 0.15 : 0.08);
+        borderCol = themeStyle.statusRed.withOpacity(isDark ? 0.35 : 0.2);
+      } else if (locker.isBooked) {
+        statusColor = themeStyle.statusRed;
+        cardBg = themeStyle.statusRed.withOpacity(isDark ? 0.15 : 0.08);
+        borderCol = themeStyle.statusRed.withOpacity(isDark ? 0.35 : 0.2);
+      } else {
+        statusColor = themeStyle.statusGreen;
+        cardBg = themeStyle.statusGreen.withOpacity(isDark ? 0.15 : 0.08);
+        borderCol = themeStyle.statusGreen.withOpacity(isDark ? 0.35 : 0.2);
+      }
     }
 
     final txtColor = theme.colorScheme.onSurface;
@@ -76,7 +94,9 @@ class LockerChip extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            locker.isBooked ? 'RESERVED' : 'AVAILABLE',
+            locker.securityAlertActive
+                ? 'UNAVAILABLE'
+                : (locker.isBooked ? 'RESERVED' : 'AVAILABLE'),
             style: TextStyle(
               fontWeight: FontWeight.w800,
               fontSize: 10,

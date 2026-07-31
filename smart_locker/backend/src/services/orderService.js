@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 
-const ORDER_STATUSES = ['PENDING', 'PAID', 'FAILED', 'CANCELLED'];
+const ORDER_STATUSES = ['PENDING', 'PROCESSING', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
+const PAYMENT_STATUSES = ['PENDING', 'PAID', 'FAILED', 'REFUNDED'];
 
 function toOrderDTO(order) {
   return {
@@ -16,7 +17,10 @@ function toOrderDTO(order) {
     deliveryDays: order.deliveryDays || 0,
     currency: order.currency || 'usd',
     amount: order.amount || 0,
-    status: order.status,
+    orderStatus: order.orderStatus,
+    paymentStatus: order.paymentStatus,
+    status: order.paymentStatus || 'PENDING',
+    messages: order.messages || [],
     stripeSessionId: order.stripeSessionId || '',
     stripePaymentIntentId: order.stripePaymentIntentId || '',
     stripePaymentStatus: order.stripePaymentStatus || '',
@@ -61,22 +65,41 @@ async function updateOrderById(orderId, updates) {
   return order ? toOrderDTO(order) : null;
 }
 
-async function updateOrderStatus(orderId, status) {
-  if (!ORDER_STATUSES.includes(status)) {
+async function updateOrderStatus(orderId, orderStatus) {
+  if (!ORDER_STATUSES.includes(orderStatus.toUpperCase())) {
     const error = new Error('Invalid order status');
     error.statusCode = 400;
     throw error;
   }
 
-  const updates = { status };
+  const updates = { orderStatus: orderStatus.toUpperCase() };
 
-  if (status === 'PAID') {
+  const order = await Order.findByIdAndUpdate(orderId, { $set: updates }, { new: true });
+  if (!order) {
+    const error = new Error('Order not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return toOrderDTO(order);
+}
+
+async function updatePaymentStatus(orderId, paymentStatus) {
+  if (!PAYMENT_STATUSES.includes(paymentStatus.toUpperCase())) {
+    const error = new Error('Invalid payment status');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const updates = { paymentStatus: paymentStatus.toUpperCase() };
+
+  if (updates.paymentStatus === 'PAID') {
     updates.paidAt = new Date();
     updates.failedAt = null;
-  } else if (status === 'FAILED') {
+  } else if (updates.paymentStatus === 'FAILED') {
     updates.failedAt = new Date();
     updates.paidAt = null;
-  } else if (status === 'PENDING') {
+  } else if (updates.paymentStatus === 'PENDING') {
     updates.paidAt = null;
     updates.failedAt = null;
   }
@@ -91,6 +114,32 @@ async function updateOrderStatus(orderId, status) {
   return toOrderDTO(order);
 }
 
+async function addOrderMessage(orderId, message, senderRole = 'SUPER_ADMIN') {
+  const order = await Order.findByIdAndUpdate(
+    orderId,
+    { $push: { messages: { message, senderRole, date: new Date() } } },
+    { new: true }
+  );
+  
+  if (!order) {
+    const error = new Error('Order not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  
+  return toOrderDTO(order);
+}
+
+async function deleteOrder(orderId) {
+  const order = await Order.findByIdAndDelete(orderId);
+  if (!order) {
+    const error = new Error('Order not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  return true;
+}
+
 module.exports = {
   toOrderDTO,
   createOrder,
@@ -99,5 +148,9 @@ module.exports = {
   updateOrderByStripeSessionId,
   updateOrderById,
   updateOrderStatus,
-  ORDER_STATUSES
+  updatePaymentStatus,
+  addOrderMessage,
+  deleteOrder,
+  ORDER_STATUSES,
+  PAYMENT_STATUSES
 };

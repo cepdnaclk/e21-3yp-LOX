@@ -88,6 +88,7 @@ async function subscribeAllLockers() {
     }
     await subscribeLockerState(locker);
     await publishLockerBookingStatus(locker);
+    await publishLockerMaintenanceStatus(locker);
   }
 }
 
@@ -130,6 +131,25 @@ async function publishLockerBookingStatus(locker) {
     [...topics].map((topic) =>
       publishRetained(topic, value).catch((error) => {
         console.error(`Failed to publish booking status to ${topic}:`, error.message);
+      })
+    )
+  );
+}
+
+async function publishLockerMaintenanceStatus(locker) {
+  if (!locker || !locker.code) {
+    return;
+  }
+
+  const value = locker.isMaintenance ? 'MAINTENANCE_ON' : 'MAINTENANCE_OFF';
+  const canonicalTopic = buildDefaultTopic(locker, 'maintenance');
+  const legacyTopic = `locker/${getLegacyCode(locker.code)}/maintenance`;
+
+  const topics = new Set([canonicalTopic, legacyTopic]);
+  await Promise.all(
+    [...topics].map((topic) =>
+      publishRetained(topic, value).catch((error) => {
+        console.error(`Failed to publish maintenance status to ${topic}:`, error.message);
       })
     )
   );
@@ -256,11 +276,11 @@ if (client) {
         if (alertMessages.has(value)) {
           locker.securityAlertActive = true;
           if (value === 'VIBRATION_ALERT') {
-            locker.securityAlertMessage = 'Security issue: Vibration detected on Locker 1.';
+            locker.securityAlertMessage = `Security issue: Vibration detected on Locker ${locker.code}.`;
           } else if (locker.doorState === DoorStates.OPEN) {
-            locker.securityAlertMessage = 'Security issue: Door unexpectedly open while locked.';
+            locker.securityAlertMessage = `Security issue: Door unexpectedly open while locked on Locker ${locker.code}.`;
           } else {
-            locker.securityAlertMessage = 'Security issue: Alert active on Locker 1.';
+            locker.securityAlertMessage = `Security issue: Alert active on Locker ${locker.code}.`;
           }
           locker.securityAlertUpdatedAt = new Date();
           locker.lastSeenAt = new Date();
@@ -312,6 +332,7 @@ module.exports = {
   mqttClient: client,
   publishLockerCommand,
   publishLockerBookingStatus,
+  publishLockerMaintenanceStatus,
   publishLockerSecurityIgnoreCommand,
   subscribeLockerState,
   subscribeAllLockers,

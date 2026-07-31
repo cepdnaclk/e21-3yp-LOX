@@ -26,7 +26,7 @@ import '../core/theme/page_transitions.dart';
 /// 2. Managing the global authentication state ([_session]).
 /// 3. Routing the user to either the [AuthScreen] or [HomeScreen] based on their state
 
-enum AppThemePreset { olive, ocean, sunset, forest, slate }
+enum AppThemePreset { olive, ocean, sunset, forest, slate, luxuryGreen, premiumBlue }
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.light);
 final ValueNotifier<AppThemePreset> themePresetNotifier = ValueNotifier<AppThemePreset>(AppThemePreset.olive);
@@ -75,36 +75,108 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
     final brightness = mode == ThemeMode.system
         ? MediaQuery.platformBrightnessOf(context)
         : (mode == ThemeMode.dark ? Brightness.dark : Brightness.light);
+    final isLight = brightness == Brightness.light;
 
     Color primary;
     Color primaryDark;
+    Color background;
+    Color fieldBackground;
+    Color textMain;
+    Color textField;
+    Color textLabel;
+    Color textHint;
+    Color textMuted;
     
     switch (preset) {
       case AppThemePreset.ocean:
         primary = const Color(0xFF1E40AF);
         primaryDark = const Color(0xFF1D4ED8);
+        background = isLight ? const Color(0xFFF3F4F6) : const Color(0xFF1B2230);
+        fieldBackground = isLight ? const Color(0xFFE8E7E3) : const Color(0xFF273142);
+        textMain = isLight ? const Color(0xFF1A1A1A) : const Color(0xFFF9FAFB);
+        textField = isLight ? const Color(0xFF2A2A2A) : const Color(0xFFE5E7EB);
+        textLabel = isLight ? const Color(0xFF9A9A86) : const Color(0xFFADAD98);
+        textHint = isLight ? const Color(0xFFBDBDA8) : const Color(0xFF8E8E93);
+        textMuted = isLight ? const Color(0xFFADAD98) : const Color(0xFF8E8E93);
         break;
       case AppThemePreset.sunset:
         primary = const Color(0xFFEA580C);
         primaryDark = const Color(0xFFD97706);
+        background = isLight ? const Color(0xFFFFF7ED) : const Color(0xFF26201B);
+        fieldBackground = isLight ? const Color(0xFFFED7AA) : const Color(0xFF362E28);
+        textMain = isLight ? const Color(0xFF1A1A1A) : const Color(0xFFF9FAFB);
+        textField = isLight ? const Color(0xFF2A2A2A) : const Color(0xFFE5E7EB);
+        textLabel = isLight ? const Color(0xFF9A9A86) : const Color(0xFFADAD98);
+        textHint = isLight ? const Color(0xFFBDBDA8) : const Color(0xFF8E8E93);
+        textMuted = isLight ? const Color(0xFFADAD98) : const Color(0xFF8E8E93);
         break;
       case AppThemePreset.forest:
         primary = const Color(0xFF047857);
         primaryDark = const Color(0xFF065F46);
+        background = isLight ? const Color(0xFFF0FDF4) : const Color(0xFF15221E);
+        fieldBackground = isLight ? const Color(0xFFD1FAE5) : const Color(0xFF20322D);
+        textMain = isLight ? const Color(0xFF1A1A1A) : const Color(0xFFF9FAFB);
+        textField = isLight ? const Color(0xFF2A2A2A) : const Color(0xFFE5E7EB);
+        textLabel = isLight ? const Color(0xFF9A9A86) : const Color(0xFFADAD98);
+        textHint = isLight ? const Color(0xFFBDBDA8) : const Color(0xFF8E8E93);
+        textMuted = isLight ? const Color(0xFFADAD98) : const Color(0xFF8E8E93);
         break;
       case AppThemePreset.slate:
         primary = const Color(0xFF475569);
         primaryDark = const Color(0xFF334155);
+        background = isLight ? const Color(0xFFF8FAFC) : const Color(0xFF202630);
+        fieldBackground = isLight ? const Color(0xFFE2E8F0) : const Color(0xFF2C3442);
+        textMain = isLight ? const Color(0xFF1A1A1A) : const Color(0xFFF9FAFB);
+        textField = isLight ? const Color(0xFF2A2A2A) : const Color(0xFFE5E7EB);
+        textLabel = isLight ? const Color(0xFF9A9A86) : const Color(0xFFADAD98);
+        textHint = isLight ? const Color(0xFFBDBDA8) : const Color(0xFF8E8E93);
+        textMuted = isLight ? const Color(0xFFADAD98) : const Color(0xFF8E8E93);
+        break;
+      case AppThemePreset.luxuryGreen:
+        primary = isLight ? const Color(0xFF0C3B2E) : const Color(0xFF6D9773);
+        primaryDark = isLight ? const Color(0xFF6D9773) : const Color(0xFFFFBA00);
+        background = isLight ? const Color(0xFF8FB496) : const Color(0xFF0C3B2E);
+        fieldBackground = isLight ? const Color(0xFFFFFFFF) : const Color(0xFF0C3B2E);
+        textMain = isLight ? const Color(0xFF0C3B2E) : const Color(0xFFFFFFFF);
+        textField = isLight ? const Color(0xFF0C3B2E) : const Color(0xFFFFFFFF);
+        textLabel = isLight ? const Color(0xFFBB8A52) : const Color(0xFFBB8A52);
+        textHint = isLight ? const Color(0xFFBB8A52) : const Color(0xFF6D9773);
+        textMuted = isLight ? const Color(0xFFBB8A52) : const Color(0xFFBB8A52);
+        break;
+      case AppThemePreset.premiumBlue:
+        primary = const Color(0xFF1877F2);
+        primaryDark = isLight ? const Color(0xFF166FE5) : const Color(0xFF2D88FF);
+        background = isLight ? const Color(0xFFF0F2F5) : const Color(0xFF18191A);
+        fieldBackground = isLight ? const Color(0xFFE4E6EB) : const Color(0xFF3A3B3C);
+        textMain = isLight ? const Color(0xFF050505) : const Color(0xFFE4E6EB);
+        textField = isLight ? const Color(0xFF050505) : const Color(0xFFE4E6EB);
+        textLabel = isLight ? const Color(0xFF65676B) : const Color(0xFFB0B3B8);
+        textHint = isLight ? const Color(0xFF8A8D91) : const Color(0xFF74767A);
+        textMuted = isLight ? const Color(0xFF65676B) : const Color(0xFFB0B3B8);
         break;
       case AppThemePreset.olive:
       default:
         primary = const Color(0xFF5C5F3E);
         primaryDark = const Color(0xFF6B6E50);
+        background = isLight ? const Color(0xFFF0EFEB) : const Color(0xFF23251E);
+        fieldBackground = isLight ? const Color(0xFFE8E7E3) : const Color(0xFF2F3227);
+        textMain = isLight ? const Color(0xFF1A1A1A) : const Color(0xFFE5E7EB);
+        textField = isLight ? const Color(0xFF2A2A2A) : const Color(0xFFE5E7EB);
+        textLabel = isLight ? const Color(0xFF9A9A86) : const Color(0xFFADAD98);
+        textHint = isLight ? const Color(0xFFBDBDA8) : const Color(0xFF7A7A6D);
+        textMuted = isLight ? const Color(0xFFADAD98) : const Color(0xFF7A7A6D);
         break;
     }
 
     AppColors.olive = primary;
     AppColors.oliveDark = primaryDark;
+    AppColors.background = background;
+    AppColors.fieldBackground = fieldBackground;
+    AppColors.textMain = textMain;
+    AppColors.textField = textField;
+    AppColors.textLabel = textLabel;
+    AppColors.textHint = textHint;
+    AppColors.textMuted = textMuted;
   }
 
   ThemeData buildThemeData(AppThemePreset preset, Brightness brightness) {
@@ -245,6 +317,64 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
         cardBg = isLight ? Colors.white : const Color(0xFF2C3442);
         break;
 
+      case AppThemePreset.luxuryGreen: // Premium Luxury Green & Gold
+        seedColor = isLight ? const Color(0xFF0C3B2E) : const Color(0xFF6D9773);
+        scaffoldBg = isLight ? const Color(0xFF8FB496) : const Color(0xFF0C3B2E);
+        cardRadius = 24.0;
+        buttonRadius = 18.0;
+        fieldRadius = 16.0;
+        cardBorder = Border.all(
+          color: const Color(0xFFBB8A52), // Muted Gold border
+          width: 1.5,
+        );
+        cardShadow = [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          )
+        ];
+        navBarBg = isLight ? const Color(0xFFFFFFFF) : const Color(0xFF0C3B2E);
+        navBarBorder = Border.all(
+          color: const Color(0xFFBB8A52),
+          width: 1.5,
+        );
+        navBarBlur = 12.0;
+        navBarActiveColor = const Color(0xFFFFBA00); // Bright Gold
+        glowColor = const Color(0xFFFFBA00); // Bright Gold
+        cardBg = isLight ? const Color(0xFFFFFFFF) : const Color(0xFF0C3B2E);
+        break;
+
+      case AppThemePreset.premiumBlue: // Premium balanced Blue & Grey (Facebook style)
+        seedColor = const Color(0xFF1877F2);
+        scaffoldBg = isLight ? const Color(0xFFF0F2F5) : const Color(0xFF18191A);
+        cardRadius = 20.0;
+        buttonRadius = 16.0;
+        fieldRadius = 14.0;
+        cardBorder = Border.all(
+          color: isLight ? const Color(0xFFE4E6EB) : const Color(0xFF3A3B3C),
+          width: 1.0,
+        );
+        cardShadow = [
+          BoxShadow(
+            color: Colors.black.withOpacity(isLight ? 0.04 : 0.12),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          )
+        ];
+        navBarBg = isLight ? const Color(0xFFFFFFFF) : const Color(0xFF242526);
+        navBarBorder = Border(
+          top: BorderSide(
+            color: isLight ? const Color(0xFFE4E6EB) : const Color(0xFF3A3B3C),
+            width: 1.0,
+          ),
+        );
+        navBarBlur = 10.0;
+        navBarActiveColor = const Color(0xFF1877F2);
+        glowColor = const Color(0xFF1877F2);
+        cardBg = isLight ? const Color(0xFFFFFFFF) : const Color(0xFF242526);
+        break;
+
       case AppThemePreset.olive:
       default:
         seedColor = const Color(0xFF5C5F3E);
@@ -300,6 +430,16 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
         statusYellow = isLight ? const Color(0xFFB45309) : const Color(0xFFF59E0B);
         statusRed = isLight ? const Color(0xFFBE123C) : const Color(0xFFF43F5E);
         break;
+      case AppThemePreset.luxuryGreen:
+        statusGreen = const Color(0xFF6D9773); // Sage Green
+        statusYellow = const Color(0xFFFFBA00); // Bright Gold/Yellow
+        statusRed = const Color(0xFFBB8A52); // Muted Gold
+        break;
+      case AppThemePreset.premiumBlue:
+        statusGreen = isLight ? const Color(0xFF31A24C) : const Color(0xFF2DB742);
+        statusYellow = const Color(0xFFF7B924);
+        statusRed = const Color(0xFFF02849);
+        break;
       case AppThemePreset.olive:
       default:
         statusGreen = isLight ? const Color(0xFF4D7C0F) : const Color(0xFF84CC16);
@@ -308,33 +448,67 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
         break;
     }
 
-    final actualCardBg = cardBg ?? (isLight ? Colors.white : const Color(0xFF1A1A1A));
-    final containerHigh = isLight 
-        ? const Color(0xFFE5E7EB) 
-        : (cardBg != null ? Color.lerp(cardBg, Colors.white, 0.08)! : const Color(0xFF2A2A2A));
-    final containerHighest = isLight 
-        ? const Color(0xFFD1D5DB) 
-        : (cardBg != null ? Color.lerp(cardBg, Colors.white, 0.15)! : const Color(0xFF333333));
+    final Color actualCardBg;
+    final Color containerHigh;
+    final Color containerHighest;
+    final Color outlineColor;
+    final Color outlineVariantColor;
+
+    if (preset == AppThemePreset.luxuryGreen) {
+      actualCardBg = isLight ? const Color(0xFFFFFFFF) : const Color(0xFF0C3B2E);
+      containerHigh = const Color(0xFF6D9773);
+      containerHighest = isLight ? const Color(0xFF0C3B2E) : const Color(0xFFBB8A52);
+      outlineColor = const Color(0xFFBB8A52);
+      outlineVariantColor = const Color(0xFF6D9773);
+    } else {
+      actualCardBg = cardBg ?? (isLight ? Colors.white : const Color(0xFF1A1A1A));
+      containerHigh = isLight 
+          ? const Color(0xFFE5E7EB) 
+          : (cardBg != null ? Color.lerp(cardBg, Colors.white, 0.08)! : const Color(0xFF2A2A2A));
+      containerHighest = isLight 
+          ? const Color(0xFFD1D5DB) 
+          : (cardBg != null ? Color.lerp(cardBg, Colors.white, 0.15)! : const Color(0xFF333333));
+      outlineColor = isLight ? seedColor.withOpacity(0.4) : seedColor.withOpacity(0.6);
+      outlineVariantColor = isLight ? Colors.black.withOpacity(0.12) : Colors.white.withOpacity(0.18);
+    }
 
     return ThemeData(
       brightness: actualBrightness,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: seedColor,
-        brightness: actualBrightness,
-        primary: seedColor,
-        surface: actualCardBg,
-      ).copyWith(
-        surface: actualCardBg,
-        surfaceContainerLowest: isLight ? Colors.white : actualCardBg,
-        surfaceContainerLow: isLight ? const Color(0xFFF9FAFB) : scaffoldBg,
-        surfaceContainer: isLight ? const Color(0xFFF3F4F6) : actualCardBg,
-        surfaceContainerHigh: containerHigh,
-        surfaceContainerHighest: containerHighest,
-        onSurfaceVariant: isLight ? const Color(0xFF374151) : const Color(0xFFD1D5DB),
-        onSurface: isLight ? const Color(0xFF111827) : const Color(0xFFF9FAFB),
-        outline: isLight ? seedColor.withOpacity(0.4) : seedColor.withOpacity(0.6),
-        outlineVariant: isLight ? Colors.black.withOpacity(0.12) : Colors.white.withOpacity(0.18),
-      ),
+      colorScheme: (preset == AppThemePreset.luxuryGreen)
+          ? ColorScheme.fromSeed(
+              seedColor: seedColor,
+              brightness: actualBrightness,
+              primary: seedColor,
+              surface: actualCardBg,
+            ).copyWith(
+              surface: actualCardBg,
+              surfaceContainerLowest: isLight ? const Color(0xFFFFFFFF) : const Color(0xFF0C3B2E),
+              surfaceContainerLow: isLight ? const Color(0xFFFFFFFF) : const Color(0xFF0C3B2E),
+              surfaceContainer: actualCardBg,
+              surfaceContainerHigh: containerHigh,
+              surfaceContainerHighest: containerHighest,
+              onSurfaceVariant: isLight ? const Color(0xFF0C3B2E) : const Color(0xFFBB8A52),
+              onSurface: isLight ? const Color(0xFF0C3B2E) : const Color(0xFFFFFFFF),
+              outline: outlineColor,
+              outlineVariant: outlineVariantColor,
+            )
+          : ColorScheme.fromSeed(
+              seedColor: seedColor,
+              brightness: actualBrightness,
+              primary: seedColor,
+              surface: actualCardBg,
+            ).copyWith(
+              surface: actualCardBg,
+              surfaceContainerLowest: isLight ? Colors.white : actualCardBg,
+              surfaceContainerLow: isLight ? const Color(0xFFF9FAFB) : scaffoldBg,
+              surfaceContainer: isLight ? const Color(0xFFF3F4F6) : actualCardBg,
+              surfaceContainerHigh: containerHigh,
+              surfaceContainerHighest: containerHighest,
+              onSurfaceVariant: isLight ? const Color(0xFF374151) : const Color(0xFFD1D5DB),
+              onSurface: isLight ? const Color(0xFF111827) : const Color(0xFFF9FAFB),
+              outline: outlineColor,
+              outlineVariant: outlineVariantColor,
+            ),
       scaffoldBackgroundColor: scaffoldBg,
       useMaterial3: true,
       pageTransitionsTheme: const PageTransitionsTheme(
@@ -462,6 +636,26 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
             _homeKey.currentState?.refreshData();
           },
         );
+      } else if (payment == 'store_success') {
+        _showPaymentResult(
+          ctx,
+          success: true,
+          title: 'Purchase Successful',
+          message: 'Your locker has been purchased successfully! Go to My Purchases to see details.',
+          onDismiss: () {
+            _homeKey.currentState?.refreshData();
+          },
+        );
+      } else if (payment == 'store_cancel') {
+        _showPaymentResult(
+          ctx,
+          success: false,
+          title: 'Purchase Cancelled',
+          message: 'The checkout session was cancelled. No payment was processed.',
+          onDismiss: () {
+            _homeKey.currentState?.refreshData();
+          },
+        );
       }
     });
   }
@@ -533,6 +727,7 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
 
       // the user might have closed the app or navigated away before the server responds
       if (!mounted) return;
+      await LocalStore.setCurrentUserEmail(user.email);
       setState(() {
         _session = SessionData(client: client, user: user);
         _loading = false;
@@ -566,6 +761,7 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
       await LocalStore.saveBootstrap(baseUrl: _baseUrl, token: result.token);
 
       if (!mounted) return;
+      await LocalStore.setCurrentUserEmail(result.user.email);
       setState(() {
         _session = SessionData(client: client, user: result.user);
         _loading = false;
@@ -590,6 +786,7 @@ class _SmartLockerAppState extends State<SmartLockerApp> {
       }
     }
     await LocalStore.clearToken();
+    await LocalStore.clearCurrentUserEmail();
     if (!mounted) return;
     setState(() {
       _session = null;

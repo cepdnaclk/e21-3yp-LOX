@@ -1,18 +1,21 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Store, BarChart3, User, HelpCircle, Settings, LogOut, LockKeyhole, ListOrdered } from "lucide-react";
+import { Home, Store, BarChart3, User, HelpCircle, Settings, LogOut, LockKeyhole, ListOrdered, Receipt, Package, KeyRound } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 const items = [
-  { title: "Home", url: "/dashboard", icon: Home },
-  { title: "Store", url: "/store", icon: Store },
-  { title: "Queue", url: "/queue", icon: ListOrdered },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
-  { title: "My Account", url: "/account", icon: User },
-  { title: "Help", url: "/help", icon: HelpCircle },
-  { title: "Settings", url: "/settings", icon: Settings },
-] as const;
+  { title: "Home", url: "/dashboard", icon: Home, roles: null },
+  { title: "Store", url: "/store", icon: Store, roles: null },
+  { title: "My Orders", url: "/orders", icon: Package, roles: null },
+  { title: "Queue", url: "/queue", icon: ListOrdered, roles: null },
+  { title: "Analytics", url: "/analytics", icon: BarChart3, roles: null },
+  { title: "Overdue Payments", url: "/overdue", icon: Receipt, roles: ["SUB_ADMIN", "SUPER_ADMIN"] },
+  { title: "Activation Keys", url: "/activation-keys", icon: KeyRound, roles: ["SUPER_ADMIN"] },
+  { title: "My Account", url: "/account", icon: User, roles: null },
+  { title: "Help", url: "/help", icon: HelpCircle, roles: null },
+  { title: "Settings", url: "/settings", icon: Settings, roles: null },
+];
 
 export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -49,7 +52,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
 
       <nav className="flex-1 px-3 space-y-1">
         <p className="px-3 pt-4 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Workspace</p>
-        {items.map((item, i) => {
+        {items.filter(item => !item.roles || item.roles.includes(user?.role)).map((item, i) => {
           const active = pathname === item.url || (item.url !== "/dashboard" && pathname.startsWith(item.url));
           return (
             <motion.div
@@ -76,7 +79,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
                   />
                 )}
                 <item.icon className={cn("h-4.5 w-4.5 shrink-0", active ? "text-primary" : "")} />
-                <span>{item.title}</span>
+                <span>{item.url === "/orders" && user?.role === 'SUPER_ADMIN' ? "View Orders" : item.title}</span>
                 {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
               </Link>
             </motion.div>

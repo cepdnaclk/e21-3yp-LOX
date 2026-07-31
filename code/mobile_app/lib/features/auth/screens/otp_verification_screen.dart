@@ -84,7 +84,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textMain),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textMain),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -99,7 +99,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               color: AppColors.olive,
             ),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'Verify Your Device',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -113,7 +113,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             RichText(
               textAlign: TextAlign.center,
               text: TextSpan(
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   color: AppColors.textLabel,
                   height: 1.5,
@@ -122,14 +122,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   const TextSpan(text: 'We detected a login attempt from a new device: '),
                   TextSpan(
                     text: widget.deviceName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textMain),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textMain),
                   ),
                   const TextSpan(text: '.\n\nPlease enter the 6-digit OTP code sent to your email/registered contact to authorize this device.'),
                 ],
               ),
             ),
             const SizedBox(height: 36),
-            const Text(
+            Text(
               '6-DIGIT VERIFICATION CODE',
               style: TextStyle(
                 fontSize: 11,
@@ -149,18 +149,18 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 keyboardType: TextInputType.number,
                 maxLength: 6,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 8,
                   color: AppColors.textField,
                 ),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   counterText: '',
                   hintText: '000000',
                   hintStyle: TextStyle(color: AppColors.textHint, letterSpacing: 8),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 16),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
                 ),
               ),
             ),

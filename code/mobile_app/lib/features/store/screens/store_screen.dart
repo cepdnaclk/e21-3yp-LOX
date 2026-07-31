@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../../../data/models/product.dart';
 import '../../../../../data/models/order.dart';
 import '../../../../../data/models/user_profile.dart';
@@ -24,12 +23,8 @@ class StoreScreen extends StatefulWidget {
 }
 
 class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
-  // UI Tabs State
-  int _activeSubTab = 0; // 0: Marketplace, 1: Order History
-
   // Store Data State
   List<Product> _products = [];
-  List<Order> _orders = [];
   bool _loading = false;
   String? _error;
 
@@ -63,11 +58,9 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
     if (mounted) setState(() => _loading = true);
     try {
       final products = await widget.client.fetchProducts();
-      final orders = await widget.client.fetchOrders();
       if (mounted) {
         setState(() {
           _products = products;
-          _orders = orders;
           _error = null;
           _loading = false;
         });
@@ -133,95 +126,45 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Section Tabs Selector
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-              child: Container(
-                height: 44,
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: AppColors.fieldBackground,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildSubTabButton('MARKETPLACE', 0),
-                    ),
-                    Expanded(
-                      child: _buildSubTabButton('ORDER HISTORY', 1),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Main body
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _loadStoreData,
-                child: _loading && _products.isEmpty
-                    ? const Center(child: CircularProgressIndicator())
-                    : _error != null
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(_error!, textAlign: TextAlign.center),
-                                  const SizedBox(height: 12),
-                                  ElevatedButton(
-                                    onPressed: _loadStoreData,
-                                    child: const Text('Retry'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                        : _activeSubTab == 0
-                            ? _buildMarketplaceCatalog()
-                            : _buildOrderHistory(),
-              ),
-            ),
-          ],
+      backgroundColor: isDark ? theme.scaffoldBackgroundColor : AppColors.background,
+      appBar: AppBar(
+        title: const Text(
+          'Locker Store',
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
         ),
+        iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
       ),
-    );
-  }
-
-  Widget _buildSubTabButton(String label, int index) {
-    final selected = _activeSubTab == index;
-    return GestureDetector(
-      onTap: () => setState(() => _activeSubTab = index),
-      child: Container(
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.8,
-            color: selected ? AppColors.textMain : AppColors.textMuted,
-          ),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _loadStoreData,
+          color: AppColors.olive,
+          child: _loading && _products.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(_error!, textAlign: TextAlign.center),
+                            const SizedBox(height: 12),
+                            ElevatedButton(
+                              onPressed: _loadStoreData,
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : _buildMarketplaceCatalog(),
         ),
       ),
     );
@@ -243,7 +186,7 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
           child: TextField(
             onChanged: (val) => setState(() => _searchQuery = val),
             style: const TextStyle(fontWeight: FontWeight.w600),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Search products...',
               prefixIcon: Icon(Icons.search, color: AppColors.textLabel),
               border: InputBorder.none,
@@ -256,7 +199,7 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Sort by',
               style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.textLabel),
             ),
@@ -311,7 +254,7 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
 
         // Products Catalog Grid
         if (filtered.isEmpty)
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(vertical: 64),
             child: Center(
               child: Text(
@@ -343,22 +286,28 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildProductCard(Product product) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardBg = isDark ? (theme.cardTheme.color ?? const Color(0xFF31332B)) : Colors.white;
+    final borderColor = isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05);
     final hasComparePrice = product.compareAtPrice > product.price;
 
     return GestureDetector(
       onTap: () => _openProduct(product),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardBg,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.black.withOpacity(0.05)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          border: Border.all(color: borderColor),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,7 +318,7 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: AppColors.fieldBackground.withOpacity(0.4),
+                    color: isDark ? Colors.white.withOpacity(0.04) : AppColors.fieldBackground.withOpacity(0.4),
                   ),
                   child: Stack(
                     children: [
@@ -383,7 +332,7 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: AppColors.olive,
+                              color: theme.primaryColor,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -409,10 +358,10 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
                 children: [
                   Text(
                     product.category.toUpperCase(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textLabel,
+                      color: isDark ? Colors.white60 : AppColors.textLabel,
                       letterSpacing: 1.2,
                     ),
                   ),
@@ -421,10 +370,10 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
                     product.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w900,
-                      color: AppColors.textMain,
+                      color: isDark ? Colors.white : AppColors.textMain,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -439,16 +388,16 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w900,
-                              color: AppColors.olive,
+                              color: isDark ? theme.colorScheme.primary : AppColors.olive,
                             ),
                           ),
                           if (hasComparePrice)
                             Text(
                               'Rs. ${product.compareAtPrice.round()}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
                                 decoration: TextDecoration.lineThrough,
-                                color: AppColors.textMuted,
+                                color: isDark ? Colors.white38 : AppColors.textMuted,
                               ),
                             ),
                         ],
@@ -459,10 +408,10 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
                           const SizedBox(width: 2),
                           Text(
                             product.rating.toString(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.textMain,
+                              color: isDark ? Colors.white70 : AppColors.textMain,
                             ),
                           ),
                         ],
@@ -575,142 +524,4 @@ class _StoreScreenState extends State<StoreScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildOrderHistory() {
-    if (_orders.isEmpty) {
-      return ListView(
-        children: const [
-          SizedBox(height: 120),
-          Icon(Icons.receipt_long_outlined, size: 64, color: AppColors.textMuted),
-          SizedBox(height: 10),
-          Center(
-            child: Text(
-              'No checkout orders yet.',
-              style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.textLabel),
-            ),
-          ),
-        ],
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      itemCount: _orders.length,
-      itemBuilder: (context, index) {
-        final order = _orders[index];
-        final isPaid = order.status == 'PAID';
-        final isPending = order.status == 'PENDING';
-        final isFailed = order.status == 'FAILED';
-
-        Color badgeBg = const Color(0xFFF3E9E8);
-        Color badgeText = const Color(0xFFB85C58);
-        if (isPaid) {
-          badgeBg = const Color(0xFFE4ECE5);
-          badgeText = AppColors.olive;
-        } else if (isPending) {
-          badgeBg = const Color(0xFFFEF3C7);
-          badgeText = const Color(0xFFD97706);
-        }
-
-        return Card(
-          elevation: 0,
-          color: Colors.white,
-          margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.black.withOpacity(0.06)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      order.productCategory.toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textLabel,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: badgeBg,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        order.status,
-                        style: TextStyle(
-                          color: badgeText,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  order.productName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.textMain,
-                  ),
-                ),
-                if (order.selectedColor.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'Color variant: ${order.selectedColor}',
-                    style: const TextStyle(fontSize: 13, color: AppColors.textLabel, fontWeight: FontWeight.w500),
-                  ),
-                ],
-                const Divider(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Qty: ${order.quantity} • Rs. ${order.unitPrice.round()} each',
-                      style: const TextStyle(color: AppColors.textLabel, fontWeight: FontWeight.w600, fontSize: 13),
-                    ),
-                    Text(
-                      'Total: Rs. ${order.amount.round()}',
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppColors.textMain),
-                    ),
-                  ],
-                ),
-                if (isPending && order.checkoutUrl.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 38,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.olive,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: () async {
-                        final uri = Uri.parse(order.checkoutUrl);
-                        if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-                          _loadStoreData();
-                        }
-                      },
-                      child: const Text('Complete Payment', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
 }

@@ -1,36 +1,45 @@
+#include <Adafruit_GFX.h>
+#include <Adafruit_NeoPixel.h>
+#include <Adafruit_SSD1306.h>
+#include <PubSubClient.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
-#include <PubSubClient.h>
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 
 // Wi-Fi credentials
-const char* ssid = "Dialog 4G 826";
-const char* password = "3864f6F1";
-
+const char* ssid = "HUAWEI-E8372-3A0F";
+const char* password = "55529256";
 // MQTT broker settings
-const char* mqttServer = "3e037e542d2944a3ae4266e4d6f6c874.s1.eu.hivemq.cloud";
+const char *mqttServer = "3e037e542d2944a3ae4266e4d6f6c874.s1.eu.hivemq.cloud";
 const int mqttPort = 8883;
-const char* mqttUser = "smartlocker";
-const char* mqttPassword = "Chamikaudu415";
+const char *mqttUser = "smartlocker";
+const char *mqttPassword = "Chamikaudu415";
 
 // -------- LOCKER SETUP --------
-const int lockerCount = 4;
-const char* lockerCodes[lockerCount] = {"L1", "L2", "L3", "L4"};
+const int lockerCount = 2;
+const char *lockerCodes[lockerCount] = {"L1", "L2"};
 
 // Pins
-const int relayPin = 23;   // L1 real lock
-const int ledPins[lockerCount] = {23, 18, 19, 25}; // L2–L4 LEDs (L1 uses relay, L4 moved to pin 25 for OLED)
+const int relayPin = 23;   // L1 relay
+const int relayPinL2 = 18; // L2 relay
 const int ledBuiltin = 2;
+
+// LED Strip Pins and Configuration
+#define L1_STRIP_PIN 19
+#define L2_STRIP_PIN 25
+#define LED_COUNT 14
+
+Adafruit_NeoPixel stripL1(LED_COUNT, L1_STRIP_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel stripL2(LED_COUNT, L2_STRIP_PIN, NEO_GRB + NEO_KHZ800);
 const int doorSensorPin = 4;
 const int doorSensorPinL2 = 17;
 const int doorIndicatorPin = 16; // External LED for L1 door open/close status
-const int beeperPin = 27; // 3-pin buzzer module I/O
-const bool beeperActiveLow = true; // This buzzer module variant is LOW-trigger in most cases
+const int beeperPin = 27;        // 3-pin buzzer module I/O
+const bool beeperActiveLow =
+    true; // This buzzer module variant is LOW-trigger in most cases
 
 // Vibration sensor (L1 security)
-const int vibrationSensorPin = 26;  // SW-420 Digital Output
+const int vibrationSensorPin = 26; // SW-420 Digital Output
 
 // OLED Display pins (I2C)
 const int SDA_PIN = 21;
@@ -49,9 +58,13 @@ char lockerStateTopics[lockerCount][64];
 char lockerDoorTopics[lockerCount][64];
 char lockerBookingTopics[lockerCount][64];
 char lockerSecurityTopics[lockerCount][64];
+char lockerMaintenanceTopics[lockerCount][64];
 char legacyControlTopics[lockerCount][64];
 char legacyBookingTopics[lockerCount][64];
 char legacySecurityTopics[lockerCount][64];
+char legacyMaintenanceTopics[lockerCount][64];
+
+bool lockerIsMaintenance[lockerCount] = {false, false};
 
 WiFiClientSecure wifiClient;
 PubSubClient mqttClient(wifiClient);
@@ -75,16 +88,21 @@ String doorStateDisplayL2 = "CLOSED";
 String locker2BookingDisplay = "FREE";
 bool locker1IsLocked = true;
 bool locker2IsLocked = true;
-bool securityAlarmActive = false;
+bool securityAlarmActiveL1 = false;
+bool securityAlarmActiveL2 = false;
 bool securityBeeperOn = false;
-bool securityIgnoreLatched = false;
+bool securityIgnoreLatchedL1 = false;
+bool securityIgnoreLatchedL2 = false;
+bool ledBlinkState = false;
 unsigned long securityAlarmLastToggleAt = 0;
-const unsigned long securityAlarmIntervalMs = 3000;
+const unsigned long securityAlarmIntervalMs = 150; // Police siren rapid toggle
 unsigned long securityWarningAnimationLastStepAt = 0;
 int securityWarningWordX = 0;
 int securityWarningWordDirection = 1;
 bool displayNeedsUpdate = true;
 bool displayNeedsUpdateL2 = true;
+unsigned long lastDisplayRefreshAt = 0;
+const unsigned long displayRefreshIntervalMs = 5000;
 
 void setSecurityBeeper(bool on) {
   securityBeeperOn = on;
@@ -107,69 +125,129 @@ void runBeeperStartupTest() {
   Serial.println("Beeper self-test end");
 }
 
-void clearSecurityAlarm(bool forceDoorClosed) {
-  if (!securityAlarmActive && !forceDoorClosed) {
-    return;
-  }
+void clearSecurityAlarm(int i, bool forceDoorClosed) {
+  if (i == 0) {
+    if (!securityAlarmActiveL1 && !forceDoorClosed) {
+      return;
+    }
 
-  securityAlarmActive = false;
-  vibrationDetected = false;
-  if (!forceDoorClosed) {
-    securityIgnoreLatched = false;
-  }
-  setSecurityBeeper(false);
+    securityAlarmActiveL1 = false;
+    vibrationDetected = false;
+    if (!forceDoorClosed) {
+      securityIgnoreLatchedL1 = false;
+    }
 
-  if (forceDoorClosed) {
-    securityIgnoreLatched = true;
-    digitalWrite(doorIndicatorPin, LOW);
-    doorStateDisplay = "CLOSED";
-    lastDoorState = "CLOSED";
-    mqttClient.publish(lockerDoorTopics[0], "CLOSED", true);
-  }
+    if (!securityAlarmActiveL2) {
+      setSecurityBeeper(false);
+    }
 
-  lockerActionDisplay = "";
-  securityWarningWordX = 0;
-  securityWarningWordDirection = 1;
-  displayNeedsUpdate = true;
+    if (forceDoorClosed) {
+      securityIgnoreLatchedL1 = true;
+      digitalWrite(doorIndicatorPin, LOW);
+      doorStateDisplay = "CLOSED";
+      lastDoorState = "CLOSED";
+      mqttClient.publish(lockerDoorTopics[0], "CLOSED", true);
+    }
+
+    lockerActionDisplay = "";
+    securityWarningWordX = 0;
+    securityWarningWordDirection = 1;
+    displayNeedsUpdate = true;
+  } else if (i == 1) {
+    if (!securityAlarmActiveL2 && !forceDoorClosed) {
+      return;
+    }
+
+    securityAlarmActiveL2 = false;
+    if (!forceDoorClosed) {
+      securityIgnoreLatchedL2 = false;
+    }
+
+    if (!securityAlarmActiveL1) {
+      setSecurityBeeper(false);
+    }
+
+    if (forceDoorClosed) {
+      securityIgnoreLatchedL2 = true;
+      doorStateDisplayL2 = "CLOSED";
+      lastDoorStateL2 = "CLOSED";
+      mqttClient.publish(lockerDoorTopics[1], "CLOSED", true);
+    }
+    displayNeedsUpdateL2 = true;
+  }
+  updateLockerLeds();
 }
 
-void triggerSecurityAlarm(const char* reason) {
-  if (securityAlarmActive) {
-    return;
+void triggerSecurityAlarm(int i, const char *reason) {
+  if (i == 0) {
+    if (securityAlarmActiveL1) {
+      return;
+    }
+    securityAlarmActiveL1 = true;
+    securityAlarmLastToggleAt = millis();
+    setSecurityBeeper(true);
+    lockerActionDisplay = "SECURITY!";
+    displayNeedsUpdate = true;
+
+    Serial.printf("SECURITY ALERT (L1): %s\n", reason);
+    mqttClient.publish(lockerSecurityTopics[0], "ALERT", true);
+  } else if (i == 1) {
+    if (securityAlarmActiveL2) {
+      return;
+    }
+    securityAlarmActiveL2 = true;
+    securityAlarmLastToggleAt = millis();
+    setSecurityBeeper(true);
+    displayNeedsUpdateL2 = true;
+
+    Serial.printf("SECURITY ALERT (L2): %s\n", reason);
+    mqttClient.publish(lockerSecurityTopics[1], "ALERT", true);
   }
-
-  securityAlarmActive = true;
-  securityAlarmLastToggleAt = millis();
-  setSecurityBeeper(true);
-  lockerActionDisplay = "SECURITY!";
-  displayNeedsUpdate = true;
-
-  Serial.printf("SECURITY ALERT (L1): %s\n", reason);
-  mqttClient.publish(lockerSecurityTopics[0], "ALERT", true);
 }
 
 void updateSecurityAlarm() {
-  if (!securityAlarmActive) {
+  if (!securityAlarmActiveL1 && !securityAlarmActiveL2) {
     return;
   }
 
   unsigned long now = millis();
 
-  if (now - securityWarningAnimationLastStepAt >= 180) {
-    securityWarningAnimationLastStepAt = now;
-    securityWarningWordX += securityWarningWordDirection;
-    if (securityWarningWordX >= 78) {
-      securityWarningWordDirection = -1;
-    } else if (securityWarningWordX <= 0) {
-      securityWarningWordDirection = 1;
+  if (securityAlarmActiveL1) {
+    if (now - securityWarningAnimationLastStepAt >= 180) {
+      securityWarningAnimationLastStepAt = now;
+      securityWarningWordX += securityWarningWordDirection;
+      if (securityWarningWordX >= 78) {
+        securityWarningWordDirection = -1;
+      } else if (securityWarningWordX <= 0) {
+        securityWarningWordDirection = 1;
+      }
+      displayNeedsUpdate = true;
     }
-    displayNeedsUpdate = true;
   }
 
   if (now - securityAlarmLastToggleAt >= securityAlarmIntervalMs) {
     securityAlarmLastToggleAt = now;
     setSecurityBeeper(!securityBeeperOn);
-    Serial.printf("Security beeper toggled: %s\n", securityBeeperOn ? "ON" : "OFF");
+    
+    ledBlinkState = !ledBlinkState;
+    
+    if (securityAlarmActiveL1) {
+      if (ledBlinkState) {
+        stripL1.fill(stripL1.Color(255, 0, 0)); // Red
+      } else {
+        stripL1.fill(stripL1.Color(0, 0, 255)); // Blue
+      }
+      stripL1.show();
+    }
+    
+    if (securityAlarmActiveL2) {
+      if (ledBlinkState) {
+        stripL2.fill(stripL2.Color(255, 0, 0)); // Red
+      } else {
+        stripL2.fill(stripL2.Color(0, 0, 255)); // Blue
+      }
+      stripL2.show();
+    }
   }
 }
 
@@ -178,7 +256,7 @@ void updateDisplay() {
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
 
-  if (securityAlarmActive) {
+  if (securityAlarmActiveL1) {
     display.setTextSize(2);
     display.setCursor(0, 10);
     display.println("WARNING!");
@@ -201,48 +279,87 @@ void updateDisplay() {
     // Title
     display.setTextSize(2);
     display.println("LOCKER 1");
-    
+
     // Status
     display.setTextSize(1);
     display.print("State: ");
     display.println(lockerStateDisplay);
-    
+
     // Action
     if (lockerActionDisplay.length() > 0) {
       display.print("Action: ");
       display.println(lockerActionDisplay);
     }
-    
+
     // Door
     display.print("Door: ");
     display.println(doorStateDisplay);
-    
+
     // Booking
     display.print("Status: ");
     display.println(lockerBookingDisplay);
   }
-  
+
   display.display();
 }
 
 void updateDisplayL2() {
   displayL2.clearDisplay();
   displayL2.setTextColor(SSD1306_WHITE);
-  displayL2.setTextSize(1);
-  displayL2.setCursor(0, 0);
 
-  displayL2.setTextSize(2);
-  displayL2.println("LOCKER 2");
+  if (securityAlarmActiveL2) {
+    displayL2.setTextSize(2);
+    displayL2.setCursor(0, 10);
+    displayL2.println("WARNING!");
 
-  displayL2.setTextSize(1);
-  displayL2.print("State: ");
-  displayL2.println(locker2StateDisplay);
-  displayL2.print("Door: ");
-  displayL2.println(doorStateDisplayL2);
-  displayL2.print("Status: ");
-  displayL2.println(locker2BookingDisplay);
+    displayL2.setTextSize(1);
+    displayL2.setCursor(0, 34);
+    displayL2.println("Door opened");
+
+    displayL2.setCursor(0, 52);
+    displayL2.println("ALERT");
+  } else {
+    displayL2.setTextSize(1);
+    displayL2.setCursor(0, 0);
+
+    displayL2.setTextSize(2);
+    displayL2.println("LOCKER 2");
+
+    displayL2.setTextSize(1);
+    displayL2.print("State: ");
+    displayL2.println(locker2StateDisplay);
+    displayL2.print("Door: ");
+    displayL2.println(doorStateDisplayL2);
+    displayL2.print("Status: ");
+    displayL2.println(locker2BookingDisplay);
+  }
 
   displayL2.display();
+}
+
+// ---------------- UPDATE LOCKER LEDS ----------------
+void updateLockerLeds() {
+  if (!securityAlarmActiveL1) {
+    if (lockerIsMaintenance[0]) {
+      stripL1.fill(stripL1.Color(255, 255, 0)); // Yellow
+    } else if (lockerBookingDisplay == "BOOKED") {
+      stripL1.fill(stripL1.Color(255, 0, 0)); // Red
+    } else {
+      stripL1.fill(stripL1.Color(0, 255, 0)); // Green
+    }
+    stripL1.show();
+  }
+
+  if (!securityAlarmActiveL2) {
+    if (lockerIsMaintenance[1]) {
+      stripL2.fill(stripL2.Color(255, 255, 0)); // Yellow
+    } else if (locker2BookingDisplay == "BOOKED") {
+      stripL2.fill(stripL2.Color(255, 0, 0)); // Red
+    } else {
+      stripL2.fill(stripL2.Color(0, 255, 0)); // Green
+    }
+    stripL2.show();
+  }
 }
 
 // ---------------- APPLY STATE ----------------
@@ -253,38 +370,41 @@ void applyLockerState(int i, bool locked) {
     locker1IsLocked = locked;
 
     if (locked) {
-      digitalWrite(relayPin, LOW);   // OFF
+      digitalWrite(relayPin, LOW); // OFF
       digitalWrite(ledBuiltin, LOW);
       lockerStateDisplay = "LOCKED";
       lockerActionDisplay = "";
 
       if (doorStateDisplay == "OPEN") {
-        triggerSecurityAlarm("Door opened while locker is locked");
+        triggerSecurityAlarm(0, "Door opened while locker is locked");
       }
     } else {
-      digitalWrite(relayPin, HIGH);  // ON
+      digitalWrite(relayPin, HIGH); // ON
       digitalWrite(ledBuiltin, HIGH);
       lockerStateDisplay = "UNLOCKED";
       lockerActionDisplay = "";
-      securityIgnoreLatched = false;
-      clearSecurityAlarm(false);
+      securityIgnoreLatchedL1 = false;
+      clearSecurityAlarm(0, false);
     }
     displayNeedsUpdate = true;
   }
 
-  // 🔹 L2–L4 → LEDs
-  else {
-    if (i == 1) {
-      locker2IsLocked = locked;
-      locker2StateDisplay = locked ? "LOCKED" : "UNLOCKED";
-      displayNeedsUpdateL2 = true;
-    }
+  // 🔹 L2 → RELAY
+  else if (i == 1) {
+    locker2IsLocked = locked;
+    locker2StateDisplay = locked ? "LOCKED" : "UNLOCKED";
 
     if (locked) {
-      digitalWrite(ledPins[i], LOW);   // OFF
+      digitalWrite(relayPinL2, LOW); // OFF
+      if (doorStateDisplayL2 == "OPEN") {
+        triggerSecurityAlarm(1, "Door opened while locker is locked");
+      }
     } else {
-      digitalWrite(ledPins[i], HIGH);  // ON
+      digitalWrite(relayPinL2, HIGH); // ON
+      securityIgnoreLatchedL2 = false;
+      clearSecurityAlarm(1, false);
     }
+    displayNeedsUpdateL2 = true;
   }
 
   // Publish state
@@ -296,32 +416,51 @@ void applyLockerState(int i, bool locked) {
 }
 
 void publishDoorStateL2() {
-  String currentDoorState = digitalRead(doorSensorPinL2) == HIGH ? "OPEN" : "CLOSED";
+  String currentDoorState =
+      digitalRead(doorSensorPinL2) == HIGH ? "OPEN" : "CLOSED";
+
+  if (securityIgnoreLatchedL2 && locker2IsLocked) {
+    if (currentDoorState == "OPEN") {
+      return;
+    }
+    securityIgnoreLatchedL2 = false;
+  }
 
   if (currentDoorState != lastDoorStateL2) {
-    Serial.printf("Door sensor L2: %s -> publishing %s to %s\n", currentDoorState.c_str(), currentDoorState.c_str(), lockerDoorTopics[1]);
+    Serial.printf("Door sensor L2: %s -> publishing %s to %s\n",
+                  currentDoorState.c_str(), currentDoorState.c_str(),
+                  lockerDoorTopics[1]);
     mqttClient.publish(lockerDoorTopics[1], currentDoorState.c_str(), true);
     lastDoorStateL2 = currentDoorState;
 
     doorStateDisplayL2 = currentDoorState;
     displayNeedsUpdateL2 = true;
 
-    // Auto-lock L2 when user closes the door after using locker.
-    if (currentDoorState == "CLOSED" && !locker2IsLocked) {
-      applyLockerState(1, true);
+    if (currentDoorState == "OPEN" && locker2IsLocked) {
+      triggerSecurityAlarm(1, "Door sensor reported OPEN while locked");
+    }
+
+    if (currentDoorState == "CLOSED") {
+      clearSecurityAlarm(1, false);
+
+      // Auto-lock L2 when user closes the door after using locker.
+      if (!locker2IsLocked) {
+        applyLockerState(1, true);
+      }
     }
   }
 }
 
 // ---------------- DOOR SENSOR (L1 ONLY) ----------------
 void publishDoorState() {
-  String currentDoorState = digitalRead(doorSensorPin) == HIGH ? "OPEN" : "CLOSED";
+  String currentDoorState =
+      digitalRead(doorSensorPin) == HIGH ? "OPEN" : "CLOSED";
 
-  if (securityIgnoreLatched && locker1IsLocked) {
+  if (securityIgnoreLatchedL1 && locker1IsLocked) {
     if (currentDoorState == "OPEN") {
       return;
     }
-    securityIgnoreLatched = false;
+    securityIgnoreLatchedL1 = false;
   }
 
   if (currentDoorState == "OPEN") {
@@ -331,21 +470,23 @@ void publishDoorState() {
   }
 
   if (currentDoorState != lastDoorState) {
-    Serial.printf("Door sensor: %s -> publishing %s to %s\n", currentDoorState.c_str(), currentDoorState.c_str(), lockerDoorTopics[0]);
+    Serial.printf("Door sensor: %s -> publishing %s to %s\n",
+                  currentDoorState.c_str(), currentDoorState.c_str(),
+                  lockerDoorTopics[0]);
     mqttClient.publish(lockerDoorTopics[0], currentDoorState.c_str(), true);
     lastDoorState = currentDoorState;
-    
+
     // Update display
     doorStateDisplay = currentDoorState;
     displayNeedsUpdate = true;
 
     if (currentDoorState == "OPEN" && locker1IsLocked) {
       vibrationDetected = false;
-      triggerSecurityAlarm("Door sensor reported OPEN while locked");
+      triggerSecurityAlarm(0, "Door sensor reported OPEN while locked");
     }
 
     if (currentDoorState == "CLOSED") {
-      clearSecurityAlarm(false);
+      clearSecurityAlarm(0, false);
 
       // Auto-lock L1 when user closes the door after using locker.
       if (!locker1IsLocked) {
@@ -356,7 +497,7 @@ void publishDoorState() {
 }
 
 // ---------------- MQTT CALLBACK ----------------
-void mqttCallback(char* topic, byte* payload, unsigned int length) {
+void mqttCallback(char *topic, byte *payload, unsigned int length) {
 
   String message;
   for (unsigned int i = 0; i < length; i++) {
@@ -370,34 +511,75 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
   String incomingTopic = String(topic);
 
-  // Booking status updates for Locker 1 OLED (supports canonical + legacy topics)
-  if (incomingTopic == lockerBookingTopics[0] || incomingTopic == legacyBookingTopics[0]) {
-    if (message == "BOOKED" || message == "TRUE" || message == "1" || message == "YES" || message == "OCCUPIED") {
+  // Booking status updates for Locker 1 OLED (supports canonical + legacy
+  // topics)
+  if (incomingTopic == lockerBookingTopics[0] ||
+      incomingTopic == legacyBookingTopics[0]) {
+    if (message == "BOOKED" || message == "TRUE" || message == "1" ||
+        message == "YES" || message == "OCCUPIED") {
       lockerBookingDisplay = "BOOKED";
       displayNeedsUpdate = true;
-    } else if (message == "FREE" || message == "FALSE" || message == "0" || message == "NO" || message == "AVAILABLE") {
+    } else if (message == "FREE" || message == "FALSE" || message == "0" ||
+               message == "NO" || message == "AVAILABLE") {
       lockerBookingDisplay = "FREE";
       displayNeedsUpdate = true;
     }
+    updateLockerLeds();
   }
 
-  if (incomingTopic == lockerBookingTopics[1] || incomingTopic == legacyBookingTopics[1]) {
-    if (message == "BOOKED" || message == "TRUE" || message == "1" || message == "YES" || message == "OCCUPIED") {
+  if (incomingTopic == lockerBookingTopics[1] ||
+      incomingTopic == legacyBookingTopics[1]) {
+    if (message == "BOOKED" || message == "TRUE" || message == "1" ||
+        message == "YES" || message == "OCCUPIED") {
       locker2BookingDisplay = "BOOKED";
       displayNeedsUpdateL2 = true;
-    } else if (message == "FREE" || message == "FALSE" || message == "0" || message == "NO" || message == "AVAILABLE") {
+    } else if (message == "FREE" || message == "FALSE" || message == "0" ||
+               message == "NO" || message == "AVAILABLE") {
       locker2BookingDisplay = "FREE";
       displayNeedsUpdateL2 = true;
     }
+    updateLockerLeds();
+  }
+
+  if (incomingTopic == lockerMaintenanceTopics[0] ||
+      incomingTopic == legacyMaintenanceTopics[0]) {
+    if (message == "MAINTENANCE_ON") {
+      lockerIsMaintenance[0] = true;
+    } else if (message == "MAINTENANCE_OFF") {
+      lockerIsMaintenance[0] = false;
+    }
+    updateLockerLeds();
+  }
+
+  if (incomingTopic == lockerMaintenanceTopics[1] ||
+      incomingTopic == legacyMaintenanceTopics[1]) {
+    if (message == "MAINTENANCE_ON") {
+      lockerIsMaintenance[1] = true;
+    } else if (message == "MAINTENANCE_OFF") {
+      lockerIsMaintenance[1] = false;
+    }
+    updateLockerLeds();
   }
 
   // Security ignore command for Locker 1 (stops beeper and normalizes state)
-  if (incomingTopic == lockerSecurityTopics[0] || incomingTopic == legacySecurityTopics[0]) {
+  if (incomingTopic == lockerSecurityTopics[0] ||
+      incomingTopic == legacySecurityTopics[0]) {
     if (message == "IGNORE") {
       Serial.println("Security alert ignored by user/admin");
       bool doorCurrentlyOpen = digitalRead(doorSensorPin) == HIGH;
       bool forceDoorClosed = locker1IsLocked && doorCurrentlyOpen;
-      clearSecurityAlarm(forceDoorClosed);
+      clearSecurityAlarm(0, forceDoorClosed);
+    }
+  }
+
+  // Security ignore command for Locker 2
+  if (incomingTopic == lockerSecurityTopics[1] ||
+      incomingTopic == legacySecurityTopics[1]) {
+    if (message == "IGNORE") {
+      Serial.println("Security alert ignored for Locker 2 by user/admin");
+      bool doorCurrentlyOpen = digitalRead(doorSensorPinL2) == HIGH;
+      bool forceDoorClosed = locker2IsLocked && doorCurrentlyOpen;
+      clearSecurityAlarm(1, forceDoorClosed);
     }
   }
 
@@ -444,13 +626,20 @@ void connectMqtt() {
         mqttClient.subscribe(legacyBookingTopics[i]);
         mqttClient.subscribe(lockerSecurityTopics[i]);
         mqttClient.subscribe(legacySecurityTopics[i]);
+        mqttClient.subscribe(lockerMaintenanceTopics[i]);
+        mqttClient.subscribe(legacyMaintenanceTopics[i]);
 
         Serial.printf("Subscribed: %s\n", lockerControlTopics[i]);
         Serial.printf("Subscribed (legacy): %s\n", legacyControlTopics[i]);
         Serial.printf("Subscribed booking: %s\n", lockerBookingTopics[i]);
-        Serial.printf("Subscribed booking (legacy): %s\n", legacyBookingTopics[i]);
+        Serial.printf("Subscribed booking (legacy): %s\n",
+                      legacyBookingTopics[i]);
         Serial.printf("Subscribed security: %s\n", lockerSecurityTopics[i]);
-        Serial.printf("Subscribed security (legacy): %s\n", legacySecurityTopics[i]);
+        Serial.printf("Subscribed security (legacy): %s\n",
+                      legacySecurityTopics[i]);
+        Serial.printf("Subscribed maintenance: %s\n", lockerMaintenanceTopics[i]);
+        Serial.printf("Subscribed maintenance (legacy): %s\n",
+                      legacyMaintenanceTopics[i]);
         Serial.printf("Door topic: %s\n", lockerDoorTopics[i]);
 
         applyLockerState(i, true); // default LOCKED
@@ -476,16 +665,15 @@ void checkVibrationSensor() {
   }
 
   // Debounce: only process state changes after debounce period
-  if (sensorState == HIGH && !vibrationDetected && now - vibrationLastDetectedAt >= vibrationDebounceMs) {
+  if (sensorState == HIGH && !vibrationDetected &&
+      now - vibrationLastDetectedAt >= vibrationDebounceMs) {
     vibrationDetected = true;
     vibrationLastDetectedAt = now;
     Serial.println("VIBRATION DETECTED on L1 while locked!");
-    triggerSecurityAlarm("Vibration detected - possible break-in");
+    triggerSecurityAlarm(0, "Vibration detected - possible break-in");
     mqttClient.publish(lockerSecurityTopics[0], "VIBRATION_ALERT", true);
   }
 }
-
-
 
 // ---------------- SETUP ----------------
 void setup() {
@@ -500,17 +688,20 @@ void setup() {
     snprintf(lockerStateTopics[i], sizeof(lockerStateTopics[i]),
              "locker/%s/state", lockerCodes[i]);
 
-    snprintf(lockerDoorTopics[i], sizeof(lockerDoorTopics[i]),
-         "locker/%s/door", lockerCodes[i]);
+    snprintf(lockerDoorTopics[i], sizeof(lockerDoorTopics[i]), "locker/%s/door",
+             lockerCodes[i]);
 
     snprintf(lockerBookingTopics[i], sizeof(lockerBookingTopics[i]),
              "locker/%s/booking", lockerCodes[i]);
 
     snprintf(lockerSecurityTopics[i], sizeof(lockerSecurityTopics[i]),
-         "locker/%s/security", lockerCodes[i]);
+             "locker/%s/security", lockerCodes[i]);
+
+    snprintf(lockerMaintenanceTopics[i], sizeof(lockerMaintenanceTopics[i]),
+             "locker/%s/maintenance", lockerCodes[i]);
 
     // Legacy topic (locker/1/control)
-    const char* codePart = lockerCodes[i];
+    const char *codePart = lockerCodes[i];
     if (lockerCodes[i][0] == 'L') {
       codePart = lockerCodes[i] + 1;
     }
@@ -519,10 +710,13 @@ void setup() {
              "locker/%s/control", codePart);
 
     snprintf(legacyBookingTopics[i], sizeof(legacyBookingTopics[i]),
-           "locker/%s/booking", codePart);
+             "locker/%s/booking", codePart);
 
     snprintf(legacySecurityTopics[i], sizeof(legacySecurityTopics[i]),
-         "locker/%s/security", codePart);
+             "locker/%s/security", codePart);
+
+    snprintf(legacyMaintenanceTopics[i], sizeof(legacyMaintenanceTopics[i]),
+             "locker/%s/maintenance", codePart);
 
     Serial.printf("Locker: %s\n", lockerCodes[i]);
     Serial.printf("Topic: %s\n", lockerControlTopics[i]);
@@ -530,19 +724,29 @@ void setup() {
 
   // Pin setup
   pinMode(relayPin, OUTPUT);
+  pinMode(relayPinL2, OUTPUT);
   pinMode(ledBuiltin, OUTPUT);
   pinMode(doorSensorPin, INPUT_PULLUP);
   pinMode(doorSensorPinL2, INPUT_PULLUP);
   pinMode(doorIndicatorPin, OUTPUT);
   pinMode(beeperPin, OUTPUT);
-  pinMode(vibrationSensorPin, INPUT);  // SW-420 vibration sensor
+  pinMode(vibrationSensorPin, INPUT); // SW-420 vibration sensor
   digitalWrite(doorIndicatorPin, LOW);
   setSecurityBeeper(false);
   runBeeperStartupTest();
 
-  for (int i = 1; i < lockerCount; i++) {
-    pinMode(ledPins[i], OUTPUT);
-  }
+  // Initialize LED Strips
+  stripL1.begin();
+  stripL1.setBrightness(20);
+  stripL1.clear();
+  stripL1.show();
+
+  stripL2.begin();
+  stripL2.setBrightness(20);
+  stripL2.clear();
+  stripL2.show();
+
+  updateLockerLeds();
 
   // Initialize OLED Display
   Wire.begin(SDA_PIN, SCL_PIN);
@@ -596,8 +800,15 @@ void loop() {
   publishDoorState();
   publishDoorStateL2();
   updateSecurityAlarm();
-  checkVibrationSensor();  // Monitor vibrations when locked
-  
+  checkVibrationSensor(); // Monitor vibrations when locked
+
+  unsigned long now = millis();
+  if (now - lastDisplayRefreshAt >= displayRefreshIntervalMs) {
+    lastDisplayRefreshAt = now;
+    displayNeedsUpdate = true;
+    displayNeedsUpdateL2 = true;
+  }
+
   // Update display if needed
   if (displayNeedsUpdate) {
     updateDisplay();

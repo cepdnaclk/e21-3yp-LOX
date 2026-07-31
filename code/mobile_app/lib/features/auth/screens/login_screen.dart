@@ -291,7 +291,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-            const Text(
+            Text(
               'Welcome Back',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -302,7 +302,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'ENTER CREDENTIALS TO ACCESS LOCKER',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -313,7 +313,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(height: 36),
-            const Text(
+            Text(
               'EMAIL ADDRESS',
               style: TextStyle(
                 fontSize: 11,
@@ -335,7 +335,7 @@ class _LoginScreenState extends State<LoginScreen> {
               hintColor: AppColors.textHint,
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'PASSWORD',
               style: TextStyle(
                 fontSize: 11,
@@ -576,7 +576,7 @@ class _LockerTextField extends StatelessWidget {
         textInputAction: textInputAction,
         onSubmitted: onSubmitted,
         autofillHints: autofillHints,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           color: AppColors.textField,
           fontWeight: FontWeight.w500,

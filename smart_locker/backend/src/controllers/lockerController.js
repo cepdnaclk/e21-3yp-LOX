@@ -4,7 +4,7 @@ const { listLockers, createLocker, commandLocker } = require('../services/locker
 const Locker = require('../models/Locker');
 const Station = require('../models/Station');
 const { assignWaitingQueue } = require('../services/requestService');
-const { publishLockerBookingStatus, publishLockerSecurityIgnoreCommand, logEvent } = require('../services/mqttService');
+const { publishLockerBookingStatus, publishLockerMaintenanceStatus, publishLockerSecurityIgnoreCommand, logEvent } = require('../services/mqttService');
 const { Roles, ReservationPhase } = require('../constants/enums');
 const { sendPushNotification } = require('../services/notificationService');
 const { getReservationPhase } = require('../services/overdueService');
@@ -179,11 +179,31 @@ const toggleMaintenanceHandler = asyncHandler(async (req, res) => {
   locker.isMaintenance = !locker.isMaintenance;
   await locker.save();
 
+  await publishLockerMaintenanceStatus(locker);
+
   if (!locker.isMaintenance && !locker.isBooked) {
     await assignWaitingQueue(locker.stationId);
   }
 
   return success(res, { message: `Locker maintenance mode ${locker.isMaintenance ? 'enabled' : 'disabled'}` });
+});
+
+const deleteLockerHandler = asyncHandler(async (req, res) => {
+  const locker = await Locker.findById(req.params.lockerId);
+  if (!locker) {
+    return res.status(404).json({ message: 'Locker not found' });
+  }
+
+  if (!canAccessStation(req.user, locker.stationId)) {
+    return res.status(403).json({ message: 'Station access denied' });
+  }
+
+  if (locker.isBooked) {
+    return res.status(400).json({ message: 'Cannot delete a locker that is currently occupied. Release it first.' });
+  }
+
+  await locker.deleteOne();
+  return success(res, { message: `Locker ${locker.code} deleted successfully` });
 });
 
 module.exports = {
@@ -194,5 +214,6 @@ module.exports = {
   lockLockerHandler,
   releaseLockerHandler,
   ignoreSecurityAlertHandler,
-  toggleMaintenanceHandler
+  toggleMaintenanceHandler,
+  deleteLockerHandler
 };
